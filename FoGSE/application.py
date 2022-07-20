@@ -1,11 +1,9 @@
-
-
 import sys, typing
 from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QIcon
 
-from visualization import DetectorArrayDisplay, DetectorPanel
+from FoGSE.visualization import DetectorArrayDisplay, DetectorPanel
 
 ORG_NAME = "FOXSI"
 APP_NAME = "GSE-FOXSI-4"
@@ -25,6 +23,7 @@ class GSEMain(QMainWindow):
         self.setCentralWidget(DetectorArrayDisplay(self))
         # self.setCentralWidget(DetectorPanel(self))
         print(self.width(), self.height())
+        
         # spawn threads
 
     def _restoreSettings(self):
@@ -33,8 +32,3 @@ class GSEMain(QMainWindow):
         # someSetting = settings.value("<some setting key>", QByteArray()).toByteArray()
         # if someSetting.isEmpty():
         #     return default
-
-app = QApplication([])
-window = GSEMain()
-window.show()
-sys.exit(app.exec())
