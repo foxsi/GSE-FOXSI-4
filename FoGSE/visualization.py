@@ -43,6 +43,8 @@ class DetectorPanel(QWidget):
         self.modalPlotButton = QPushButton("Focus Plot", self)
         self.modalImageButton = QPushButton("Strips/Pixels", self)
         self.modalParamsButton = QPushButton("Parameters", self)
+        self.debugButton = QPushButton("DEBUG", self)
+        self.debugButton.setStyleSheet("background-color: red")
 
         self.plotADCButton = QRadioButton("Plot in ADC bin", self)
         self.plotADCButton.setChecked(True)
@@ -100,7 +102,11 @@ class DetectorPanel(QWidget):
         self.layoutRightTop.addStretch(self.spacing)
         
         self.layoutRightBottom = QVBoxLayout()
-        self.layoutLeftTop.addStretch(self.spacing)
+        self.layoutRightBottom.addStretch(self.spacing)
+        self.layoutRightBottom.addWidget(
+            self.debugButton,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignBottom
+        )
 
         self.layoutLeft = QVBoxLayout()
         self.layoutLeft.addLayout(self.layoutLeftTop)
@@ -119,6 +125,7 @@ class DetectorPanel(QWidget):
         
         # connect to callbacks
         self.modalPlotButton.clicked.connect(self.modalPlotButtonClicked)
+        self.debugButton.clicked.connect(self.debugButtonClicked)
         self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
         self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
 
@@ -136,6 +143,14 @@ class DetectorPanel(QWidget):
     
     def plotEnergyButtonClicked(self, events):
         print("plotting in energy space")
+
+    def debugButtonClicked(self, events):
+        # print(self.children())
+        for child in self.children():
+            if isinstance(child, QWidget):
+                print("widget size: ", "W: ", child.width(), "\tH: ", child.height())
+        # for p, v in vars(self).items():
+        #     print(p, ":", v)
 
 class DetectorArrayDisplay(QWidget):
     def __init__(self, parent=None):

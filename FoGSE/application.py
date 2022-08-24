@@ -19,11 +19,8 @@ class GSEMain(QMainWindow):
         self.setWindowTitle(APP_NAME)
 
         # self.widgets = DetectorPanel()                  # add widgets to display
-        print(self.width(), self.height())
         self.setCentralWidget(DetectorArrayDisplay(self))
-        # self.setCentralWidget(DetectorPanel(self))
-        print(self.width(), self.height())
-        
+
         # spawn threads
 
     def _restoreSettings(self):
@@ -32,3 +29,18 @@ class GSEMain(QMainWindow):
         # someSetting = settings.value("<some setting key>", QByteArray()).toByteArray()
         # if someSetting.isEmpty():
         #     return default
+
+# convenience class to display a single detector panel in the app
+class GSEFocus(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        QApplication.setOrganizationName(ORG_NAME)      # set organization name
+        QApplication.setApplicationName(APP_NAME)       # set application name
+        # self.settings = self._restoreSettings()         # restore old settings
+        
+        self.setGeometry(100,100,1280,800)
+        self.setWindowTitle(APP_NAME)
+
+        print(self.width(), self.height())
+        self.setCentralWidget(DetectorPanel(self))
+        print(self.width(), self.height())
