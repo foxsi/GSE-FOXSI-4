@@ -1,11 +1,11 @@
-import sys, typing, math
+import sys, typing, logging, math
 import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
 import pyqtgraph as pg
 
-
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 class AbstractVisualization(QWidget):
     def __init__(self):
@@ -58,7 +58,7 @@ class DetectorPanel(QWidget):
         self.plotADCButton = QRadioButton("Plot in ADC bin", self)
         self.plotADCButton.setChecked(True)
         self.plotEnergyButton = QRadioButton("Plot in energy bin", self)
-        self.restyleToMatchButton = QPushButton("Restyle all widgets", self)
+        self.plotStyleButton = QPushButton("Plot style", self)
 
         self.temperatureLabel = QLabel("Temperature (ºC):", self)
         self.voltageLabel = QLabel("Voltage (mV):", self)
@@ -105,7 +105,7 @@ class DetectorPanel(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.layoutRightTop.addWidget(
-            self.restyleToMatchButton,
+            self.plotStyleButton,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.layoutRightTop.addStretch(self.spacing)
@@ -145,13 +145,16 @@ class DetectorPanel(QWidget):
     #     # button.move(100,100)
 
     def modalPlotButtonClicked(self, events):
-        print("focus plot")
+        logging.debug("focusing plot")
+
+    def modalImageButtonClicked(self, events):
+        logging.debug("edit px/strips")
 
     def plotADCButtonClicked(self, events):
-        print("plotting in ADC space")
+        logging.debug("plotting in ADC space")
     
     def plotEnergyButtonClicked(self, events):
-        print("plotting in energy space")
+        logging.debug("plotting in energy space")
 
 
 
@@ -184,8 +187,8 @@ class DetectorArrayDisplay(QWidget):
             y = self.center[1] + self.hradius*math.sin(2*math.pi*i/6)
             self.hexagon.append([x,y])
 
-        print("semiwidth: ", self.panelWidth, ", semiheight: ", self.panelHeight)
-        print("hexagon: ", self.hexagon)
+        logging.debug("semiwidth: ", self.panelWidth, ", semiheight: ", self.panelHeight)
+        logging.debug("hexagon: ", self.hexagon)
 
         self.detectorPanels = [DetectorPanel(self)]
         for i in range(6):
@@ -218,13 +221,13 @@ class DetectorArrayDisplay(QWidget):
             ))
 
         grids = self.fitToGrid(rects, 20, 20, 1)
-        print("grids: ", grids)
+        logging.debug("grids: ", grids)
 
         intersections = self._rectsIntersect(grids[0], grids[1], grids[2], grids[3])
-        print("grid intersections: ", intersections)
+        logging.debug("grid intersections: ", intersections)
 
         intersectionsF = self._rectsIntersectF(xs, ys, widths, heights)
-        print("original intersections: ", intersectionsF)
+        logging.debug("original intersections: ", intersectionsF)
 
         # layouting
         self.layout = QGridLayout()
@@ -266,7 +269,7 @@ class DetectorArrayDisplay(QWidget):
         xhi = [gridpad + xscale*(xh[i] - min(xl)) for i in range(N)]
         yhi = [gridpad + yscale*(yh[i] - min(yl)) for i in range(N)]
 
-        print("xli: ", xli)
+        logging.debug("xli: ", xli)
 
         # scale widths/heights to grid space and round to grid
         widths = [round(xhi[i] - xli[i]) for i in range(N)]
@@ -290,7 +293,6 @@ class DetectorArrayDisplay(QWidget):
                     indexIntersect.append(rects[i].intersects(rects[j]))
         
         return indexIntersect
-
 
     def _rectsIntersectF(self, xs, ys, widths, heights):
         N = len(xs)

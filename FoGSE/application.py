@@ -1,9 +1,11 @@
-import sys, typing
+import sys, typing, logging
 from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QIcon
 
 from FOGSE.visualization import DetectorArrayDisplay, DetectorPanel
+
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 ORG_NAME = "FOXSI"
 APP_NAME = "GSE-FOXSI-4"
@@ -19,10 +21,10 @@ class GSEMain(QMainWindow):
         self.setWindowTitle(APP_NAME)
 
         # self.widgets = DetectorPanel()                  # add widgets to display
-        print(self.width(), self.height())
+        logging.debug(self.width(), self.height())
         self.setCentralWidget(DetectorArrayDisplay(self))
         # self.setCentralWidget(DetectorPanel(self))
-        print(self.width(), self.height())
+        logging.debug(self.width(), self.height())
         
         # spawn threads
 
@@ -43,7 +45,7 @@ class GSEFocus(QMainWindow):
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
 
-        print(self.width(), self.height())
+        logging.debug(self.width(), self.height())
         self.setCentralWidget(DetectorPanel(self))
-        print(self.width(), self.height())
+        logging.debug(self.width(), self.height())
         
