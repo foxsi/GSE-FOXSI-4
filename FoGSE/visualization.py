@@ -5,15 +5,14 @@ from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
 import pyqtgraph as pg
 
+
+
 class AbstractVisualization(QWidget):
-    
     def __init__(self):
         super().__init__()
         self.widgets = []               # store widgets that comprise the visualization
         self.layout = None              # store layout of widgets
         self.data = np.array([])        # store source data for display (may be singleton or whole spectra in dict etc.)
-        
-        pass
 
     def updateDisplay(self):
         pass
@@ -21,8 +20,20 @@ class AbstractVisualization(QWidget):
     def retrieveData(self, source):
         pass
 
+
+
 class DetectorPanel(QWidget):
     def __init__(self, parent=None):
+        """
+        Initialize a DetectorPanel (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
+
+        :param parent: Optional parent widget.
+        :type parent: PyQt6.QtWidgets.QWidget or None
+        :return: a new DetectorPanel object.
+        :rtype: DetectorPanel
+
+        """
+
         QWidget.__init__(self, parent)
 
         self.graphPane = pg.PlotWidget(self)
@@ -110,9 +121,14 @@ class DetectorPanel(QWidget):
         self.layoutRight.addLayout(self.layoutRightTop)
         self.layoutRight.addLayout(self.layoutRightBottom)
 
+        self.layoutCenter = QVBoxLayout()
+        self.layoutCenter.addWidget(self.graphPane)
+        self.layoutCenter.addSpacing(30)
+
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addLayout(self.layoutLeft)
-        self.layoutMain.addWidget(self.graphPane)
+        # self.layoutMain.addWidget(self.graphPane)
+        self.layoutMain.addLayout(self.layoutCenter)
         self.layoutMain.addLayout(self.layoutRight)
 
         self.setLayout(self.layoutMain)
@@ -136,6 +152,8 @@ class DetectorPanel(QWidget):
     
     def plotEnergyButtonClicked(self, events):
         print("plotting in energy space")
+
+
 
 class DetectorArrayDisplay(QWidget):
     def __init__(self, parent=None):
@@ -199,8 +217,6 @@ class DetectorArrayDisplay(QWidget):
                 self.panelHeight
             ))
 
-        
-
         grids = self.fitToGrid(rects, 20, 20, 1)
         print("grids: ", grids)
 
@@ -226,7 +242,6 @@ class DetectorArrayDisplay(QWidget):
         maxx = -np.Inf
         miny = np.Inf
         maxy = -np.Inf
-
 
         #  get corner coords for each  rect
         N = len(rects)
