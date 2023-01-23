@@ -36,6 +36,7 @@ class DetectorPanel(QWidget):
 
         QWidget.__init__(self, parent)
 
+        # set up the plot:
         self.graphPane = pg.PlotWidget(self)
         self.spacing = 20
         # view = self.graphPane.addViewBox()
@@ -51,6 +52,7 @@ class DetectorPanel(QWidget):
             ylabel="y"
         )
 
+        # initialize buttons:
         self.modalPlotButton = QPushButton("Focus Plot", self)
         self.modalImageButton = QPushButton("Strips/Pixels", self)
         self.modalParamsButton = QPushButton("Parameters", self)
@@ -131,12 +133,16 @@ class DetectorPanel(QWidget):
         self.layoutMain.addLayout(self.layoutCenter)
         self.layoutMain.addLayout(self.layoutRight)
 
+        # main layout
         self.setLayout(self.layoutMain)
         
         # connect to callbacks
         self.modalPlotButton.clicked.connect(self.modalPlotButtonClicked)
+        self.modalImageButton.clicked.connect(self.modalImageButtonClicked)
+        self.modalParamsButton.clicked.connect(self.modalParamsButtonClicked)
         self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
         self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
+        self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
 
         # self.createWidgets()
 
@@ -144,11 +150,15 @@ class DetectorPanel(QWidget):
     #     button = QPushButton("breakout plot", self)
     #     # button.move(100,100)
 
+    # callback functions:
     def modalPlotButtonClicked(self, events):
         logging.debug("focusing plot")
 
     def modalImageButtonClicked(self, events):
-        logging.debug("edit px/strips")
+        logging.debug("editing px/strips")
+    
+    def modalParamsButtonClicked(self, events):
+        logging.debug("editing detector parameters")    
 
     def plotADCButtonClicked(self, events):
         logging.debug("plotting in ADC space")
@@ -156,6 +166,8 @@ class DetectorPanel(QWidget):
     def plotEnergyButtonClicked(self, events):
         logging.debug("plotting in energy space")
 
+    def plotStyleButtonClicked(self, events):
+        logging.debug("changing plot style")
 
 
 class DetectorArrayDisplay(QWidget):
