@@ -14,5 +14,5 @@ GSE for calibration and flight operation of FOXSI-4.
     3.1 `% python -m <virtual-environment-path>` (I like to put it just in a subfolder of the git project)
     3.2 `% source <virtual-environment-path>/bin/activate` (see [here](https://docs.python.org/3/library/venv.html) for equivalent Windows command). This should turn your command prompt into `(<virtual-environment-path>)` followed by your usual prompt.
 4. `(venv) % pip install <package>` for all the [dependencies](#dependencies). The packages should be stored locally in your virtual environment.
-5. Inside `FoGSE/`, run `pip install -e .` to install the FoGSE package in an editable way. This makes it accessible to the `tests/` folder (see [here](https://stackoverflow.com/questions/6323860/sibling-package-imports/50193944#50193944) for more info on sharing Python modules to sibling directories).
-6. Then, in a sibling or child folder of `FoGSE/` you should be able to `import FoGSE.<module_name>`
+5. Inside `FOGSE/`, run `pip install -e .` to install the FOGSE package in an editable way. This makes it accessible to the `tests/` folder (see [here](https://stackoverflow.com/questions/6323860/sibling-package-imports/50193944#50193944) for more info on sharing Python modules to sibling directories).
+6. Then, in a sibling or child folder of `FOGSE/` you should be able to `import FOGSE.<module_name>`
