@@ -1,6 +1,7 @@
 import sys, typing, math
 import numpy as np
 from PyQt6 import QtCore
+from PyQt6.QtGui import QPainter, QBrush, QPen, QColor
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
 import pyqtgraph as pg
@@ -41,6 +42,7 @@ class DetectorPanel(QWidget):
         )
 
         self.modalPlotButton = QPushButton("Focus Plot", self)
+        # self.modalPlotButton.setStyleSheet("font-size: 12px")
         self.modalImageButton = QPushButton("Strips/Pixels", self)
         self.modalParamsButton = QPushButton("Parameters", self)
         self.debugButton = QPushButton("DEBUG", self)
@@ -100,7 +102,7 @@ class DetectorPanel(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.layoutRightTop.addStretch(self.spacing)
-        
+
         self.layoutRightBottom = QVBoxLayout()
         self.layoutRightBottom.addStretch(self.spacing)
         self.layoutRightBottom.addWidget(
@@ -235,7 +237,18 @@ class DetectorArrayDisplay(QWidget):
             )
         self.setLayout(self.layout)
         # self.setFixedSize(self.layout.sizeHint())
-    
+
+        # self.detectorBoundingBoxes = rects
+
+
+
+    # def paintEvent(self, event):
+    #     painter = QPainter(self)
+    #     painter.setPen(QPen(QColor(255,255,255), 2))
+    #     painter.setBrush(QBrush(QColor(32,32,32)))
+    #     for pane in self.detectorPanels:
+    #         painter.drawRect(pane.rect())
+
     def fitToGrid(self, rects, nrow, ncol, gridpad):
         minx = np.Inf
         maxx = -np.Inf
@@ -305,3 +318,12 @@ class DetectorArrayDisplay(QWidget):
                     indexIntersect.append(rects[i].intersects(rects[j]))
         
         return indexIntersect
+    
+    def _drawBoundingBoxes(self, rects):
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor(255,255,255), 2))
+        painter.setBrush(QBrush(QColor(32,32,32)))
+        for rect in rects:
+            painter.drawRect(rect)
+        
+        self.show()
