@@ -21,10 +21,10 @@ class GSEMain(QMainWindow):
         self.setWindowTitle(APP_NAME)
 
         # self.widgets = DetectorPanel()                  # add widgets to display
-        logging.debug(self.width(), self.height())
+        logging.debug(str(self.width()) + str(self.height()))
         self.setCentralWidget(DetectorArrayDisplay(self))
         # self.setCentralWidget(DetectorPanel(self))
-        logging.debug(self.width(), self.height())
+        logging.debug(str(self.width()) + str(self.height()))
         
         # spawn threads
 

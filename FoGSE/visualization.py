@@ -199,8 +199,9 @@ class DetectorArrayDisplay(QWidget):
             y = self.center[1] + self.hradius*math.sin(2*math.pi*i/6)
             self.hexagon.append([x,y])
 
-        logging.debug("semiwidth: ", self.panelWidth, ", semiheight: ", self.panelHeight)
-        logging.debug("hexagon: ", self.hexagon)
+        logging.debug("semiwidth: %s" % self.panelWidth) 
+        logging.debug("semiheight: %s" % self.panelHeight)
+        logging.debug("hexagon: %s" % self.hexagon)
 
         self.detectorPanels = [DetectorPanel(self)]
         for i in range(6):
@@ -225,7 +226,7 @@ class DetectorArrayDisplay(QWidget):
             widths.append(self.panelWidth)
             heights.append(self.panelHeight)
 
-            rects.append(QtCore.QRect(
+            rects.append(QtCore.QRectF(
                 self.hexagon[i][0] - self.panelWidth/2,
                 self.hexagon[i][1] - self.panelHeight/2,
                 self.panelWidth,
@@ -233,13 +234,8 @@ class DetectorArrayDisplay(QWidget):
             ))
 
         grids = self.fitToGrid(rects, 20, 20, 1)
-        logging.debug("grids: ", grids)
-
         intersections = self._rectsIntersect(grids[0], grids[1], grids[2], grids[3])
-        logging.debug("grid intersections: ", intersections)
-
         intersectionsF = self._rectsIntersectF(xs, ys, widths, heights)
-        logging.debug("original intersections: ", intersectionsF)
 
         # layouting
         self.layout = QGridLayout()
@@ -280,8 +276,6 @@ class DetectorArrayDisplay(QWidget):
         yli = [gridpad + yscale*(yl[i] - min(yl)) for i in range(N)]
         xhi = [gridpad + xscale*(xh[i] - min(xl)) for i in range(N)]
         yhi = [gridpad + yscale*(yh[i] - min(yl)) for i in range(N)]
-
-        logging.debug("xli: ", xli)
 
         # scale widths/heights to grid space and round to grid
         widths = [round(xhi[i] - xli[i]) for i in range(N)]
