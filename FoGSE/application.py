@@ -3,7 +3,7 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QIcon
 
-from FOGSE.visualization import DetectorArrayDisplay, DetectorPanel
+from FoGSE.visualization import DetectorArrayDisplay, DetectorPanel
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
