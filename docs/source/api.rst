@@ -4,5 +4,6 @@ API
 .. autosummary::
     :toctree: generated
 
-    FOGSE
-    .. autofunction:: FOGSE.visualization.DetectorPanel.__init__
+    FoGSE
+    .. autofunction:: FoGSE.visualization.DetectorPanel.__init__
+    .. autodoc:: FoGSE.communication.UplinkCommand

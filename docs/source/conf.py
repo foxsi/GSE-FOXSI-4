@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'FOGSE'
+project = 'FoGSE'
 copyright = '2023, Athanasios Pantazides, Yixian Zhang, Kris Cooper, ...'
 author = 'Athanasios Pantazides, Yixian Zhang, Kris Cooper, ...'
 release = '0.1'

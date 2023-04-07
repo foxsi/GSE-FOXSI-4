@@ -32,8 +32,10 @@ MACRO_COMMANDS = [
     "READ_FLAG"
 ]
 
-SUBSYSTEMS = [
-    "FORMATTER",
+SUBSYSTEMS = set([
+    "GSE",              # use for loopback
+    "FORMATTER",        # typical addressee for HOUSEKEEPING commands
+    "HOUSEKEEPING",     # can address uniquely for ground test
     "CMOS1",
     "CMOS2",
     "CDTE1",
@@ -42,7 +44,11 @@ SUBSYSTEMS = [
     "CDTE4",
     "CDTEDE",
     "TIMEPIX"
-]
+])
+
+UPLINK_PACKET_ID_DELIM = " "
+UPLINK_PACKET_SUBSYSTEM_DELIM = " "
+UPLINK_PACKET_COMMAND_DELIM = " "
 
 def DEBUG_PRINT(string):
     if DEBUG:

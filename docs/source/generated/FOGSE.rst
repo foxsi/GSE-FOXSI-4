@@ -1,7 +1,7 @@
-﻿FOGSE
+﻿FoGSE
 =====
 
-.. automodule:: FOGSE
+.. automodule:: FoGSE
 
    
    

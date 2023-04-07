@@ -13,20 +13,22 @@ APP_NAME = "GSE-FOXSI-4"
 class GSEMain(QMainWindow):
     def __init__(self):
         super().__init__()                              # init the parent
+
+        # setup the window: -----------------------------------------------------
         QApplication.setOrganizationName(ORG_NAME)      # set organization name
         QApplication.setApplicationName(APP_NAME)       # set application name
         # self.settings = self._restoreSettings()         # restore old settings
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
-
-        # self.widgets = DetectorPanel()                  # add widgets to display
-        logging.debug(str(self.width()) + str(self.height()))
         self.setCentralWidget(DetectorArrayDisplay(self))
         # self.setCentralWidget(DetectorPanel(self))
-        logging.debug(str(self.width()) + str(self.height()))
         
-        # spawn threads
+        # logging.debug(str(self.width()) + str(self.height()))
+
+        # setup app-wide attributes: --------------------------------------------
+        self.uplinkCommandCount = 0
+        
 
     def _restoreSettings(self):
         settings = QSettings(ORG_NAME,APP_NAME)
