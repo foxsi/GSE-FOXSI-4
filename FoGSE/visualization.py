@@ -216,6 +216,10 @@ class DetectorPanel(QWidget):
         self.timer.stop()
         logging.debug("data stopped from plotting")
 
+    def updatePlotData(self):
+        """Method has to be here to give `startPlotUpdate` method something to call."""
+        pass
+
     def setlabels(self, graphWidget, xlabel="", ylabel="", title=""):
         """
         Method just to easily set the x, y-label andplot title without having to write all lines below again 
@@ -239,7 +243,7 @@ class DetectorPanel(QWidget):
         graphWidget.setLabel('left', ylabel)
 
 
-class updateDetectorPanel1D(DetectorPanel):
+class DetectorPanel1D(DetectorPanel):
     """
     Detector panel class specifically for 1D data products (e.g., time profiles and spectra).
     """
@@ -259,13 +263,16 @@ class updateDetectorPanel1D(DetectorPanel):
                                             )
 
 
-class updateDetectorPanelTP(updateDetectorPanel1D):
+class DetectorPanelTP(DetectorPanel1D):
     """
     Detector panel class specifically for time profiles.
     """
 
     def __init__(self, parent=None):
-        updateDetectorPanel1D.__init__(self, parent)
+        DetectorPanel1D.__init__(self, parent)
+
+        # defines how may x/y points to average over beffore plotting, not important just doing some data processing
+        self.averageEvery = 3
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Time [?]", ylabel="Counts [?]", title="Time Profile")
@@ -320,9 +327,8 @@ class updateDetectorPanelTP(updateDetectorPanel1D):
         arrx, arry = newXs[mask], newYs[mask]
 
         # apply some averaging, not important at all
-        aveEvery = 3
-        xs = np.mean(arrx[:(len(arrx)//aveEvery)*aveEvery].reshape(-1,aveEvery), axis=1)
-        ys = np.mean(arry[:(len(arry)//aveEvery)*aveEvery].reshape(-1,aveEvery), axis=1)
+        xs = np.mean(arrx[:(len(arrx)//self.averageEvery)*self.averageEvery].reshape(-1,self.averageEvery), axis=1)
+        ys = np.mean(arry[:(len(arry)//self.averageEvery)*self.averageEvery].reshape(-1,self.averageEvery), axis=1)
         
         # return the new x and ys
         return xs.tolist(), ys.tolist()
@@ -331,7 +337,7 @@ class updateDetectorPanelTP(updateDetectorPanel1D):
         """
         Defines how the plot window is updated.
         """
-
+        
         # get already-plotted data and format into a more convenient form
         x, y = self.dataLine.getData()
         x, y = x if x is not None else [], y if y is not None else []
@@ -359,13 +365,13 @@ class updateDetectorPanelTP(updateDetectorPanel1D):
         # plot the newly updated x and ys
         self.dataLine.setData(np.array(x).squeeze(), np.array(y).squeeze())
 
-class updateDetectorPanelSP(updateDetectorPanel1D):
+class DetectorPanelSP(DetectorPanel1D):
     """
     Detector panel class specifically for spectra.
     """
 
     def __init__(self, parent=None):
-        updateDetectorPanel1D.__init__(self, parent)
+        DetectorPanel1D.__init__(self, parent)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
@@ -421,14 +427,9 @@ class updateDetectorPanelSP(updateDetectorPanel1D):
         
         # apply mask
         arrx, arry = newXs[mask], newYs[mask]
-
-        # apply some averaging, not important at all
-        aveEvery = 3
-        xs = np.mean(arrx[:(len(arrx)//aveEvery)*aveEvery].reshape(-1,aveEvery), axis=1)
-        ys = np.mean(arry[:(len(arry)//aveEvery)*aveEvery].reshape(-1,aveEvery), axis=1)
         
         # return the new x and ys
-        return xs.tolist(), ys.tolist()
+        return arrx.tolist(), arry.tolist()
 
     def updatePlotData(self):
         """
@@ -461,7 +462,7 @@ class updateDetectorPanelSP(updateDetectorPanel1D):
         # plot the newly updated x and ys
         self.dataLine.setData(np.arange(1,self.numSpecBins+1), newY)
 
-class updateDetectorPanel2D(DetectorPanel):
+class DetectorPanel2D(DetectorPanel):
     """
     Detector panel class specifically for 2D data products (e.g., images and spectrograms).
     
@@ -497,6 +498,35 @@ class updateDetectorPanel2D(DetectorPanel):
         # send image to fram and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(qImage))
         self.graphPane.addItem(self.img)
+
+    def updateImageDimensions(self, height=-1, width=-1):
+        """
+        Change image height and width after initialisation.
+
+        Parameters
+        ----------
+        height, width : `int`
+            The new image height and width in pixels.
+            Default: -1
+        """
+        height = height if height!=-1 else self.detH
+        width = width if width!=-1 else self.detW
+
+        self.detH, self.detW = height, width
+        self.setImageNdarray()
+
+    def updateImageColourFormat(self, colourFormat="rgba"):
+        """
+        Change image colour format after initialisation.
+
+        Parameters
+        ----------
+        colourFormat : `str`
+            The new image colour format (e.g., rgba or rgb).
+            Default: rgba
+        """
+        self.colourMode = colourFormat
+        self.setImageNdarray()
     
     def setImageNdarray(self):
         """
@@ -517,13 +547,13 @@ class updateDetectorPanel2D(DetectorPanel):
         self.noNewHitsCounterArray = (np.zeros((self.detH, self.detW))).astype(self.numpyFormat)
 
 
-class updateDetectorPanelIM(updateDetectorPanel2D):
+class DetectorPanelIM(DetectorPanel2D):
     """
     Detector panel class specifically for images.
     """
 
     def __init__(self, parent=None):
-        updateDetectorPanel2D.__init__(self, parent)
+        DetectorPanel2D.__init__(self, parent)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -552,7 +582,7 @@ class updateDetectorPanelIM(updateDetectorPanel2D):
         # forward=True: reads buffer from the back but doesn't reverse the data 
         with BackwardsReader(file=self.dataFile , blksize=self.bufferSize, forward=True) as f:
             lines = f.readlines()
-
+            
         # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
         if lines==[] or len(lines)<3:
             return [] # empty frame
@@ -673,8 +703,11 @@ class updateDetectorPanelIM(updateDetectorPanel2D):
         norm[norm==0] = 1 # can't divide by 0
         uf = self.maxVal*self.myArray//norm
 
+        # allow this all to be looked at if need be
+        self.qImageDetails = [uf.astype(self.numpyFormat), self.detH, self.detW, self.cformat]
+
         # new image
-        qImage = pg.QtGui.QImage(uf.astype(self.numpyFormat), self.detH, self.detW, self.cformat)#Format.Format_RGBA64
+        qImage = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
 
         # faster long term to remove pervious frame and replot new one
         self.graphPane.removeItem(self.img)
@@ -720,7 +753,7 @@ class DetectorArrayDisplay(QWidget):
         for i in range(6):
             self.detectorPanels.append(DetectorPanel(self))
 
-        self.detectorPanels[:3] = [updateDetectorPanelIM(self), updateDetectorPanelTP(self), updateDetectorPanelSP(self)]
+        self.detectorPanels[:3] = [DetectorPanelIM(self), DetectorPanelTP(self), DetectorPanelSP(self)]
 
         self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
         self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
