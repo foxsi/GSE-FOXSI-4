@@ -1,9 +1,12 @@
 import sys, typing, logging, math
 import numpy as np
-from PyQt6 import QtCore
+from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
 import pyqtgraph as pg
+
+from FoGSE.readBackwards import BackwardsReader
+import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -39,23 +42,14 @@ class DetectorPanel(QWidget):
         # set up the plot:
         self.graphPane = pg.PlotWidget(self)
         self.spacing = 20
-        # view = self.graphPane.addViewBox()
-        # self.plot = pg.PlotItem()
-        # view.addItem(self.plot)
-        somex = np.linspace(-10,10,100)
-        somey = np.cumsum(np.random.randn(100))
-        self.graphPane.plot(
-            somex, 
-            somey,
-            title="A chart",
-            xlabel="x",
-            ylabel="y"
-        )
 
         # initialize buttons:
         self.modalPlotButton = QPushButton("Focus Plot", self)
         self.modalImageButton = QPushButton("Strips/Pixels", self)
         self.modalParamsButton = QPushButton("Parameters", self)
+        # include butoms to allow GUI start/stop data reading/display
+        self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
+        self.modalStopPlotDataButton = QPushButton("Stop plotting data", self)
 
         self.plotADCButton = QRadioButton("Plot in ADC bin", self)
         self.plotADCButton.setChecked(True)
@@ -111,6 +105,15 @@ class DetectorPanel(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.layoutRightTop.addStretch(self.spacing)
+
+        self.layoutLeftTop.addWidget(
+            self.modalStartPlotDataButton,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.layoutLeftTop.addWidget(
+            self.modalStopPlotDataButton,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        )
         
         self.layoutRightBottom = QVBoxLayout()
         self.layoutLeftTop.addStretch(self.spacing)
@@ -143,6 +146,15 @@ class DetectorPanel(QWidget):
         self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
         self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
         self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
+        self.modalStartPlotDataButton.clicked.connect(self.startPlotUpdate)
+        self.modalStopPlotDataButton.clicked.connect(self.stopPlotUpdate)
+
+        # set file to listen for that has the data in it
+        self.dataFile = "foxsi.txt"
+        # update plot every 100 ms
+        self.callInterval = 100
+        # read 50,000 bytes from the end of `self.dataFile` at a time
+        self.bufferSize = 50_000 
 
         # self.createWidgets()
 
@@ -168,6 +180,540 @@ class DetectorPanel(QWidget):
 
     def plotStyleButtonClicked(self, events):
         logging.debug("changing plot style")
+
+    def startPlotUpdate(self):
+        """
+        Called when the `modalStartPlotDataButton` button is pressed.
+        
+        This starts a QTimer which calls `self.updatePlotData` with a cycle every `self.callInterval` 
+        milliseconds. 
+
+        [1] https://doc.qt.io/qtforpython/PySide6/QtCore/QTimer.html
+        """
+
+        logging.debug("starting to plot data")
+
+        # define what happens to GUI buttons and start call timer
+        self.modalStartPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: green;}')
+        self.modalStopPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: black;}')
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(self.callInterval) # fastest is every millisecond here, with a value of 1
+        self.timer.timeout.connect(self.updatePlotData) # call self.updatePlotData every cycle
+        self.timer.start()
+
+        logging.debug("data is plotting")
+
+    def stopPlotUpdate(self):
+        """
+        Called when the `modalStopPlotDataButton` button is pressed.
+        
+        This stops a QTimer set by `self.start_plot_update`. 
+        """
+
+        logging.debug("stopping the data from plotting")
+        self.modalStartPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: black;}')
+        self.modalStopPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: red;}')
+        self.timer.stop()
+        logging.debug("data stopped from plotting")
+
+    def updatePlotData(self):
+        """Method has to be here to give `startPlotUpdate` method something to call."""
+        pass
+
+    def setlabels(self, graphWidget, xlabel="", ylabel="", title=""):
+        """
+        Method just to easily set the x, y-label andplot title without having to write all lines below again 
+        and again.
+
+        [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
+
+        arameters
+        ----------
+        graphWidget : `PyQt6 PlotWidget`
+            The widget for the labels
+
+        xlabel, ylabel, title : `str`
+            The strings relating to each label to be set.
+        """
+
+        graphWidget.setTitle(title)
+
+        # Set label for both axes
+        graphWidget.setLabel('bottom', xlabel)
+        graphWidget.setLabel('left', ylabel)
+
+
+class DetectorPanel1D(DetectorPanel):
+    """
+    Detector panel class specifically for 1D data products (e.g., time profiles and spectra).
+    """
+    def __init__(self, parent=None):
+        DetectorPanel.__init__(self, parent)
+
+        # initial time profile data
+        self.x, self.y = [], []
+
+        # plot the "data" that we have
+        self.dataLine = self.graphPane.plot(
+                                             self.x, 
+                                             self.y,
+                                             title="A chart",
+                                             xlabel="x",
+                                             ylabel="y"
+                                            )
+
+
+class DetectorPanelTP(DetectorPanel1D):
+    """
+    Detector panel class specifically for time profiles.
+    """
+
+    def __init__(self, parent=None):
+        DetectorPanel1D.__init__(self, parent)
+
+        # defines how may x/y points to average over beffore plotting, not important just doing some data processing
+        self.averageEvery = 3
+
+        # set title and labels
+        self.setlabels(self.graphPane, xlabel="Time [?]", ylabel="Counts [?]", title="Time Profile")
+
+    def getData(self, lastX):
+        """
+        Read the file `self.dataFile` from the end with a memory buffer size of `self.bufferSize` and 
+        return data from lines with a first value greater than `lastX`
+
+        Parameters
+        ----------
+        lastX : `int`, `float`
+            The value of the last x-value plotted. Used to filter out data lines already plotted.
+
+        Returns
+        -------
+        `tuple` :
+            (x, y) The new x and y coordinates to be plots where x>`lastX`.
+        """
+
+        # check if the file exists yet, if not return nothing
+        if not os.path.exists(self.dataFile):
+            return [],[] # empty x, y
+
+        # read the file `self.bufferSize` bytes from the end and extract the lines
+        # forward=True: reads buffer from the back but doesn't reverse the data 
+        with BackwardsReader(file=self.dataFile, blksize=self.bufferSize, forward=True) as f:
+            lines = f.readlines()
+
+        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
+        if lines==[] or len(lines)<3:
+            return [],[] # empty x, y
+
+        # got the data from file, now format for new_x and new_y
+        data = [l.split(b' ') for l in lines]
+
+        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
+        data = data[1:-1] 
+        
+        # extract the x and y data into two arrays
+        data = np.array(data, dtype=float)
+        newXs, newYs = data[:,0], data[:,1]
+
+        # find indices of the x and ys not plotted yet
+        mask = (newXs>lastX) if lastX is not None else np.array([True]*len(newXs))
+
+        # if no entries are to be plotted just return nothing
+        if (~mask).all():
+            return [],[] # empty x, y
+        
+        # apply mask
+        arrx, arry = newXs[mask], newYs[mask]
+
+        # apply some averaging, not important at all
+        xs = np.mean(arrx[:(len(arrx)//self.averageEvery)*self.averageEvery].reshape(-1,self.averageEvery), axis=1)
+        ys = np.mean(arry[:(len(arry)//self.averageEvery)*self.averageEvery].reshape(-1,self.averageEvery), axis=1)
+        
+        # return the new x and ys
+        return xs.tolist(), ys.tolist()
+
+    def updatePlotData(self):
+        """
+        Defines how the plot window is updated.
+        """
+        
+        # get already-plotted data and format into a more convenient form
+        x, y = self.dataLine.getData()
+        x, y = x if x is not None else [], y if y is not None else []
+        x, y = np.array(x).squeeze(), np.array(y).squeeze()
+        
+        # now tray to make it a list, may fail but catch that too
+        try:
+            x, y = x.tolist(), y.tolist()
+        except AttributeError:
+            #AttributeError: 'NoneType' object has no attribute 'tolist', this from having nothing plotted originally
+            x, y = [], []
+
+        # find the last x-value plotted
+        lastX = x[-1] if len(x)>0 else None
+        newX, newY = self.getData(lastX)
+
+        # depending on 1 or more new values, add or append into the x and y list
+        if type(newX)==list:
+            x += newX
+            y += newY
+        else:  
+            x.append(newX)
+            y.append(newY)
+
+        # plot the newly updated x and ys
+        self.dataLine.setData(np.array(x).squeeze(), np.array(y).squeeze())
+
+class DetectorPanelSP(DetectorPanel1D):
+    """
+    Detector panel class specifically for spectra.
+    """
+
+    def __init__(self, parent=None):
+        DetectorPanel1D.__init__(self, parent)
+
+        # set title and labels
+        self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
+
+        # only update bins, so x is fixed and y will be updated
+        self.numSpecBins = 50
+
+    def getData(self, lastX):
+        """
+        Read the file `self.dataFile` from the end with a memory buffer size of `self.bufferSize` and 
+        return data from lines with a first value greater than `lastX`
+
+        Parameters
+        ----------
+        lastX : `int`, `float`
+            The value of the last x-value plotted. Used to filter out data lines already plotted.
+
+        Returns
+        -------
+        `tuple` :
+            (x, y) The new x and y coordinates to be plots where x>`lastX`.
+        """
+
+        # check if the file exists yet, if not return nothing
+        if not os.path.exists(self.dataFile):
+            return [],[] # empty x, y
+
+        # read the file `self.bufferSize` bytes from the end and extract the lines
+        # forward=True: reads buffer from the back but doesn't reverse the data 
+        with BackwardsReader(file=self.dataFile, blksize=self.bufferSize, forward=True) as f:
+            lines = f.readlines()
+
+        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
+        if lines==[] or len(lines)<3:
+            return [],[] # empty x, y
+
+        # got the data from file, now format for new_x and new_y
+        data = [l.split(b' ') for l in lines]
+
+        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
+        data = data[1:-1] 
+        
+        # extract the x and y data into two arrays
+        data = np.array(data, dtype=float)
+        newXs, newYs = data[:,0], data[:,1]
+
+        # find indices of the x and ys not plotted yet
+        mask = (newXs>lastX) if lastX is not None else np.array([True]*len(newXs))
+
+        # if no entries are to be plotted just return nothing
+        if (~mask).all():
+            return [],[] # empty x, y
+        
+        # apply mask
+        arrx, arry = newXs[mask], newYs[mask]
+        
+        # return the new x and ys
+        return arrx.tolist(), arry.tolist()
+
+    def updatePlotData(self):
+        """
+        Defines how the plot window is updated.
+
+        *** Revisit, not finished (obviously). Needs to be smarter. ***
+        """
+
+        # get already-plotted data and format into a more convenient form
+        x, y = self.dataLine.getData()
+        x, y = x if x is not None else [], y if y is not None else []
+        x, y = np.array(x).squeeze(), np.array(y).squeeze()
+        
+        # now tray to make it a list, may fail but catch that too
+        try:
+            x, y = x.tolist(), y.tolist()
+        except AttributeError:
+            #AttributeError: 'NoneType' object has no attribute 'tolist', this from having nothing plotted originally
+            x, y = [], []
+
+        # find the last x-value plotted
+        lastX = x[-1] if len(x)>0 else None
+        newX, newY = self.getData(lastX)
+
+        # make new spectrum
+        diff = self.numSpecBins-len(newY)
+        newY = newY+[0]*diff if diff>0 else newY[:self.numSpecBins]
+        
+
+        # plot the newly updated x and ys
+        self.dataLine.setData(np.arange(1,self.numSpecBins+1), newY)
+
+class DetectorPanel2D(DetectorPanel):
+    """
+    Detector panel class specifically for 2D data products (e.g., images and spectrograms).
+    
+    [1] https://stackoverflow.com/questions/60200981/pyqt5-convert-2d-np-array-to-qimage
+    [2] https://stackoverflow.com/questions/18020668/how-to-insert-an-image-from-file-into-a-plotwidget-plt1-pg-plotwidgetw
+    [3] https://doc.qt.io/qtforpython/PySide6/QtGui/QImage.html
+    """
+
+    def __init__(self, parent=None):
+        DetectorPanel.__init__(self, parent)
+
+        # set height and width of image in pixels
+        self.detH, self.detW = 100, 100
+
+        # number of frames to fade old counts over
+        self.fadeOut = 10
+
+        # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
+        self.colourMode = "rgba"
+        self.channel = {"red":0, "green":1, "blue":2}
+        # alpha index
+        self.alpha = 3
+        # numpy array format (crucial for some reason)
+        self.numpyFormat = np.uint8
+        # colours range from 0->255 in RGBA
+        self.minVal, self.maxVal = 0, 255
+        # set self.myArray and self.cformat with zeros and mode, respectively
+        self.setImageNdarray() 
+        
+        # create QImage from numpy array 
+        qImage = pg.QtGui.QImage(self.myArray, self.detH, self.detW, self.cformat)
+
+        # send image to fram and add to plot
+        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(qImage))
+        self.graphPane.addItem(self.img)
+
+    def updateImageDimensions(self, height=-1, width=-1):
+        """
+        Change image height and width after initialisation.
+
+        Parameters
+        ----------
+        height, width : `int`
+            The new image height and width in pixels.
+            Default: -1
+        """
+        height = height if height!=-1 else self.detH
+        width = width if width!=-1 else self.detW
+
+        self.detH, self.detW = height, width
+        self.setImageNdarray()
+
+    def updateImageColourFormat(self, colourFormat="rgba"):
+        """
+        Change image colour format after initialisation.
+
+        Parameters
+        ----------
+        colourFormat : `str`
+            The new image colour format (e.g., rgba or rgb).
+            Default: rgba
+        """
+        self.colourMode = colourFormat
+        self.setImageNdarray()
+    
+    def setImageNdarray(self):
+        """
+        Set-up the numpy array and define colour format from `self.colourMode`.
+        """
+        # colours range from 0->255 in RGBA8888 and RGB888
+        # do we want alpha channel or not
+        if self.colourMode == "rgba":
+            self.myArray = np.zeros((self.detH, self.detW, 4))
+            self.cformat = pg.QtGui.QImage.Format.Format_RGBA8888
+            # for all x and y, turn alpha to max
+            self.myArray[:,:,3] = self.maxVal 
+        if self.colourMode == "rgb":
+            self.myArray = np.zeros((self.detH, self.detW, 3))
+            self.cformat = pg.QtGui.QImage.Format.Format_RGB888
+
+        # define array to keep track of the last hit to each pixel
+        self.noNewHitsCounterArray = (np.zeros((self.detH, self.detW))).astype(self.numpyFormat)
+
+
+class DetectorPanelIM(DetectorPanel2D):
+    """
+    Detector panel class specifically for images.
+    """
+
+    def __init__(self, parent=None):
+        DetectorPanel2D.__init__(self, parent)
+
+        # set title and labels
+        self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
+
+    def getData(self, lastT):
+        """
+        Read the file `self.dataFile` from the end with a memory buffer size of `self.bufferSize` and 
+        return data from lines with a first value greater than `lastX`.
+
+        Parameters
+        ----------
+        lastT : `int`, `float`
+            The value of the last time-value plotted. Used to filter out data events already plotted.
+
+        Returns
+        -------
+        `numpy.ndarray` :
+            The image frame made from a histogram of the new data in `self.dataFile`.
+        """
+
+        # check if the file exists yet, if not return nothing
+        if not os.path.exists(self.dataFile ):
+            return [] # empty frame
+
+        # read the file `self.bufferSize` bytes from the end and extract the lines
+        # forward=True: reads buffer from the back but doesn't reverse the data 
+        with BackwardsReader(file=self.dataFile , blksize=self.bufferSize, forward=True) as f:
+            lines = f.readlines()
+            
+        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
+        if lines==[] or len(lines)<3:
+            return [] # empty frame
+
+        # got the data from file, now format lines into each event
+        data = [l.split(b' ') for l in lines]
+
+        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
+        data = data[1:-1] 
+        
+        # extract the events data into arrays
+        data = np.array(data, dtype=float)
+        newTs, _, newXs, newYs = data[:,0], data[:,1], data[:,2], data[:,3]
+
+        # filter out events already plotted
+        mask = (newTs>lastT) if lastT is not None else np.array([True]*len(newXs))
+
+        # since frame doesn't keep this info inherently then keep track of it ourselves
+        self.lastTime = newTs[-1]
+
+        # make sure there is new data to plot and mask the data
+        if (~mask).all():
+            return [] # empty frame
+        newXs, newYs = newXs[mask], newYs[mask]
+        
+        # make a histogram from the events
+        frame = np.histogram2d(newXs, newYs, bins=(np.arange(0,self.detH+1), np.arange(0,self.detW+1)))
+        
+        # return just the image array
+        return frame[0]
+    
+    def updateImage(self, existingFrame, newFrame):
+        """
+        Add new frame to the current frame while recording the newsest hits in the `newFrame` image. Use 
+        the new hits to control the alpha channel via `self.fadeControl` to allow old counts to fade out.
+        
+        Only using the blue and alpha channels at the moment.
+
+        Parameters
+        ----------
+        existingFrame : `numpy.ndarray`
+            This is the RGB (`self.colourMode='rgb'`) or RGBA (`self.colourMode='rgba'`) array of shape 
+            (`self.detW`,`self.detH`,3) or (`self.detW`,`self.detH`,4), respectively.
+
+        newFrame : `numpy.ndarray`
+            This is a 2D array of the new image frame created from the latest data of shape (`self.detW`,`self.detH`).
+        """
+
+        # if newFrame is a list then it's empty and so no new frame, make all 0s
+        if type(newFrame)==list:
+            newFrame = np.zeros((self.detH, self.detW))
+        
+        # what pixels have a brand new hit? (0 = False, not 0 = True)
+        new_hits = newFrame.astype(bool) 
+        
+        # add the new frame to the blue channel values and update the `self.myArray` to be plotted
+        self.myArray[:,:,self.channel["blue"]] = existingFrame[:,:,self.channel["blue"]] + newFrame
+
+        # if there is an alpha channel, use to fade out pixels that haven't had a new count
+        if self.colourMode == "rgba":
+            self.fadeControl(newHitsArray=new_hits)
+
+
+    def fadeControl(self, newHitsArray):
+        """
+        Fades out pixels that haven't had a new count in steps of `self.maxVal//self.fadeOut` until a pixel has not had an 
+        event for `self.fadeOut` frames. If a pixel has not had a detection in `self.fadeOut` frames then reset the colour 
+        channel to zero and the alpha channel back to `self.maxVal`.
+
+        *** Will likely revisit and control fading with decreasing the colour channel value instead with the same maths used to 
+          decrease alpha. This would stop bins with previous counts that are almost about to fade out completely coming back in 
+           and adding to the next frame. ***
+
+        Parameters
+        ----------
+        newFrame : `numpy.ndarray`, `bool`
+            This is a 2D boolean array of shape (`self.detW`,`self.detH`) which shows True if the pixel has just detected 
+            a new count and False if it hasn't.
+        """
+
+        # reset counter if pixel has new hit
+        self.noNewHitsCounterArray[newHitsArray] = 0
+
+        # add to counter if pixel has no hits
+        self.noNewHitsCounterArray += ~newHitsArray
+
+        # set alpha channel, fade by decreasing steadily over `self.fadeOut` steps 
+        # (a step for every frame the pixel has not detected an event)
+        self.myArray[:,:,self.alpha] = self.maxVal - (self.maxVal//self.fadeOut)*self.noNewHitsCounterArray
+
+
+        # find where alpha is zero (completely faded)
+        turnOffColour = (self.myArray[:,:,self.alpha]==0)
+
+        # now set the colour back to zero and return alhpa to max, ready for new counts
+        for k in self.channel.keys():
+            self.myArray[:,:,self.channel[k]][turnOffColour] = 0
+        # reset alpha
+        self.myArray[:,:,self.alpha][turnOffColour] = self.maxVal 
+        
+    
+    def updatePlotData(self):
+        """
+        Defines how the plot window is updated.
+        """
+
+        # see if there was a previous frame with an associated time
+        lastT = self.lastTime if hasattr(self, "lastTime") else None
+
+        # get the new frame
+        newFrame = self.getData(lastT)
+
+        # update current plotted data with new frame
+        self.updateImage(existingFrame=self.myArray, newFrame=newFrame)
+        
+        # make sure everything is normalised between 0--255
+        norm = np.max(self.myArray, axis=(0,1))
+        norm[norm==0] = 1 # can't divide by 0
+        uf = self.maxVal*self.myArray//norm
+
+        # allow this all to be looked at if need be
+        self.qImageDetails = [uf.astype(self.numpyFormat), self.detH, self.detW, self.cformat]
+
+        # new image
+        qImage = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
+
+        # faster long term to remove pervious frame and replot new one
+        self.graphPane.removeItem(self.img)
+        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(qImage))
+        self.graphPane.addItem(self.img)
+    
 
 
 class DetectorArrayDisplay(QWidget):
@@ -206,6 +752,12 @@ class DetectorArrayDisplay(QWidget):
         self.detectorPanels = [DetectorPanel(self)]
         for i in range(6):
             self.detectorPanels.append(DetectorPanel(self))
+
+        self.detectorPanels[:3] = [DetectorPanelIM(self), DetectorPanelTP(self), DetectorPanelSP(self)]
+
+        self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
+        self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detectorPanels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
 
         # putting rectangles in hexagon
         # rects = [QtCore.QRect(
