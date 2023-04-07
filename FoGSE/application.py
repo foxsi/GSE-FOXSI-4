@@ -1,6 +1,6 @@
 import sys, typing, logging
 from PyQt6.QtCore import QSettings
-from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory
 from PyQt6.QtGui import QIcon
 
 from FoGSE.visualization import DetectorArrayDisplay, DetectorPanel
@@ -17,7 +17,13 @@ class GSEMain(QMainWindow):
         # setup the window: -----------------------------------------------------
         QApplication.setOrganizationName(ORG_NAME)      # set organization name
         QApplication.setApplicationName(APP_NAME)       # set application name
+        QApplication.setStyle(QStyleFactory.create("macOS"))
+        # can check available styles with:
+        # print(QStyleFactory.keys())
+        
         # self.settings = self._restoreSettings()         # restore old settings
+
+        
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
