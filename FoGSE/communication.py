@@ -25,23 +25,23 @@ class FormatterInterface:
         self.last_line = 0
     
     # opens log file (written by ListenerLogger)
-    def openLog(self, filename):
+    def open_log(self, filename):
         self.file = open(filename, "r")
 
     # closes log file (written by ListenerLogger)
-    def closeLog(self, filename):
+    def close_log(self, filename):
         self.file.close()
 
     # send message to Formatter. todo: prepend detector address
     def send(self, message):
         FoGSE.parameters.DEBUG_PRINT("sending message to remote")
-        self.local_socket.sendto(message, self.remote_addr)
+        self.local_socket.send_to(message, self.remote_addr)
     
     # prepend destination system address before sending. 
-    def sendto(self, system_addr, message):
+    def send_to(self, system_addr, message):
         FoGSE.parameters.DEBUG_PRINT("sending message to remote system")
-        sendstring = system_addr + message
-        self.local_socket.sendto(sendstring, self.remote_addr)
+        send_string = system_addr + message
+        self.local_socket.send_to(send_string, self.remote_addr)
     
     # unimplemented: UDP recv handled by ListenerLogger application
     def recv(self):
@@ -53,11 +53,11 @@ class FormatterInterface:
         pass
 
     # read an array of lines from the log file
-    def readlines(self, lines):
-        return self.getlines(self.file, lines)
+    def read_lines(self, lines):
+        return self.get_lines(self.file, lines)
 
     # utility function used by readlines()
-    def getlines(self, lines):
+    def get_lines(self, lines):
         return (x for i, x in enumerate(self.file) if i in lines)
 
         
