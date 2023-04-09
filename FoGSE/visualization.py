@@ -38,8 +38,8 @@ class GlobalCommandPanel(QWidget):
         # make buttons in widget:
         self.cmd_box = QGroupBox("Global command uplink")   # todo: figure out why this doesn't appear
 
-        self.box_layout = QHBoxLayout()
-        self.layout = QGridLayout()
+        self.box_layout = QVBoxLayout()
+        self.grid_layout = QGridLayout()
         self.system_label = QLabel("FOXSI System")
         self.system_combo_box = QComboBox()
         self.command_label = QLabel("Command")
@@ -57,70 +57,69 @@ class GlobalCommandPanel(QWidget):
             self.command_combo_box.addItem(cmd.name)
 
         # populate layout:
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.system_label,
             0,0,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.system_combo_box,
             1,0,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.command_label,
             0,1,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.command_combo_box,
             1,1,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.args_label,
             0,2,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.command_args_text,
             1,2,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.send_label,
             0,3,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.layout.addWidget(
+        self.grid_layout.addWidget(
             self.command_send_button,
             1,3,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
 
-        self.layout.setRowStretch(0,0)
-        self.layout.setRowStretch(1,0)
+        # somehow, this aligns the Widgets in the grid top-left:
+        self.grid_layout.setRowStretch(self.grid_layout.rowCount(),1)
+        self.grid_layout.setColumnStretch(self.grid_layout.columnCount(),1)
 
-        spacer = QSpacerItem(600,10,QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-        self.layout.addItem(spacer, 2, 4, 4, 1)
+        # add grid layout to box
+        self.cmd_box.setLayout(self.grid_layout)
 
-        self.box_layout.addLayout(self.layout)
-        self.cmd_box.setLayout(self.box_layout)
+        # add box to a global layout for whole self widget
+        self.box_layout.addWidget(self.cmd_box)
+        self.box_layout.addStretch(10)
         self.setLayout(self.box_layout)
 
+        # hook up callbacks
         self.system_combo_box.activated.connect(self.systemComboBoxClicked)
         self.command_combo_box.activated.connect(self.commandComboBoxClicked)
         self.command_args_text.returnPressed.connect(self.commandArgsEdited)
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
 
+        # disable downstream command pieces (until selection is made)
         self.command_combo_box.setEnabled(False)
         self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-
-        self.show()
     
     def systemComboBoxClicked(self, events):
         self.command_combo_box.setEnabled(False)
@@ -148,12 +147,13 @@ class GlobalCommandPanel(QWidget):
         text = self.command_args_text.text()
         self.command_send_button.setEnabled(True)
 
-
     def commandSendButtonClicked(self, events):
-        print("sending command")
+        print("validating command (placeholder)...")
+        # todo: validate
+        print("sending command: (placeholder)")
         # todo: print it out
-
-        # do validation and sending...
+        print("logging command (placeholder)")
+        # todo: log file setup, open, plus the actual logging
 
         self.command_combo_box.setEnabled(False)
         self.command_args_text.setEnabled(False)
@@ -161,7 +161,7 @@ class GlobalCommandPanel(QWidget):
 
 
 class DetectorPanel(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, name="PLACEHOLDER"):
         """
         Initialize a DetectorPanel (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
@@ -176,6 +176,7 @@ class DetectorPanel(QWidget):
         # set up the plot:
         self.graphPane = pg.PlotWidget(self)
         self.spacing = 20
+        self.name = name
 
         # initialize buttons:
         self.modalPlotButton = QPushButton("Focus Plot", self)
@@ -193,6 +194,10 @@ class DetectorPanel(QWidget):
         self.temperatureLabel = QLabel("Temperature (ºC):", self)
         self.voltageLabel = QLabel("Voltage (mV):", self)
         self.currentLabel = QLabel("Current (mA):", self)
+
+        # self.groupBox = QGroupBox(self.name)
+        self.groupBox = QGroupBox()
+        self.globalLayout = QHBoxLayout()
 
         # organize layout
         self.layoutLeftTop = QVBoxLayout()
@@ -270,8 +275,12 @@ class DetectorPanel(QWidget):
         self.layoutMain.addLayout(self.layoutCenter)
         self.layoutMain.addLayout(self.layoutRight)
 
+        self.groupBox.setLayout(self.layoutMain)
+        self.globalLayout.addWidget(self.groupBox)
+        self.setLayout(self.globalLayout)
+
         # main layout
-        self.setLayout(self.layoutMain)
+        # self.setLayout(self.layoutMain)
         
         # connect to callbacks
         self.modalPlotButton.clicked.connect(self.modalPlotButtonClicked)
@@ -381,8 +390,8 @@ class DetectorPanel1D(DetectorPanel):
     """
     Detector panel class specifically for 1D data products (e.g., time profiles and spectra).
     """
-    def __init__(self, parent=None):
-        DetectorPanel.__init__(self, parent)
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPanel.__init__(self, parent, name)
 
         # initial time profile data
         self.x, self.y = [], []
@@ -402,8 +411,8 @@ class DetectorPanelTP(DetectorPanel1D):
     Detector panel class specifically for time profiles.
     """
 
-    def __init__(self, parent=None):
-        DetectorPanel1D.__init__(self, parent)
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPanel1D.__init__(self, parent, name)
 
         # defines how may x/y points to average over beffore plotting, not important just doing some data processing
         self.averageEvery = 3
@@ -504,8 +513,8 @@ class DetectorPanelSP(DetectorPanel1D):
     Detector panel class specifically for spectra.
     """
 
-    def __init__(self, parent=None):
-        DetectorPanel1D.__init__(self, parent)
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPanel1D.__init__(self, parent, name)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
@@ -605,8 +614,8 @@ class DetectorPanel2D(DetectorPanel):
     [3] https://doc.qt.io/qtforpython/PySide6/QtGui/QImage.html
     """
 
-    def __init__(self, parent=None):
-        DetectorPanel.__init__(self, parent)
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPanel.__init__(self, parent, name)
 
         # set height and width of image in pixels
         self.detH, self.detW = 100, 100
@@ -686,8 +695,8 @@ class DetectorPanelIM(DetectorPanel2D):
     Detector panel class specifically for images.
     """
 
-    def __init__(self, parent=None):
-        DetectorPanel2D.__init__(self, parent)
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPanel2D.__init__(self, parent, name)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -859,6 +868,9 @@ class DetectorArrayDisplay(QWidget):
         self.H = parent.height() - 100
         self.W = parent.width() - 100
 
+        # todo: a not terrible way of assigning these.
+        detectorNames = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
+
         self.setGeometry(10,10,self.W,self.H)
 
         # making hex geometry
@@ -883,11 +895,16 @@ class DetectorArrayDisplay(QWidget):
         logging.debug("semiheight: %s" % self.panelHeight)
         logging.debug("hexagon: %s" % self.hexagon)
 
-        self.detectorPanels = [DetectorPanel(self)]
-        for i in range(6):
-            self.detectorPanels.append(DetectorPanel(self))
-
-        self.detectorPanels[:3] = [DetectorPanelIM(self), DetectorPanelTP(self), DetectorPanelSP(self)]
+        # explicitly populate all default DetectorPanel types
+        self.detectorPanels = [
+            DetectorPanelIM(self, name=detectorNames[0]),
+            DetectorPanelTP(self, name=detectorNames[1]),
+            DetectorPanelSP(self, name=detectorNames[2]),
+            DetectorPanel(self, name=detectorNames[3]),
+            DetectorPanel(self, name=detectorNames[4]),
+            DetectorPanel(self, name=detectorNames[5]),
+            DetectorPanel(self, name=detectorNames[6]),
+        ]
 
         self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
         self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"

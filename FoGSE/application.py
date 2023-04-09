@@ -22,8 +22,6 @@ class GSEMain(QMainWindow):
         # print(QStyleFactory.keys())
 
         # self.settings = self._restoreSettings()         # restore old settings
-
-        
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
@@ -53,9 +51,7 @@ class GSEFocus(QMainWindow):
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
 
-        logging.debug(self.width(), self.height())
         self.setCentralWidget(DetectorPanel(self))
-        logging.debug(self.width(), self.height())
         
 class GSECommand(QMainWindow):
     def __init__(self):
