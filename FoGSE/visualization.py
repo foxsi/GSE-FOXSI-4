@@ -30,7 +30,7 @@ class GlobalCommandPanel(QWidget):
         QWidget.__init__(self, parent)
 
         # build and validate list of allowable uplink commands
-        self.cmddeck = comm.UplinkCommandBuilder("config/all_systems.json", "config/all_commands.json")
+        self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
 
         # track current command being assembled in interface
         _working_command = []
@@ -138,7 +138,7 @@ class GlobalCommandPanel(QWidget):
         cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
         if cmd.arg_len > 0:
             self.command_args_text.setEnabled(True)
-            # todo: some arg validation set up here. Implement in CommandBuilder.
+            # todo: some arg validation set up here. Implement in UplinkCommandDeck.
         else:
             self.command_send_button.setEnabled(True)
 
@@ -195,8 +195,8 @@ class DetectorPanel(QWidget):
         self.voltageLabel = QLabel("Voltage (mV):", self)
         self.currentLabel = QLabel("Current (mA):", self)
 
-        # self.groupBox = QGroupBox(self.name)
-        self.groupBox = QGroupBox()
+        self.groupBox = QGroupBox(self.name)
+        # self.groupBox = QGroupBox()
         self.globalLayout = QHBoxLayout()
 
         # organize layout
@@ -860,6 +860,9 @@ class DetectorPanelIM(DetectorPanel2D):
 
 
 class DetectorArrayDisplay(QWidget):
+    """
+    A hexagonal tiling of DetectorPanels, à la the real FOXSI focal plane assembly.
+    """
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
 
@@ -868,7 +871,7 @@ class DetectorArrayDisplay(QWidget):
         self.H = parent.height() - 100
         self.W = parent.width() - 100
 
-        # todo: a not terrible way of assigning these.
+        # todo: a not-terrible way of assigning these.
         detectorNames = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
 
         self.setGeometry(10,10,self.W,self.H)
@@ -1016,3 +1019,88 @@ class DetectorArrayDisplay(QWidget):
                     indexIntersect.append(rects[i].intersects(rects[j]))
         
         return indexIntersect
+
+
+
+class DetectorGridDisplay(QWidget):
+    """
+    A gridded tiling of DetectorPanels, maybe more legible that `DetectorArrayDisplay`.
+    """
+
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+
+        # self.H = 800
+        # self.W = 1280
+        self.H = parent.height() - 100
+        self.W = parent.width() - 100
+
+        # todo: a not-terrible way of assigning these.
+        detectorNames = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
+
+        self.setGeometry(10,10,self.W,self.H)
+
+        # explicitly populate all default DetectorPanel types. NOTE: these are different than in DetectorArrayDisplay.
+        self.detectorPanels = [
+            DetectorPanelIM(self, name=detectorNames[0]),
+            DetectorPanelTP(self, name=detectorNames[1]),
+            DetectorPanelSP(self, name=detectorNames[2]),
+            DetectorPanel(self, name=detectorNames[3]),
+            DetectorPanel(self, name=detectorNames[4]),
+            DetectorPanel(self, name=detectorNames[5]),
+            DetectorPanel(self, name=detectorNames[6]),
+        ]
+
+        self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
+        self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detectorPanels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+
+        self.commandPanel = GlobalCommandPanel(self)
+
+        self.gridLayout = QGridLayout()
+
+        self.gridLayout.addWidget(
+            self.detectorPanels[0], 
+            1, 0, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.commandPanel, 
+            1, 3, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.detectorPanels[3], 
+            2, 0, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.detectorPanels[4], 
+            2, 1, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.detectorPanels[5], 
+            3, 0, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.detectorPanels[6], 
+            3, 1, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.detectorPanels[1], 
+            3, 2, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.gridLayout.addWidget(
+            self.detectorPanels[2], 
+            3, 3, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.gridLayout.setRowStretch(self.gridLayout.rowCount(),1)
+        self.gridLayout.setColumnStretch(self.gridLayout.columnCount(),1)
+
+        self.setLayout(self.gridLayout)

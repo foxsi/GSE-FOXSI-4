@@ -75,9 +75,14 @@ class UplinkCommand:
 
 
 
-class UplinkCommandBuilder:
+class UplinkCommandDeck:
     """
-    `UplinkCommandBuilder` is used to safely ingest desired system and command list, and provide a reliable interface to the commands that does not allow commands to be misaplied to systems.
+    `UplinkCommandDeck` is used to safely ingest desired system and command list, and provide a reliable interface to the commands that does not allow commands to be misaplied to systems.
+
+    :param commands: List of `UplinkCommand`s.
+    :type commands: list[UplinkCommand]
+    :param systems: List of `CommandSystem`s to which the `commands` can be sent.
+    :type systems: list[CommandSystem]
     """
 
     def __init__(self, system_file: str, command_file: str):
@@ -123,6 +128,9 @@ class UplinkCommandBuilder:
         self.validate()
 
     def validate(self):
+        """
+        `validate` checks that all uplink commands and systems are unique (unique `name` and `bytestring` or `addr`). Exceptions are raised if this is not the case.
+        """
         # you got this! you can do it.
         
         params.DEBUG_PRINT("validating command and system list...")
@@ -150,14 +158,23 @@ class UplinkCommandBuilder:
         params.DEBUG_PRINT("\tsystems are unique.")
 
     def get_command_by_name(self, name: str):
+        """
+        `get_command_by_name` returns the `UplinkCommand` object with the provided `name`.
+        """
         command = next((cmd for cmd in self.commands if cmd.name == name), None)
         return command
 
     def get_system_by_name(self, name: str):
+        """
+        `get_system_by_name` returns the `UplinkSystem` object with the provided `name`.
+        """
         system = next((sys for sys in self.systems if sys.name == name), None)
         return system
 
     def get_commands_for_system(self, system: CommandSystem):
+        """
+        `get_commands_for_system` returns all the commands that can be sent to `system`.
+        """
         commands = []
         for cmd in self.commands:
             if system in cmd.targets:
@@ -165,6 +182,9 @@ class UplinkCommandBuilder:
         return commands
 
     def get_commands_for_system(self, system: str):
+        """
+        `get_commands_for_system` returns all the commands that can be sent to `system`.
+        """
         commands = []
         for cmd in self.commands:
             if self.get_system_by_name(system) in cmd.targets:
@@ -172,9 +192,15 @@ class UplinkCommandBuilder:
         return commands
 
     def get_systems_for_command(self, command: UplinkCommand):
+        """
+        `get_systems_for_command` returns all the systems that can `command` can be sent to.
+        """
         return command.targets
 
     def get_systems_for_command(self, command: str):
+        """
+        `get_systems_for_command` returns all the systems that can `command` can be sent to.
+        """
         return self.get_command_by_name(command).targets
 
 

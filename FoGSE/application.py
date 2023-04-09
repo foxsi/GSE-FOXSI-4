@@ -3,7 +3,7 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory
 from PyQt6.QtGui import QIcon
 
-from FoGSE.visualization import DetectorArrayDisplay, DetectorPanel, GlobalCommandPanel
+from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPanel, GlobalCommandPanel
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -25,7 +25,8 @@ class GSEMain(QMainWindow):
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
-        self.setCentralWidget(DetectorArrayDisplay(self))
+        # self.setCentralWidget(DetectorArrayDisplay(self))
+        self.setCentralWidget(DetectorGridDisplay(self))
         # self.setCentralWidget(DetectorPanel(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
