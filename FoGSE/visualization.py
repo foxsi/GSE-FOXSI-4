@@ -2,8 +2,10 @@ import sys, typing, logging, math
 import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
 import pyqtgraph as pg
+
+from FoGSE import communication as comm
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -20,6 +22,27 @@ class AbstractVisualization(QWidget):
     def retrieveData(self, source):
         pass
 
+class GlobalCommandPanel(QWidget):
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+
+        # build and validate list of allowable uplink commands
+        cmdbuild = comm.UplinkCommandBuilder("config/all_systems.json", "config/all_commands.json")
+
+        # make buttons in widget:
+        self.layout = QHBoxLayout()
+        self.system_combo_box = QComboBox()
+        self.command_combo_box = QComboBox()
+
+        for sys in cmdbuild.systems:
+            self.system_combo_box.addItem(sys.name)
+
+        for cmd in cmdbuild.commands:
+            self.command_combo_box.addItem(cmd.name)
+
+        self.layout.addWidget(self.system_combo_box)
+        self.layout.addWidget(self.command_combo_box)
+        self.setLayout(self.layout)
 
 
 class DetectorPanel(QWidget):
@@ -31,7 +54,6 @@ class DetectorPanel(QWidget):
         :type parent: PyQt6.QtWidgets.QWidget or None
         :return: a new DetectorPanel object.
         :rtype: DetectorPanel
-
         """
 
         QWidget.__init__(self, parent)

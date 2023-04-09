@@ -1,14 +1,30 @@
-import socket, sys
+import json, socket, sys
 
 import FoGSE.parameters as params
+
+class CommandSystem:
+    """
+    `CommandSystem` is a container for an onboard system name and hex ID. This class is used for addressing `UplinkCommand`s.
+    
+    :param name: A human-readable and informative name for the system.
+    :type name: str
+    :param addr: A unique system identifier.
+    :type addr: int
+    """
+
+    def __init__(self, name: str, addr: int):
+        self.name = name
+        self.addr = addr
+
+
 
 class UplinkCommand:
     """
     `UplinkCommand` structures command data to provide a safe interface for sending commands during testing and flight. These commands are sent over UDP to the FOXSI Formatter, and must be prefixed with a target address before being wrapped in the UDP/Ethernet packets. This class only defines the command bitstring and requirements for the target.
 
-    :param name: A readable and informative name for the command.
+    :param name: A human-readable and informative name for the command.
     :type name: str
-    :param bytestring: The encoding of the command which will be transmitted to FOXSI.
+    :param bytestring: The unique encoding of the command which will be transmitted to FOXSI.
     :type bytestring: list[int]
     :param arg_len: The length (in bytes) of the argument to the command. If `arg_len <= 0`, assume no arguments required.
     :type arg_len: int
@@ -18,13 +34,19 @@ class UplinkCommand:
     :type targets: set
     :param flight: Set `True` to enable this command during flight. If `False`, mark the command for use only during ground test.
     :type flight: bool
+    :param valid_systems: A set of allowable systems for all commands.
+    :type valid_systems: set
     """
 
-    def __init__(self, name: str, bytestring: list[int], arg_len: int, reply_len: int, targets: set, flight: bool):
-        self.command_name = name
+    def __init__(self, name: str, bytestring: list[int], arg_len: int, reply_len: int, targets: set or list, flight: bool, valid_systems: set or list):
+        # assign name and bytestring
+        self.name = name
         self.bytestring = bytestring
+
+        # assign reply_len, then change read/write properties based on it
         self.reply_len = reply_len
         if reply_len < 0:
+            self.reply_len = 0
             raise Warning("reply length is negative, assuming no reply")
         elif reply_len == 0:
             self.write = True
@@ -33,18 +55,92 @@ class UplinkCommand:
             self.read = True
             self.write = False
 
-        if targets <= params.SUBSYSTEMS:
+        # assign valid command targets, confirm they are allowable
+        if set(targets) <= set(valid_systems):
             self.targets = targets
         else:
-            raise Exception("targets must be a subset of parameters.SUBSYSTEMS set")
+            raise Exception("targets must be a subset of valid_systems set")
         
+        # assign flight usability
         self.flight = flight
 
+        # assign argument length
         if arg_len < 0:
-            raise Warning("argument length is negative, assuming zero")
             self.arg_len = 0
+            raise Warning("argument length is negative, assuming zero")
         else:
             self.arg_len = arg_len
+
+
+
+class UplinkCommandBuilder:
+    """
+    `UplinkCommandBuilder` is used to safely ingest desired system and command list, and provide a reliable interface to the commands that does not allow commands to be misaplied to systems.
+    """
+
+    def __init__(self, system_file: str, command_file: str):
+        self.commands = []
+        self.systems = []
+        named_systems = {}
+
+        with open(system_file) as sysf:
+            systems_in = sysf.read()
+
+        systems_json = json.loads(systems_in)
+        params.DEBUG_PRINT("loaded experiment systems definition")
+
+        with open(command_file) as cmdf:
+            cmds_in = cmdf.read()
+
+        commands_json = json.loads(cmds_in)
+        params.DEBUG_PRINT("loaded experiment commands definition")
+
+        for sys in systems_json:
+            self.systems.append(CommandSystem(
+                sys["name"],
+                int(sys["id"], 0)
+            ))
+            named_systems[sys["name"]] = self.systems[-1]
+
+        for command in commands_json:
+            thistargets = []
+            for tg in command["targets"]:
+                if tg in named_systems:
+                    thistargets.append(named_systems[tg])
+
+            self.commands.append(UplinkCommand(
+                command["name"],
+                int(command["bytestring"], 0),
+                command["arg_len"],
+                command["reply_len"],
+                set(thistargets),
+                command["flight"],
+                self.systems
+            ))
+
+    # the saddest function placeholder I've had to write yet:
+    def validate(self):
+        pass
+
+    def get_command_by_name(self, name: str):
+        pass
+
+    def get_system_by_name(self, name: str):
+        pass
+
+    def get_commands_for_system(self, system: CommandSystem):
+        pass
+
+    def get_commands_for_system(self, system: str):
+        pass
+
+    def get_systems_for_command(self, command: UplinkCommand):
+        pass
+
+    def get_systems_for_command(self, command: str):
+        pass
+
+
 
 class FormatterUDPInterface:
     def __init__(self):
@@ -93,6 +189,9 @@ class FormatterUDPInterface:
         # maybe do system_addr.decode("ASCII") here or something?
         return system_addr + params.UPLINK_PACKET_SUBSYSTEM_DELIM + message + params.UPLINK_PACKET_COMMAND_DELIM + arg
         
+    # make packet from Uplink command. todo: impleme
+    def make_packet(self, command_num: int, command: UplinkCommand):
+        pass
 
     # unimplemented: UDP recv handled by ListenerLogger application
     def recv(self):

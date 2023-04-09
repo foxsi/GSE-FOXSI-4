@@ -3,7 +3,7 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory
 from PyQt6.QtGui import QIcon
 
-from FoGSE.visualization import DetectorArrayDisplay, DetectorPanel
+from FoGSE.visualization import DetectorArrayDisplay, DetectorPanel, GlobalCommandPanel
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -20,7 +20,7 @@ class GSEMain(QMainWindow):
         QApplication.setStyle(QStyleFactory.create("macOS"))
         # can check available styles with:
         # print(QStyleFactory.keys())
-        
+
         # self.settings = self._restoreSettings()         # restore old settings
 
         
@@ -57,3 +57,14 @@ class GSEFocus(QMainWindow):
         self.setCentralWidget(DetectorPanel(self))
         logging.debug(self.width(), self.height())
         
+class GSECommand(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        QApplication.setOrganizationName(ORG_NAME)      # set organization name
+        QApplication.setApplicationName(APP_NAME)       # set application name
+        # self.settings = self._restoreSettings()         # restore old settings
+
+        self.setGeometry(100,100,1280,800)
+        self.setWindowTitle(APP_NAME)
+
+        self.setCentralWidget(GlobalCommandPanel(self))
