@@ -2,7 +2,7 @@ import sys, typing, logging, math
 import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
@@ -30,22 +30,134 @@ class GlobalCommandPanel(QWidget):
         QWidget.__init__(self, parent)
 
         # build and validate list of allowable uplink commands
-        cmdbuild = comm.UplinkCommandBuilder("config/all_systems.json", "config/all_commands.json")
+        self.cmddeck = comm.UplinkCommandBuilder("config/all_systems.json", "config/all_commands.json")
+
+        # track current command being assembled in interface
+        _working_command = []
 
         # make buttons in widget:
-        self.layout = QHBoxLayout()
-        self.system_combo_box = QComboBox()
-        self.command_combo_box = QComboBox()
+        self.cmd_box = QGroupBox("Global command uplink")   # todo: figure out why this doesn't appear
 
-        for sys in cmdbuild.systems:
+        self.box_layout = QHBoxLayout()
+        self.layout = QGridLayout()
+        self.system_label = QLabel("FOXSI System")
+        self.system_combo_box = QComboBox()
+        self.command_label = QLabel("Command")
+        self.command_combo_box = QComboBox()
+        self.args_label = QLabel("Argument")
+        self.command_args_text = QLineEdit()
+        self.send_label = QLabel("")
+        self.command_send_button = QPushButton("Send command")
+
+        # populate dialogs with valid lists:
+        for sys in self.cmddeck.systems:
             self.system_combo_box.addItem(sys.name)
 
-        for cmd in cmdbuild.commands:
+        for cmd in self.cmddeck.commands:
             self.command_combo_box.addItem(cmd.name)
 
-        self.layout.addWidget(self.system_combo_box)
-        self.layout.addWidget(self.command_combo_box)
-        self.setLayout(self.layout)
+        # populate layout:
+        self.layout.addWidget(
+            self.system_label,
+            0,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.layout.addWidget(
+            self.system_combo_box,
+            1,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+
+        self.layout.addWidget(
+            self.command_label,
+            0,1,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.layout.addWidget(
+            self.command_combo_box,
+            1,1,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+
+        self.layout.addWidget(
+            self.args_label,
+            0,2,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.layout.addWidget(
+            self.command_args_text,
+            1,2,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+
+        self.layout.addWidget(
+            self.send_label,
+            0,3,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.layout.addWidget(
+            self.command_send_button,
+            1,3,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+
+        self.layout.setRowStretch(0,0)
+        self.layout.setRowStretch(1,0)
+
+        spacer = QSpacerItem(600,10,QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        self.layout.addItem(spacer, 2, 4, 4, 1)
+
+        self.box_layout.addLayout(self.layout)
+        self.cmd_box.setLayout(self.box_layout)
+        self.setLayout(self.box_layout)
+
+        self.system_combo_box.activated.connect(self.systemComboBoxClicked)
+        self.command_combo_box.activated.connect(self.commandComboBoxClicked)
+        self.command_args_text.returnPressed.connect(self.commandArgsEdited)
+        self.command_send_button.clicked.connect(self.commandSendButtonClicked)
+
+        self.command_combo_box.setEnabled(False)
+        self.command_args_text.setEnabled(False)
+        self.command_send_button.setEnabled(False)
+
+        self.show()
+    
+    def systemComboBoxClicked(self, events):
+        self.command_combo_box.setEnabled(False)
+        self.command_args_text.setEnabled(False)
+        self.command_send_button.setEnabled(False)
+
+        cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentText())
+        names = [cmd.name for cmd in cmds]
+        self.command_combo_box.clear()
+        self.command_combo_box.addItems(names)
+        self.command_combo_box.setEnabled(True)
+
+    def commandComboBoxClicked(self, events):
+        self.command_args_text.setEnabled(False)
+        self.command_send_button.setEnabled(False)
+        cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
+        if cmd.arg_len > 0:
+            self.command_args_text.setEnabled(True)
+            # todo: some arg validation set up here. Implement in CommandBuilder.
+        else:
+            self.command_send_button.setEnabled(True)
+
+    def commandArgsEdited(self):
+        # todo: some arg validation
+        text = self.command_args_text.text()
+        self.command_send_button.setEnabled(True)
+
+
+    def commandSendButtonClicked(self, events):
+        print("sending command")
+        # todo: print it out
+
+        # do validation and sending...
+
+        self.command_combo_box.setEnabled(False)
+        self.command_args_text.setEnabled(False)
+        self.command_send_button.setEnabled(False)
 
 
 class DetectorPanel(QWidget):

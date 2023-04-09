@@ -125,7 +125,7 @@
         "arg_len":16,
         "reply_len":1,
         "targets":[
-            "GSE","FORMATTER","HOUSEKEEPING","POWER","SAAS","CDTEDE","CDTE1","CDTE2","CDTE3","CDTE4","TIMEPIX","CMOS1","CMOS2"
+            "GSE","FORMATTER","HOUSEKEEPING","POWER","CDTEDE","CDTE1","CDTE2","CDTE3","CDTE4","TIMEPIX","CMOS1","CMOS2"
         ],
         "flight":true
     },
@@ -135,7 +135,7 @@
         "arg_len":32,
         "reply_len":32,
         "targets":[
-            "GSE","FORMATTER","HOUSEKEEPING","POWER","SAAS","CDTEDE","CDTE1","CDTE2","CDTE3","CDTE4","TIMEPIX","CMOS1","CMOS2"
+            "GSE","FORMATTER","HOUSEKEEPING","POWER","CDTEDE","CDTE1","CDTE2","CDTE3","CDTE4","TIMEPIX","CMOS1","CMOS2"
         ],
         "flight":true
     }

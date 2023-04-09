@@ -2,6 +2,8 @@ import json, socket, sys
 
 import FoGSE.parameters as params
 
+
+
 class CommandSystem:
     """
     `CommandSystem` is a container for an onboard system name and hex ID. This class is used for addressing `UplinkCommand`s.
@@ -79,8 +81,8 @@ class UplinkCommandBuilder:
     """
 
     def __init__(self, system_file: str, command_file: str):
-        self.commands = []
-        self.systems = []
+        self.commands: list[UplinkCommand] = []
+        self.systems: list[CommandSystem] = []
         named_systems = {}
 
         with open(system_file) as sysf:
@@ -117,28 +119,63 @@ class UplinkCommandBuilder:
                 command["flight"],
                 self.systems
             ))
+    
+        self.validate()
 
-    # the saddest function placeholder I've had to write yet:
     def validate(self):
-        pass
+        # you got this! you can do it.
+        
+        params.DEBUG_PRINT("validating command and system list...")
+        if len(self.commands) != len(set(self.commands)):
+            raise Exception("command objects are not unique.")
+        
+        cmd_names = [cmd.name for cmd in self.commands]
+        cmd_ids = [cmd.bytestring for cmd in self.commands]
+
+        if len(cmd_names) != len(set(cmd_names)):
+            raise Exception("command names are not unique.")
+        if len(cmd_ids) != len(set(cmd_ids)):
+            raise Exception("command ids are not unique.")
+        
+        params.DEBUG_PRINT("\tcommands are unique.")
+
+        sys_names = [sys.name for sys in self.systems]
+        sys_addrs = [sys.addr for sys in self.systems]
+
+        if len(sys_names) != len(set(sys_names)):
+            raise Exception("system names are not unique")
+        if len(sys_addrs) != len(set(sys_addrs)):
+            raise Exception("system names are not unique")
+        
+        params.DEBUG_PRINT("\tsystems are unique.")
 
     def get_command_by_name(self, name: str):
-        pass
+        command = next((cmd for cmd in self.commands if cmd.name == name), None)
+        return command
 
     def get_system_by_name(self, name: str):
-        pass
+        system = next((sys for sys in self.systems if sys.name == name), None)
+        return system
 
     def get_commands_for_system(self, system: CommandSystem):
-        pass
+        commands = []
+        for cmd in self.commands:
+            if system in cmd.targets:
+                commands.append(cmd)
+        return commands
 
     def get_commands_for_system(self, system: str):
-        pass
+        commands = []
+        for cmd in self.commands:
+            if self.get_system_by_name(system) in cmd.targets:
+                commands.append(cmd)
+        return commands
 
     def get_systems_for_command(self, command: UplinkCommand):
-        pass
+        return command.targets
 
     def get_systems_for_command(self, command: str):
-        pass
+        return self.get_command_by_name(command).targets
 
 
 
@@ -209,5 +246,3 @@ class FormatterUDPInterface:
     # utility function used by readlines()
     def get_lines(self, lines):
         return (x for i, x in enumerate(self.file) if i in lines)
-
-        
