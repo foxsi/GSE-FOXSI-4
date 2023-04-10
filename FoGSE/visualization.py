@@ -26,14 +26,15 @@ class AbstractVisualization(QWidget):
         pass
 
 class GlobalCommandPanel(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
 
         # build and validate list of allowable uplink commands
         self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
 
         # open UDP socket to remote
-        self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+        # self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+        self.fmtrif = formatter_if
 
         # track current command being assembled in interface
         self._working_command = []
@@ -1057,7 +1058,7 @@ class DetectorGridDisplay(QWidget):
     A gridded tiling of DetectorPanels, maybe more legible that `DetectorArrayDisplay`.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
 
         # self.H = 800
@@ -1085,7 +1086,7 @@ class DetectorGridDisplay(QWidget):
         self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
         self.detectorPanels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
 
-        self.commandPanel = GlobalCommandPanel(self)
+        self.commandPanel = GlobalCommandPanel(self, formatter_if)
 
         self.gridLayout = QGridLayout()
 

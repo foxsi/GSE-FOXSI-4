@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory
 from PyQt6.QtGui import QIcon
 
 from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPanel, GlobalCommandPanel
+from FoGSE.communication import FormatterUDPInterface
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -22,11 +23,13 @@ class GSEMain(QMainWindow):
         # print(QStyleFactory.keys())
 
         # self.settings = self._restoreSettings()         # restore old settings
+
+        fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
-        self.setCentralWidget(DetectorGridDisplay(self))
+        self.setCentralWidget(DetectorGridDisplay(self, fmtrif))
         # self.setCentralWidget(DetectorPanel(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
@@ -64,4 +67,6 @@ class GSECommand(QMainWindow):
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
 
-        self.setCentralWidget(GlobalCommandPanel(self))
+        fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+
+        self.setCentralWidget(GlobalCommandPanel(self, fmtrif))
