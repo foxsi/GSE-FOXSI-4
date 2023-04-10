@@ -295,6 +295,9 @@ class DetectorPanel(QWidget):
         self.layoutCenter.addWidget(self.graphPane)
         self.layoutCenter.addSpacing(self.spacing)
 
+        self.graphPane.setMinimumSize(QtCore.QSize(150,100))
+        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addLayout(self.layoutLeft)
         # self.layoutMain.addWidget(self.graphPane)
@@ -303,6 +306,7 @@ class DetectorPanel(QWidget):
 
         self.groupBox.setLayout(self.layoutMain)
         self.globalLayout.addWidget(self.groupBox)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.setLayout(self.globalLayout)
 
         # main layout
@@ -1085,48 +1089,61 @@ class DetectorGridDisplay(QWidget):
 
         self.gridLayout = QGridLayout()
 
+        # timepix
         self.gridLayout.addWidget(
             self.detectorPanels[0], 
-            1, 0, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            1, 1, 1, 2, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
+        # commanding
         self.gridLayout.addWidget(
             self.commandPanel, 
-            1, 3, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignCenter
+            1, 4, 1, 1, 
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
         )
+        # CMOS 1
         self.gridLayout.addWidget(
             self.detectorPanels[3], 
-            2, 0, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            2, 1, 1, 2, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
+        # CMOS 2
         self.gridLayout.addWidget(
             self.detectorPanels[4], 
-            2, 1, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            2, 3, 1, 2, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
+        # CdTe 1
         self.gridLayout.addWidget(
             self.detectorPanels[5], 
-            3, 0, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            3, 1, 1, 1, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
+        # CdTe 2
         self.gridLayout.addWidget(
             self.detectorPanels[6], 
-            3, 1, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            3, 2, 1, 1, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
+        # CdTe 3
         self.gridLayout.addWidget(
             self.detectorPanels[1], 
-            3, 2, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            3, 3, 1, 1, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
+        # CdTe 4
         self.gridLayout.addWidget(
             self.detectorPanels[2], 
-            3, 3, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
+            3, 4, 1, 1, 
+            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
         )
 
-        self.gridLayout.setRowStretch(self.gridLayout.rowCount(),1)
-        self.gridLayout.setColumnStretch(self.gridLayout.columnCount(),1)
+        for panel in self.detectorPanels:
+            panel.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        
+        # self.gridLayout.setRowStretch(self.gridLayout.rowCount(),1)
+        for i in range(self.gridLayout.columnCount()):
+            self.gridLayout.setColumnStretch(i,1)
+        # self.gridLayout.setColumnStretch(self.gridLayout.columnCount(),1)
 
         self.setLayout(self.gridLayout)
