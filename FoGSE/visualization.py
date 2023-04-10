@@ -33,7 +33,7 @@ class GlobalCommandPanel(QWidget):
         self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
 
         # open UDP socket to remote
-        self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=False, logfile=None)
+        self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
 
         # track current command being assembled in interface
         self._working_command = []

@@ -206,42 +206,53 @@ class UplinkCommandDeck:
 
 
 class FormatterUDPInterface:
-    def __init__(self, addr=params.FORMATTER_IP, port=params.FORMATTER_PORT, logging=True, logfile=None):
+    """
+    `FormatterUDPInterface` defines a UDP/Ethernet link to the Formatter in the FOXSI experiment. This interface can only be used to send commands to the Formatter. Downlinked data should be received by the separate ListenerLogger application. 
+
+    :param formatter_ip: The IP address to send data to. Defaults to 192.168.1.8.
+    :type formatter_ip: str
+    :param formatter_port: The Formatter's port number for communication with this ground software. Defaults to 9999. Must be greater than 1024.
+    :type formatter_port: int
+    :param do_logging: Toggles logging of transmitted commands to file.
+    :type do_logging: bool
+    :param local_socket: UDP socket object.
+    :type local_socket: socket.socket
+    :param remote_addr: Formatter IP/port pair.
+    :type remote_addr: tuple
+    :param logfile: File to log outbound commands to.
+    :type logfile: TextIOWrapper
+    """
+
+    def __init__(self, addr=params.FORMATTER_IP, port=params.FORMATTER_PORT, logging=True, logfilename=None):
         self.formatter_ip = addr
         self.formatter_port = port
 
         # log sent packets to file
         self.do_logging = logging
 
-        if self.do_logging and logfile is None:
-            # make some default new log file
-            pass
+        if self.do_logging:
+            if logfilename is None:
+                # make some default new log file
+                logfilename = "uplink_commands.log"
+            # open log file
+            self.logfile = open(logfilename, 'wb+')
 
         self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # address (IP and port) of remote server
         self.remote_addr = (self.formatter_ip, self.formatter_port)
         params.DEBUG_PRINT("remote address: " + self.formatter_ip + ":" + str(self.formatter_port))
-        
-        # store received packets
-        self.data = []
 
         # expected reply length
         self.recv_len = 0
 
-        # log file for reading
-        self.file = []
-
         # track progress through logfile
-        self.last_line = 0
-    
-    # opens log file (written by ListenerLogger)
-    def open_log(self, filename):
-        self.file = open(filename, "r")
+        self.command_count = 0
 
-    # closes log file (written by ListenerLogger)
-    def close_log(self, filename):
-        self.file.close()
+    def __del__(self):
+        pass
+        # if self.do_logging:
+        #     self.logfile.close()
 
     # send message to Formatter.
     def send(self, message):
@@ -254,29 +265,16 @@ class FormatterUDPInterface:
         message = bytearray([addr, data])
         if arg:
             message.extend(arg.to_bytes(math.ceil(arg.bit_length()/8.0), "big"))
-        
-        message.append(10)
 
         params.DEBUG_PRINT("\tmessage: 0x%s" % message.hex())
         self.local_socket.sendto(message, self.remote_addr)
         params.DEBUG_PRINT("\tmessage sent")
-    
-    # NOTE: packet assembly belongs elsewhere. Define only .send(message) method here and pass in the correct stuff.
-    # prepend destination system address before sending. 
-    # def send_to(self, system_addr, command, arg):
-    #     params.DEBUG_PRINT("sending message to remote system")
-    #     send_packet = self.make_packet(system_addr, command, arg)
-    #     self.local_socket.sendto(send_packet, self.remote_addr)
 
-    # # build packet to uplink. todo: make this way more robust and safe.
-    # def make_packet(self, system_addr, message, arg):
-    #     params.DEBUG_PRINT("building uplink packet to send")
-    #     # maybe do system_addr.decode("ASCII") here or something?
-    #     return system_addr + params.UPLINK_PACKET_SUBSYSTEM_DELIM + message + params.UPLINK_PACKET_COMMAND_DELIM + arg
-        
-    # # make packet from Uplink command. todo: impleme
-    # def make_packet(self, command_num: int, command: UplinkCommand):
-    #     pass
+        if self.do_logging:
+            self.logfile.write(self.command_count.to_bytes(8,"big"))
+            self.logfile.write("\t".encode("ascii"))
+            self.logfile.write(message)
+            self.logfile.write("\n".encode("ascii"))
 
     # unimplemented: UDP recv handled by ListenerLogger application
     def recv(self):
