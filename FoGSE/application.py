@@ -80,6 +80,7 @@ class GSEPopout(QWidget):
         self.tabs.addTab(self.detector_panel, "Plot")
         self.tabs.addTab(QWidget(), "Strips/Pixels")
         self.tabs.addTab(QWidget(), "Parameters")
+        self.tabs.addTab(QWidget(), "Commanding")
 
         # self.setCentralWidget(self.detector_panel)
         self.layout = QHBoxLayout()
@@ -92,8 +93,11 @@ class GSEPopout(QWidget):
         logging.debug("closing popout")
         self.grid_display._add_to_layout(self.detector_panel)
         # self.grid_display.show()
-        self.detector_panel.popout = None
-        self.detector_panel.popped = False
+        # self.detector_panel.popout = None
+        # self.detector_panel.popped = False
+
+        self.detector_panel.handlePopin()
+
         event.accept()
 
         

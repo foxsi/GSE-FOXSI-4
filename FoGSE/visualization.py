@@ -215,10 +215,9 @@ class DetectorPanel(QWidget):
         self.popout = None
 
         # initialize buttons:
-        self.modalPlotButton = QPushButton("Focus Plot", self)
-        self.modalImageButton = QPushButton("Strips/Pixels", self)
-        self.modalParamsButton = QPushButton("Parameters", self)
-        # include butoms to allow GUI start/stop data reading/display
+        self.modalFocusButton = QPushButton("Focus detector", self)
+
+        # include buttons to allow GUI start/stop data reading/display
         self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
         self.modalStopPlotDataButton = QPushButton("Stop plotting data", self)
 
@@ -232,21 +231,23 @@ class DetectorPanel(QWidget):
         self.currentLabel = QLabel("Current (mA):", self)
 
         self.groupBox = QGroupBox(self.name)
-        # self.groupBox = QGroupBox()
         self.globalLayout = QHBoxLayout()
+
+        # widgets to hide in popout view
+        self.hide_in_popout = [
+            self.modalFocusButton,
+            self.temperatureLabel,
+            self.voltageLabel,
+            self.currentLabel
+        ]
+
+        # widgets to hide in main view
+        # self.hide_in_main = []
 
         # organize layout
         self.layoutLeftTop = QVBoxLayout()
         self.layoutLeftTop.addWidget(
-            self.modalPlotButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftTop.addWidget(
-            self.modalImageButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftTop.addWidget(
-            self.modalParamsButton,
+            self.modalFocusButton,
             alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.layoutLeftTop.addStretch(self.spacing)
@@ -310,7 +311,6 @@ class DetectorPanel(QWidget):
 
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addLayout(self.layoutLeft)
-        # self.layoutMain.addWidget(self.graphPane)
         self.layoutMain.addLayout(self.layoutCenter)
         self.layoutMain.addLayout(self.layoutRight)
 
@@ -318,14 +318,9 @@ class DetectorPanel(QWidget):
         self.globalLayout.addWidget(self.groupBox)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.setLayout(self.globalLayout)
-
-        # main layout
-        # self.setLayout(self.layoutMain)
         
         # connect to callbacks
-        self.modalPlotButton.clicked.connect(self.modalPlotButtonClicked)
-        self.modalImageButton.clicked.connect(self.modalImageButtonClicked)
-        self.modalParamsButton.clicked.connect(self.modalParamsButtonClicked)
+        self.modalFocusButton.clicked.connect(self.modalFocusButtonClicked)
         self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
         self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
         self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
@@ -339,32 +334,45 @@ class DetectorPanel(QWidget):
         # read 50,000 bytes from the end of `self.dataFile` at a time
         self.bufferSize = 50_000 
 
-        # self.createWidgets()
-
-    # def createWidgets(self):
-    #     button = QPushButton("breakout plot", self)
-    #     # button.move(100,100)
-
     # callback functions:
-    def modalPlotButtonClicked(self, events):
-        logging.debug("focusing plot")
+    def modalFocusButtonClicked(self, events):
+        self.handlePopout()
+
+    def handlePopout(self):
+        """
+        `handlePopout` should be called when the modalFocusButton is clicked. This method sets DetectorPanel configuration for the new window. 
+        """
+
+        # reparent self to GSEPopout
         if not self.popped:
             logging.debug("popping out window...")
-            print(self.parent())
-            parent = self.parent()
-            parent = None
+            # link self to GSEPopout reference
             self.popout = FoGSE.application.GSEPopout(self)
             self.popped = True
-            print(self.parent())
-            print(self.popout.parent())
-            print(self.popout.detector_panel.parent())
+        
+            # if not flying, pull detector parameters
+            # update table views
+            # update parameter values
+
+            # hide widgets that are in hide_in_popout
+            [widg.hide() for widg in self.hide_in_popout]
+
+            # show widgets that should be shown in popout
+            # [widg.show() for widg in self.hide_in_main]
+
         self.popout.show()
 
-    def modalImageButtonClicked(self, events):
-        logging.debug("editing px/strips")
-    
-    def modalParamsButtonClicked(self, events):
-        logging.debug("editing detector parameters")    
+    def handlePopin(self):
+        """
+        `handlePopin` should be called when the popout window for this DetectorPanel is closed. This method sets DetectorPanel configuration back to the default for a main window. 
+        """
+        self.popout = None
+        self.popped = False
+
+        # show widgets that should be shown in main
+        [widg.show() for widg in self.hide_in_popout]
+        # hidden widgets that should be hidden in main
+        # [widg.hide() for widg in self.show_in_popout]
 
     def plotADCButtonClicked(self, events):
         logging.debug("plotting in ADC space")
