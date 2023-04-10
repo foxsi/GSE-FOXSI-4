@@ -6,9 +6,9 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGrou
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
-import os
-
+import FoGSE.application
 from FoGSE import communication as comm
+import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -26,8 +26,13 @@ class AbstractVisualization(QWidget):
         pass
 
 class GlobalCommandPanel(QWidget):
-    def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.name = name
+        self.label = "Global command uplink"
 
         # build and validate list of allowable uplink commands
         self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
@@ -40,12 +45,12 @@ class GlobalCommandPanel(QWidget):
         self._working_command = []
         
         # group all UI elements in widget
-        self.cmd_box = QGroupBox("Global command uplink")   # todo: figure out why this doesn't appear
+        self.cmd_box = QGroupBox(self.label)
 
         # make UI widgets:
         self.box_layout = QVBoxLayout()
         self.grid_layout = QGridLayout()
-        self.system_label = QLabel("FOXSI System")
+        self.system_label = QLabel("System")
         self.system_combo_box = QComboBox()
         self.command_label = QLabel("Command")
         self.command_combo_box = QComboBox()
@@ -205,6 +210,10 @@ class DetectorPanel(QWidget):
         self.spacing = 20
         self.name = name
 
+        # track if popout window generated
+        self.popped = False
+        self.popout = None
+
         # initialize buttons:
         self.modalPlotButton = QPushButton("Focus Plot", self)
         self.modalImageButton = QPushButton("Strips/Pixels", self)
@@ -339,6 +348,17 @@ class DetectorPanel(QWidget):
     # callback functions:
     def modalPlotButtonClicked(self, events):
         logging.debug("focusing plot")
+        if not self.popped:
+            logging.debug("popping out window...")
+            print(self.parent())
+            parent = self.parent()
+            parent = None
+            self.popout = FoGSE.application.GSEPopout(self)
+            self.popped = True
+            print(self.parent())
+            print(self.popout.parent())
+            print(self.popout.detector_panel.parent())
+        self.popout.show()
 
     def modalImageButtonClicked(self, events):
         logging.debug("editing px/strips")
@@ -1067,84 +1087,79 @@ class DetectorGridDisplay(QWidget):
         self.W = parent.width() - 100
 
         # todo: a not-terrible way of assigning these.
-        detectorNames = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
+        detector_names = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
 
         self.setGeometry(10,10,self.W,self.H)
 
         # explicitly populate all default DetectorPanel types. NOTE: these are different than in DetectorArrayDisplay.
-        self.detectorPanels = [
-            DetectorPanelIM(self, name=detectorNames[0]),
-            DetectorPanelTP(self, name=detectorNames[1]),
-            DetectorPanelSP(self, name=detectorNames[2]),
-            DetectorPanel(self, name=detectorNames[3]),
-            DetectorPanel(self, name=detectorNames[4]),
-            DetectorPanel(self, name=detectorNames[5]),
-            DetectorPanel(self, name=detectorNames[6]),
+        self.detector_panels = [
+            DetectorPanelIM(self, name=detector_names[0]),
+            DetectorPanelTP(self, name=detector_names[1]),
+            DetectorPanelSP(self, name=detector_names[2]),
+            DetectorPanel(self, name=detector_names[3]),
+            DetectorPanel(self, name=detector_names[4]),
+            DetectorPanel(self, name=detector_names[5]),
+            DetectorPanel(self, name=detector_names[6]),
         ]
 
-        self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
-        self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
-        self.detectorPanels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detector_panels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
+        self.detector_panels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detector_panels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
 
-        self.commandPanel = GlobalCommandPanel(self, formatter_if)
+        # add commanding panel
+        self.command_panel = GlobalCommandPanel(self, name="Command", formatter_if=formatter_if)
 
-        self.gridLayout = QGridLayout()
+        self.grid_layout = QGridLayout()
 
-        # timepix
-        self.gridLayout.addWidget(
-            self.detectorPanels[0], 
-            1, 1, 1, 2, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # commanding
-        self.gridLayout.addWidget(
-            self.commandPanel, 
-            1, 4, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        # CMOS 1
-        self.gridLayout.addWidget(
-            self.detectorPanels[3], 
-            2, 1, 1, 2, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CMOS 2
-        self.gridLayout.addWidget(
-            self.detectorPanels[4], 
-            2, 3, 1, 2, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 1
-        self.gridLayout.addWidget(
-            self.detectorPanels[5], 
-            3, 1, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 2
-        self.gridLayout.addWidget(
-            self.detectorPanels[6], 
-            3, 2, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 3
-        self.gridLayout.addWidget(
-            self.detectorPanels[1], 
-            3, 3, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 4
-        self.gridLayout.addWidget(
-            self.detectorPanels[2], 
-            3, 4, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
+        # add everything to the grid layout (based on .name attribute)
+        for panel in self.detector_panels:
+            self._add_to_layout(panel)
+        
+        self._add_to_layout(self.command_panel)
 
-        for panel in self.detectorPanels:
+        for panel in self.detector_panels:
             panel.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         
         # self.gridLayout.setRowStretch(self.gridLayout.rowCount(),1)
-        for i in range(self.gridLayout.columnCount()):
-            self.gridLayout.setColumnStretch(i,1)
+        for i in range(self.grid_layout.columnCount()):
+            self.grid_layout.setColumnStretch(i,0)
         # self.gridLayout.setColumnStretch(self.gridLayout.columnCount(),1)
 
-        self.setLayout(self.gridLayout)
+    def _add_to_layout(self, widget):
+        if widget.name == "Timepix":
+            self.grid_layout.addWidget(
+                widget, 1,1,1,2
+            )
+        elif widget.name == "CMOS1":
+            self.grid_layout.addWidget(
+                widget, 2,1,1,2
+            )
+        elif widget.name == "CMOS2":
+            self.grid_layout.addWidget(
+                widget, 2,3,1,2
+            )
+        elif widget.name == "CdTe1":
+            self.grid_layout.addWidget(
+                widget, 3,1,1,1
+            )
+        elif widget.name == "CdTe2":
+            self.grid_layout.addWidget(
+                widget, 3,2,1,1
+            )
+        elif widget.name == "CdTe3":
+            self.grid_layout.addWidget(
+                widget, 3,3,1,1
+            )
+        elif widget.name == "CdTe4":
+            self.grid_layout.addWidget(
+                widget, 3,4,1,1
+            )
+        elif widget.name == "Command":
+            self.grid_layout.addWidget(
+                widget, 1,4,1,1
+            )
+        else:
+            raise Warning("widget name not found!")
+        
+        self.setLayout(self.grid_layout)
+        widget.show()

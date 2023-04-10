@@ -1,6 +1,6 @@
 import sys, typing, logging
 from PyQt6.QtCore import QSettings
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory, QTabWidget, QWidget, QHBoxLayout
 from PyQt6.QtGui import QIcon
 
 from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPanel, GlobalCommandPanel
@@ -24,12 +24,12 @@ class GSEMain(QMainWindow):
 
         # self.settings = self._restoreSettings()         # restore old settings
 
-        fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+        self.fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
-        self.setCentralWidget(DetectorGridDisplay(self, fmtrif))
+        self.setCentralWidget(DetectorGridDisplay(self, self.fmtrif))
         # self.setCentralWidget(DetectorPanel(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
@@ -45,6 +45,8 @@ class GSEMain(QMainWindow):
         # if someSetting.isEmpty():
         #     return default
 
+
+
 class GSEFocus(QMainWindow):
     def __init__(self):
         super().__init__()                              # init the parent
@@ -56,6 +58,45 @@ class GSEFocus(QMainWindow):
         self.setWindowTitle(APP_NAME)
 
         self.setCentralWidget(DetectorPanel(self))
+
+
+
+class GSEPopout(QWidget):
+    def __init__(self, detector_panel: DetectorPanel):
+        super().__init__()                              # init the parent
+
+        # keep a pointer to the main display to reparent popout to on close
+        self.detector_panel = detector_panel
+        self.grid_display = self.detector_panel.parent()
+
+        # remove the detector_panel from its original grid_display
+        self.grid_display.grid_layout.removeWidget(self.detector_panel)
+
+        # find detector_panel in grid_display.gridLayout (to put it back later)
+        self._restore_position = []
+        self._restore_alignment = None
+
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.detector_panel, "Plot")
+        self.tabs.addTab(QWidget(), "Strips/Pixels")
+        self.tabs.addTab(QWidget(), "Parameters")
+
+        # self.setCentralWidget(self.detector_panel)
+        self.layout = QHBoxLayout()
+        self.layout.addWidget(self.tabs)
+        
+        # self.layout.addWidget(self.detector_panel)
+        self.setLayout(self.layout)
+
+    def closeEvent(self, event):
+        logging.debug("closing popout")
+        self.grid_display._add_to_layout(self.detector_panel)
+        # self.grid_display.show()
+        self.detector_panel.popout = None
+        self.detector_panel.popped = False
+        event.accept()
+
+        
         
 class GSECommand(QMainWindow):
     def __init__(self):
@@ -69,4 +110,4 @@ class GSECommand(QMainWindow):
 
         fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
 
-        self.setCentralWidget(GlobalCommandPanel(self, fmtrif))
+        self.setCentralWidget(GlobalCommandPanel(self, name="Command", formatter_if=fmtrif))
