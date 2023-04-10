@@ -1,4 +1,4 @@
-import json, socket, sys
+import json, socket, sys, math
 
 import FoGSE.parameters as params
 
@@ -206,14 +206,22 @@ class UplinkCommandDeck:
 
 
 class FormatterUDPInterface:
-    def __init__(self):
-        self.formatter_ip = params.FORMATTER_IP
-        self.formatter_port = params.FORMATTER_PORT
+    def __init__(self, addr=params.FORMATTER_IP, port=params.FORMATTER_PORT, logging=True, logfile=None):
+        self.formatter_ip = addr
+        self.formatter_port = port
+
+        # log sent packets to file
+        self.do_logging = logging
+
+        if self.do_logging and logfile is None:
+            # make some default new log file
+            pass
 
         self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # address (IP and port) of remote server
         self.remote_addr = (self.formatter_ip, self.formatter_port)
+        params.DEBUG_PRINT("remote address: " + self.formatter_ip + ":" + str(self.formatter_port))
         
         # store received packets
         self.data = []
@@ -235,26 +243,40 @@ class FormatterUDPInterface:
     def close_log(self, filename):
         self.file.close()
 
-    # send message to Formatter. todo: prepend detector address
-    def send(self, command):
+    # send message to Formatter.
+    def send(self, message):
         params.DEBUG_PRINT("sending message to remote")
-        self.local_socket.send_to(command, self.remote_addr)
-    
-    # prepend destination system address before sending. 
-    def send_to(self, system_addr, command, arg):
-        params.DEBUG_PRINT("sending message to remote system")
-        send_packet = self.make_packet(system_addr, command, arg)
-        self.local_socket.sendto(send_packet, self.remote_addr)
+        self.local_socket.sendto(message, self.remote_addr)
 
-    # build packet to uplink. todo: make this way more robust and safe.
-    def make_packet(self, system_addr, message, arg):
-        params.DEBUG_PRINT("building uplink packet to send")
-        # maybe do system_addr.decode("ASCII") here or something?
-        return system_addr + params.UPLINK_PACKET_SUBSYSTEM_DELIM + message + params.UPLINK_PACKET_COMMAND_DELIM + arg
+    def send(self, addr: int, data: int, arg: int=None):
+        params.DEBUG_PRINT("\tsending message to remote")
         
-    # make packet from Uplink command. todo: impleme
-    def make_packet(self, command_num: int, command: UplinkCommand):
-        pass
+        message = bytearray([addr, data])
+        if arg:
+            message.extend(arg.to_bytes(math.ceil(arg.bit_length()/8.0), "big"))
+        
+        message.append(10)
+
+        params.DEBUG_PRINT("\tmessage: 0x%s" % message.hex())
+        self.local_socket.sendto(message, self.remote_addr)
+        params.DEBUG_PRINT("\tmessage sent")
+    
+    # NOTE: packet assembly belongs elsewhere. Define only .send(message) method here and pass in the correct stuff.
+    # prepend destination system address before sending. 
+    # def send_to(self, system_addr, command, arg):
+    #     params.DEBUG_PRINT("sending message to remote system")
+    #     send_packet = self.make_packet(system_addr, command, arg)
+    #     self.local_socket.sendto(send_packet, self.remote_addr)
+
+    # # build packet to uplink. todo: make this way more robust and safe.
+    # def make_packet(self, system_addr, message, arg):
+    #     params.DEBUG_PRINT("building uplink packet to send")
+    #     # maybe do system_addr.decode("ASCII") here or something?
+    #     return system_addr + params.UPLINK_PACKET_SUBSYSTEM_DELIM + message + params.UPLINK_PACKET_COMMAND_DELIM + arg
+        
+    # # make packet from Uplink command. todo: impleme
+    # def make_packet(self, command_num: int, command: UplinkCommand):
+    #     pass
 
     # unimplemented: UDP recv handled by ListenerLogger application
     def recv(self):

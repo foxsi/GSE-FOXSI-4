@@ -138,5 +138,15 @@
             "GSE","FORMATTER","HOUSEKEEPING","POWER","CDTEDE","CDTE1","CDTE2","CDTE3","CDTE4","TIMEPIX","CMOS1","CMOS2"
         ],
         "flight":true
+    },
+    {
+        "name":"READ_HK",
+        "bytestring":"0x84",
+        "arg_len":32,
+        "reply_len":512,
+        "targets":[
+            "FORMATTER","HOUSEKEEPING","POWER","CDTEDE","CDTE1","CDTE2","CDTE3","CDTE4","TIMEPIX","CMOS1","CMOS2"
+        ],
+        "flight":true
     }
 ]

@@ -32,12 +32,16 @@ class GlobalCommandPanel(QWidget):
         # build and validate list of allowable uplink commands
         self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
 
-        # track current command being assembled in interface
-        _working_command = []
+        # open UDP socket to remote
+        self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=False, logfile=None)
 
-        # make buttons in widget:
+        # track current command being assembled in interface
+        self._working_command = []
+        
+        # group all UI elements in widget
         self.cmd_box = QGroupBox("Global command uplink")   # todo: figure out why this doesn't appear
 
+        # make UI widgets:
         self.box_layout = QVBoxLayout()
         self.grid_layout = QGridLayout()
         self.system_label = QLabel("FOXSI System")
@@ -128,6 +132,12 @@ class GlobalCommandPanel(QWidget):
 
         cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentText())
         names = [cmd.name for cmd in cmds]
+        
+        # start working command with address of selected system
+        self._working_command = []
+        self._working_command.append(self.cmddeck.get_system_by_name(self.system_combo_box.currentText()).addr)
+        # todo: if adding delimiters, do it here.
+
         self.command_combo_box.clear()
         self.command_combo_box.addItems(names)
         self.command_combo_box.setEnabled(True)
@@ -136,6 +146,10 @@ class GlobalCommandPanel(QWidget):
         self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
         cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
+
+        # add cmd bytestring to working command
+        self._working_command.append(cmd.bytestring)
+
         if cmd.arg_len > 0:
             self.command_args_text.setEnabled(True)
             # todo: some arg validation set up here. Implement in UplinkCommandDeck.
@@ -145,14 +159,26 @@ class GlobalCommandPanel(QWidget):
     def commandArgsEdited(self):
         # todo: some arg validation
         text = self.command_args_text.text()
+
+        # add arg to working command
+        self._working_command.append(int(text, 10))
+
         self.command_send_button.setEnabled(True)
 
     def commandSendButtonClicked(self, events):
-        print("validating command (placeholder)...")
+
+        print("\tvalidating command...")
         # todo: validate
-        print("sending command: (placeholder)")
-        # todo: print it out
-        print("logging command (placeholder)")
+        print("\tsending command (placeholder)...")
+        # self.fmtrif.send(byte_cmd)
+        if len(self._working_command) == 3:
+            self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
+        elif len(self._working_command) == 2:
+            self.fmtrif.send(self._working_command[0], self._working_command[1])
+        else:
+            raise Exception("wrong length working command")
+
+        print("\tlogging command (placeholder)...")
         # todo: log file setup, open, plus the actual logging
 
         self.command_combo_box.setEnabled(False)
