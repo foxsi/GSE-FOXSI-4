@@ -2,11 +2,12 @@ import sys, typing, logging, math
 import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
 import FoGSE.application
+# from FoGSE.application import GSEFocus, GSEMain
 from FoGSE import communication as comm
 import os
 
@@ -24,6 +25,8 @@ class AbstractVisualization(QWidget):
 
     def retrieveData(self, source):
         pass
+
+
 
 class GlobalCommandPanel(QWidget):
     def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
@@ -192,8 +195,60 @@ class GlobalCommandPanel(QWidget):
         self.command_send_button.setEnabled(False)
 
 
+
+class DetectorTableView(QWidget):
+    """
+    `DetectorTableView` is a PLACEHOLDER view for a strip/pixel data table. Will be used to view and edit strip/pixel data.
+    """
+
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+        QWidget.__init__(self,parent)
+
+        self.name=name
+        self.label="Table"
+        self.formatter_if=formatter_if
+
+        self.widget = QLabel(self.label)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.widget, 1,1,1,1)
+        self.setLayout(self.layout)
+
+
+
+class DetectorParametersView(QWidget):
+    # PLACEHOLDER
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+        QWidget.__init__(self,parent)
+
+        self.name=name
+        self.label="Parameters"
+        self.formatter_if=formatter_if
+
+        self.widget = QLabel(self.label)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.widget, 1,1,1,1)
+        self.setLayout(self.layout)
+
+
+
+class DetectorCommandView(QWidget):
+    # PLACEHOLDER
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+        QWidget.__init__(self,parent)
+
+        self.name=name
+        self.label="Commands"
+        self.formatter_if=formatter_if
+
+        self.widget = QLabel(self.label)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.widget, 1,1,1,1)
+        self.setLayout(self.layout)
+
+
+
 class DetectorPlotView(QWidget):
-    def __init__(self, parent=None, name="PLACEHOLDER"):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
         """
         Initialize a DetectorPlotView (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
@@ -209,13 +264,13 @@ class DetectorPlotView(QWidget):
         self.graphPane = pg.PlotWidget(self)
         self.spacing = 20
         self.name = name
-
-        # track if popout window generated
-        self.popped = False
-        self.popout = None
+        self.label = "Plot"
+        self.formatter_if = formatter_if
 
         # initialize buttons:
-        self.modalFocusButton = QPushButton("Focus detector", self)
+
+        # used by DetectorContainer and DetectorPopout, do not use here! Gotta find a safer way to do this.
+        self.popout_button = QPushButton("Focus detector", self)
 
         # include buttons to allow GUI start/stop data reading/display
         self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
@@ -233,21 +288,10 @@ class DetectorPlotView(QWidget):
         self.groupBox = QGroupBox(self.name)
         self.globalLayout = QHBoxLayout()
 
-        # widgets to hide in popout view
-        self.hide_in_popout = [
-            self.modalFocusButton,
-            self.temperatureLabel,
-            self.voltageLabel,
-            self.currentLabel
-        ]
-
-        # widgets to hide in main view
-        # self.hide_in_main = []
-
         # organize layout
         self.layoutLeftTop = QVBoxLayout()
         self.layoutLeftTop.addWidget(
-            self.modalFocusButton,
+            self.popout_button,
             alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.layoutLeftTop.addStretch(self.spacing)
@@ -320,7 +364,6 @@ class DetectorPlotView(QWidget):
         self.setLayout(self.globalLayout)
         
         # connect to callbacks
-        self.modalFocusButton.clicked.connect(self.modalFocusButtonClicked)
         self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
         self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
         self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
@@ -333,48 +376,6 @@ class DetectorPlotView(QWidget):
         self.callInterval = 100
         # read 50,000 bytes from the end of `self.dataFile` at a time
         self.bufferSize = 50_000 
-
-    # callback functions:
-    def modalFocusButtonClicked(self, events):
-        self.handlePopout()
-
-    def handlePopout(self):
-        """
-        `handlePopout` should be called when the modalFocusButton is clicked. This method sets DetectorPlotView configuration for the new window. 
-        """
-
-        # reparent self to GSEPopout
-        if not self.popped:
-            logging.debug("popping out window...")
-            # link self to GSEPopout reference
-            self.popout = FoGSE.application.GSEPopout(self)
-            self.popped = True
-        
-            # if not flying, pull detector parameters
-            # update table views
-            # update parameter values
-
-            # hide widgets that are in hide_in_popout
-            [widg.hide() for widg in self.hide_in_popout]
-
-            # show widgets that should be shown in popout
-            # [widg.show() for widg in self.hide_in_main]
-
-        self.popout.show()
-
-    def handlePopin(self):
-        """
-        `handlePopin` should be called when the popout window for this DetectorPlotView is closed. This method sets DetectorPlotView configuration back to the default for a main window. 
-        """
-        logging.debug("popping in window...")
-        self.popout = None
-        self.popped = False
-
-        # show widgets that should be shown in main
-        [widg.show() for widg in self.hide_in_popout]
-        # hidden widgets that should be hidden in main
-        # [widg.hide() for widg in self.show_in_popout]
-        self.setLayout(self.globalLayout)
 
     def plotADCButtonClicked(self, events):
         logging.debug("plotting in ADC space")
@@ -920,12 +921,101 @@ class DetectorPlotViewIM(DetectorPlotView2D):
     
 
 
+class DetectorContainer(QWidget):
+    def __init__(
+        self, parent=None, 
+        name="PLACEHOLDER", label="Placeholder", formatter_if=None,
+        plot_view=None, table_view=None, parameters_view=None, command_view=None
+    ):
+        QWidget.__init__(self, parent)
+
+        # handle init args
+        self.name = name
+        self.label = label
+        self.formatter_if = formatter_if
+        self.plot_view = plot_view
+        self.table_view = table_view
+        self.parameters_view = parameters_view
+        self.command_view = command_view
+
+        self.popout_widget = None
+        
+        self.all_widgets = [
+            self.plot_view, 
+            self.table_view, 
+            self.parameters_view, 
+            self.command_view
+        ]
+        self.shown_in_main = [
+            self.plot_view
+        ]
+        self.shown_in_popout = [
+            self.plot_view, 
+            self.table_view, 
+            self.parameters_view, 
+            self.command_view
+        ]
+
+        self.layout = QGridLayout()
+        self.make_layout()
+
+        self.plot_view.popout_button.clicked.connect(self.on_popout_button_clicked)
+
+    def on_popout_button_clicked(self, events):
+        self.pop_out()
+
+    def pop_out(self):
+        self.plot_view.popout_button.hide()
+        self.popout_widget = DetectorPopout(self)
+
+    def pop_in(self):
+        self.make_layout()
+        self.plot_view.popout_button.show()
+
+    def make_layout(self):
+        for i, view in enumerate(self.all_widgets):
+            view.hide()
+            self.layout.addWidget(view, 0, 1+i, 1, 1)
+            if view in self.shown_in_main:
+                view.show()
+        
+        self.setLayout(self.layout)
+
+
+
+class DetectorPopout(QWidget):
+    def __init__(self, add_container: DetectorContainer=None):
+        QWidget.__init__(self)
+
+        self.container = add_container
+        self.tabs = QTabWidget()
+
+        self.layout = QGridLayout()
+        self.make_layout()
+        
+    def make_layout(self):
+        for i, view in enumerate(self.container.all_widgets):
+            view.hide()
+            self.tabs.addTab(view, view.label)
+            if view in self.container.shown_in_popout:
+                view.show()
+
+        self.layout.addWidget(self.tabs, 0,0,1,1)
+        self.setLayout(self.layout)
+        self.show()
+
+    def closeEvent(self, event):
+        self.container.pop_in()
+        event.accept()
+
+
+
 class DetectorArrayDisplay(QWidget):
     """
     A hexagonal tiling of DetectorPlotViews, à la the real FOXSI focal plane assembly.
     """
     def __init__(self, parent=None):
-        QWidget.__init__(self, parent)
+        QWidget.__init__(self,parent)
 
         # self.H = 800
         # self.W = 1280
@@ -1088,7 +1178,7 @@ class DetectorGridDisplay(QWidget):
     A gridded tiling of DetectorPlotViews, maybe more legible that `DetectorArrayDisplay`.
     """
 
-    def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, parent=None, formatter_if=None):
         QWidget.__init__(self, parent)
 
         # self.H = 800
@@ -1116,19 +1206,29 @@ class DetectorGridDisplay(QWidget):
         self.detector_panels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
         self.detector_panels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
 
+        self.detector_containers = []
+        for panel in self.detector_panels:
+            self.detector_containers.append(DetectorContainer(
+                self, name=panel.name, label=panel.label, formatter_if=formatter_if, 
+                plot_view=panel, 
+                table_view=DetectorTableView(self, "table"), 
+                parameters_view=DetectorParametersView(self, "parameters"), 
+                command_view=DetectorCommandView(self, "commands")
+            ))
+
         # add commanding panel
         self.command_panel = GlobalCommandPanel(self, name="Command", formatter_if=formatter_if)
 
         self.grid_layout = QGridLayout()
 
         # add everything to the grid layout (based on .name attribute)
-        for panel in self.detector_panels:
-            self._add_to_layout(panel)
+        for container in self.detector_containers:
+            self._add_to_layout(container)
         
         self._add_to_layout(self.command_panel)
 
-        for panel in self.detector_panels:
-            panel.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        for container in self.detector_containers:
+            container.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         
         # self.gridLayout.setRowStretch(self.gridLayout.rowCount(),1)
         for i in range(self.grid_layout.columnCount()):

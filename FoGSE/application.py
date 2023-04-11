@@ -13,7 +13,7 @@ APP_NAME = "GSE-FOXSI-4"
 
 class GSEMain(QMainWindow):
     def __init__(self):
-        super().__init__()                              # init the parent
+        super().__init__()                              # init the superclass
 
         # setup the window: -----------------------------------------------------
         QApplication.setOrganizationName(ORG_NAME)      # set organization name
@@ -29,7 +29,7 @@ class GSEMain(QMainWindow):
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
-        self.setCentralWidget(DetectorGridDisplay(self, self.fmtrif))
+        self.setCentralWidget(DetectorGridDisplay(self, formatter_if=self.fmtrif))
         # self.setCentralWidget(DetectorPlotView(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
@@ -58,49 +58,6 @@ class GSEFocus(QMainWindow):
         self.setWindowTitle(APP_NAME)
 
         self.setCentralWidget(DetectorPlotView(self))
-
-
-
-class GSEPopout(QWidget):
-    def __init__(self, detector_panel: DetectorPlotView):
-        super().__init__()                              # init the parent
-
-        # keep a pointer to the main display to reparent popout to on close
-        self.detector_panel = detector_panel
-        self.grid_display = self.detector_panel.parent()
-
-        # remove the detector_panel from its original grid_display
-        self.grid_display.grid_layout.removeWidget(self.detector_panel)
-
-        # find detector_panel in grid_display.gridLayout (to put it back later)
-        self._restore_position = []
-        self._restore_alignment = None
-
-        self.tabs = QTabWidget()
-        self.tabs.setTabPosition(QTabWidget.TabPosition.North)
-        self.tabs.addTab(self.detector_panel, "Plot")
-
-        # if tableview, parameters, etc belong to DetectorPlotView, how to add them as widgets here?
-        #   need to define the plots stuff from DetectorPlotView in its own class, a class for table, etc, then put them all together under DetectorPlotView?
-
-        self.tabs.addTab(QWidget(), "Strips/Pixels")
-        self.tabs.addTab(QWidget(), "Parameters")
-        self.tabs.addTab(QWidget(), "Commanding")
-
-        # self.setCentralWidget(self.detector_panel)
-        self.layout = QHBoxLayout()
-        self.layout.addWidget(self.tabs)
-        
-        # self.layout.addWidget(self.detector_panel)
-        self.setLayout(self.layout)
-
-    def closeEvent(self, event):
-        logging.debug("closing popout")
-        self.grid_display._add_to_layout(self.detector_panel)
-
-        self.detector_panel.handlePopin()
-
-        event.accept()
 
         
         
