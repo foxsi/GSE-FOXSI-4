@@ -14,6 +14,9 @@ import os
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 class AbstractVisualization(QWidget):
+    """
+    CURRENTLY UNUSED
+    """
     def __init__(self):
         super().__init__()
         self.widgets = []               # store widgets that comprise the visualization
@@ -29,10 +32,21 @@ class AbstractVisualization(QWidget):
 
 
 class GlobalCommandPanel(QWidget):
+    """
+    `GlobalCommandPanel` provides a unified interface to send any uplink commands to the Formatter. This is enabled by the communication.FormatterUDPInterface, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
+
+    :param name: Unique name of this panel interface.
+    :type name: str
+    :param label: Label for this interface (for display).
+    :type label: str
+    :param cmddeck: Command deck object (instantiated using .json config files), used for command validation and filtering.
+    :type cmddeck: communication.UplinkCommandDeck
+    :param fmtrif: Formatter UDP interface object.
+    :type fmtrif: communication.FormatterUDPInterface
+    """
+
     def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
-
-        self.parent = parent
 
         self.name = name
         self.label = "Global command uplink"
@@ -171,7 +185,6 @@ class GlobalCommandPanel(QWidget):
 
         # add arg to working command
         self._working_command.append(int(text, 10))
-
         self.command_send_button.setEnabled(True)
 
     def commandSendButtonClicked(self, events):
@@ -179,7 +192,6 @@ class GlobalCommandPanel(QWidget):
         print("\tvalidating command...")
         # todo: validate
         print("\tsending command (placeholder)...")
-        # self.fmtrif.send(byte_cmd)
         if len(self._working_command) == 3:
             self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
         elif len(self._working_command) == 2:
@@ -922,6 +934,32 @@ class DetectorPlotViewIM(DetectorPlotView2D):
 
 
 class DetectorContainer(QWidget):
+    """
+    `DetectorContainer` is the interface between `Detector...View`s (frontend) and detector data (backend). This class manages visibility of different detector views in main and focused windows, and persists detector data across view changes.
+
+    :param name: Name for the container.
+    :type name: str
+    :param label: Label for the container for display.
+    :type label: str
+    :param formatter_if: Interface object (socket) to the Formatter uplink.
+    :type formatter_if: FormatterUDPInterface
+    :param plot_view: Detector plot view object.
+    :type plot_view: DetectorPlotView
+    :param table_view: Detector table view object for strips or pixels.
+    :type table_view: DetectorTableView
+    :param parameters_view: Detector parameters view object (fields for assorted detector settings).
+    :type parameters_view: DetectorParametersView
+    :param command_view: Detector command view object for sending uplink commands.
+    :type command_view: DetectorCommandView
+    :param popout_widget: Reference to the focus window for the container, if it exists.
+    :type popout_widget: None | DetectorPopout
+    :param all_widgets: List of all widgets aggregated under DetectorContainer (include plot_view, table_view, etc).
+    :type all_widgets: list[QWidget]
+    :param shown_in_main: List of all widgets which should be shown in main views of many detectors.
+    :type shown_in_main: list[QWidget]
+    :param shown_in_popout: List of all widgets which should be shown in popout view.
+    :type shown_in_popout: list[QWidget]
+    """
     def __init__(
         self, parent=None, 
         name="PLACEHOLDER", label="Placeholder", formatter_if=None,
@@ -940,6 +978,7 @@ class DetectorContainer(QWidget):
 
         self.popout_widget = None
         
+        # define which widgets get seen in which views:
         self.all_widgets = [
             self.plot_view, 
             self.table_view, 
@@ -956,26 +995,49 @@ class DetectorContainer(QWidget):
             self.command_view
         ]
 
+        # make the layout
         self.layout = QGridLayout()
         self.make_layout()
 
+        # connect DetectorPlotView's Focus button to the popout action. Find a cleaner way of doing this (without reaching all the way into the attribute).
         self.plot_view.popout_button.clicked.connect(self.on_popout_button_clicked)
 
     def on_popout_button_clicked(self, events):
+        """
+        Connect this to the button which controls opening the popout window.
+        """
         self.pop_out()
 
     def pop_out(self):
+        """
+        This method delegates opening the popout to the `DetectorPopout` constructor. 
+        """
+        # popout button should not be visible from within popout window
         self.plot_view.popout_button.hide()
         self.popout_widget = DetectorPopout(self)
 
     def pop_in(self):
+        """
+        This method "pops the container back in" by restoring the `DetectorContainer` main layout, and cleans up the popout window.
+        """
         self.make_layout()
+        # popout button should reappear now that popout window is closed
         self.plot_view.popout_button.show()
+        # clean up popout_widget
+        self.popout_widget = None
 
     def make_layout(self):
+        """
+        This is a convenience method for laying out the `DetectorContainer` widget. This layout should be used when using a `DetectorContainer` in a main (non-popout) view.
+        """
         for i, view in enumerate(self.all_widgets):
+            # start by hiding all widgets
             view.hide()
+
+            # add all widgets to some layout
             self.layout.addWidget(view, 0, 1+i, 1, 1)
+
+            # only show widgets which should be shown in main view
             if view in self.shown_in_main:
                 view.show()
         
@@ -984,28 +1046,52 @@ class DetectorContainer(QWidget):
 
 
 class DetectorPopout(QWidget):
+    """
+    `DetectorPopout` defines the tabbed visual interface for managing all detector parameters and views. This class should be instantiated and fed data from a `DetectorContainer`. Since it has no parent, this object should appear as a free-floating window.
+
+    :param container: The `DetectorContainer` object delegating this popout window.
+    :type container: DetectorContainer
+    :param tabs: The tab manager object for holding different views within the detector container.
+    :type tabs: QTabWidget
+    """
     def __init__(self, add_container: DetectorContainer=None):
         QWidget.__init__(self)
-
+        
+        # add the widgets
         self.container = add_container
         self.tabs = QTabWidget()
 
+        # make the layout
         self.layout = QGridLayout()
         self.make_layout()
         
     def make_layout(self):
+        """
+        This is a convenience method for laying out the `DetectorPopout` widget. This layout should be used when viewing a `DetectorContainer` in a focused (popout) view.
+        """
         for i, view in enumerate(self.container.all_widgets):
+            # first, hide all widgets
             view.hide()
-            self.tabs.addTab(view, view.label)
+
+            # then, add tabs and show widgets only for container widgets which should be shown in the popout
             if view in self.container.shown_in_popout:
+                self.tabs.addTab(view, view.label)
                 view.show()
 
+        # add the tab widget to the global layout
         self.layout.addWidget(self.tabs, 0,0,1,1)
         self.setLayout(self.layout)
         self.show()
 
     def closeEvent(self, event):
+        """
+        This method is executed when the window for `DetectorPopout` is closed. It delegates the container back to the original `DetectorContainer`, then closes the window.
+        """
+
+        # clean up the DetectorPopout object and restore the main DetectorContainer view
         self.container.pop_in()
+
+        # allow the window to close
         event.accept()
 
 
