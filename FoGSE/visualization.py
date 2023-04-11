@@ -192,15 +192,15 @@ class GlobalCommandPanel(QWidget):
         self.command_send_button.setEnabled(False)
 
 
-class DetectorPanel(QWidget):
+class DetectorPlotView(QWidget):
     def __init__(self, parent=None, name="PLACEHOLDER"):
         """
-        Initialize a DetectorPanel (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
+        Initialize a DetectorPlotView (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
         :param parent: Optional parent widget.
         :type parent: PyQt6.QtWidgets.QWidget or None
-        :return: a new DetectorPanel object.
-        :rtype: DetectorPanel
+        :return: a new DetectorPlotView object.
+        :rtype: DetectorPlotView
         """
 
         QWidget.__init__(self, parent)
@@ -340,7 +340,7 @@ class DetectorPanel(QWidget):
 
     def handlePopout(self):
         """
-        `handlePopout` should be called when the modalFocusButton is clicked. This method sets DetectorPanel configuration for the new window. 
+        `handlePopout` should be called when the modalFocusButton is clicked. This method sets DetectorPlotView configuration for the new window. 
         """
 
         # reparent self to GSEPopout
@@ -364,8 +364,9 @@ class DetectorPanel(QWidget):
 
     def handlePopin(self):
         """
-        `handlePopin` should be called when the popout window for this DetectorPanel is closed. This method sets DetectorPanel configuration back to the default for a main window. 
+        `handlePopin` should be called when the popout window for this DetectorPlotView is closed. This method sets DetectorPlotView configuration back to the default for a main window. 
         """
+        logging.debug("popping in window...")
         self.popout = None
         self.popped = False
 
@@ -373,6 +374,7 @@ class DetectorPanel(QWidget):
         [widg.show() for widg in self.hide_in_popout]
         # hidden widgets that should be hidden in main
         # [widg.hide() for widg in self.show_in_popout]
+        self.setLayout(self.globalLayout)
 
     def plotADCButtonClicked(self, events):
         logging.debug("plotting in ADC space")
@@ -445,12 +447,12 @@ class DetectorPanel(QWidget):
         graphWidget.setLabel('left', ylabel)
 
 
-class DetectorPanel1D(DetectorPanel):
+class DetectorPlotView1D(DetectorPlotView):
     """
-    Detector panel class specifically for 1D data products (e.g., time profiles and spectra).
+    Detector plot class specifically for 1D data products (e.g., time profiles and spectra).
     """
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel.__init__(self, parent, name)
+        DetectorPlotView.__init__(self, parent, name)
 
         # initial time profile data
         self.x, self.y = [], []
@@ -465,13 +467,13 @@ class DetectorPanel1D(DetectorPanel):
                                             )
 
 
-class DetectorPanelTP(DetectorPanel1D):
+class DetectorPlotViewTP(DetectorPlotView1D):
     """
     Detector panel class specifically for time profiles.
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel1D.__init__(self, parent, name)
+        DetectorPlotView1D.__init__(self, parent, name)
 
         # defines how may x/y points to average over beffore plotting, not important just doing some data processing
         self.averageEvery = 3
@@ -567,13 +569,13 @@ class DetectorPanelTP(DetectorPanel1D):
         # plot the newly updated x and ys
         self.dataLine.setData(np.array(x).squeeze(), np.array(y).squeeze())
 
-class DetectorPanelSP(DetectorPanel1D):
+class DetectorPlotViewSP(DetectorPlotView1D):
     """
     Detector panel class specifically for spectra.
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel1D.__init__(self, parent, name)
+        DetectorPlotView1D.__init__(self, parent, name)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
@@ -664,7 +666,7 @@ class DetectorPanelSP(DetectorPanel1D):
         # plot the newly updated x and ys
         self.dataLine.setData(np.arange(1,self.numSpecBins+1), newY)
 
-class DetectorPanel2D(DetectorPanel):
+class DetectorPlotView2D(DetectorPlotView):
     """
     Detector panel class specifically for 2D data products (e.g., images and spectrograms).
     
@@ -674,7 +676,7 @@ class DetectorPanel2D(DetectorPanel):
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel.__init__(self, parent, name)
+        DetectorPlotView.__init__(self, parent, name)
 
         # set height and width of image in pixels
         self.detH, self.detW = 100, 100
@@ -749,13 +751,13 @@ class DetectorPanel2D(DetectorPanel):
         self.noNewHitsCounterArray = (np.zeros((self.detH, self.detW))).astype(self.numpyFormat)
 
 
-class DetectorPanelIM(DetectorPanel2D):
+class DetectorPlotViewIM(DetectorPlotView2D):
     """
     Detector panel class specifically for images.
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel2D.__init__(self, parent, name)
+        DetectorPlotView2D.__init__(self, parent, name)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -920,7 +922,7 @@ class DetectorPanelIM(DetectorPanel2D):
 
 class DetectorArrayDisplay(QWidget):
     """
-    A hexagonal tiling of DetectorPanels, à la the real FOXSI focal plane assembly.
+    A hexagonal tiling of DetectorPlotViews, à la the real FOXSI focal plane assembly.
     """
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
@@ -957,15 +959,15 @@ class DetectorArrayDisplay(QWidget):
         logging.debug("semiheight: %s" % self.panelHeight)
         logging.debug("hexagon: %s" % self.hexagon)
 
-        # explicitly populate all default DetectorPanel types
+        # explicitly populate all default DetectorPlotView types
         self.detectorPanels = [
-            DetectorPanelIM(self, name=detectorNames[0]),
-            DetectorPanelTP(self, name=detectorNames[1]),
-            DetectorPanelSP(self, name=detectorNames[2]),
-            DetectorPanel(self, name=detectorNames[3]),
-            DetectorPanel(self, name=detectorNames[4]),
-            DetectorPanel(self, name=detectorNames[5]),
-            DetectorPanel(self, name=detectorNames[6]),
+            DetectorPlotViewIM(self, name=detectorNames[0]),
+            DetectorPlotViewTP(self, name=detectorNames[1]),
+            DetectorPlotViewSP(self, name=detectorNames[2]),
+            DetectorPlotView(self, name=detectorNames[3]),
+            DetectorPlotView(self, name=detectorNames[4]),
+            DetectorPlotView(self, name=detectorNames[5]),
+            DetectorPlotView(self, name=detectorNames[6]),
         ]
 
         self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
@@ -1083,7 +1085,7 @@ class DetectorArrayDisplay(QWidget):
 
 class DetectorGridDisplay(QWidget):
     """
-    A gridded tiling of DetectorPanels, maybe more legible that `DetectorArrayDisplay`.
+    A gridded tiling of DetectorPlotViews, maybe more legible that `DetectorArrayDisplay`.
     """
 
     def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
@@ -1099,15 +1101,15 @@ class DetectorGridDisplay(QWidget):
 
         self.setGeometry(10,10,self.W,self.H)
 
-        # explicitly populate all default DetectorPanel types. NOTE: these are different than in DetectorArrayDisplay.
+        # explicitly populate all default DetectorPlotView types. NOTE: these are different than in DetectorArrayDisplay.
         self.detector_panels = [
-            DetectorPanelIM(self, name=detector_names[0]),
-            DetectorPanelTP(self, name=detector_names[1]),
-            DetectorPanelSP(self, name=detector_names[2]),
-            DetectorPanel(self, name=detector_names[3]),
-            DetectorPanel(self, name=detector_names[4]),
-            DetectorPanel(self, name=detector_names[5]),
-            DetectorPanel(self, name=detector_names[6]),
+            DetectorPlotViewIM(self, name=detector_names[0]),
+            DetectorPlotViewTP(self, name=detector_names[1]),
+            DetectorPlotViewSP(self, name=detector_names[2]),
+            DetectorPlotView(self, name=detector_names[3]),
+            DetectorPlotView(self, name=detector_names[4]),
+            DetectorPlotView(self, name=detector_names[5]),
+            DetectorPlotView(self, name=detector_names[6]),
         ]
 
         self.detector_panels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"

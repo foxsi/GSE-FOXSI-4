@@ -3,7 +3,7 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory, QTabWidget, QWidget, QHBoxLayout
 from PyQt6.QtGui import QIcon
 
-from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPanel, GlobalCommandPanel
+from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPlotView, GlobalCommandPanel
 from FoGSE.communication import FormatterUDPInterface
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -30,7 +30,7 @@ class GSEMain(QMainWindow):
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
         self.setCentralWidget(DetectorGridDisplay(self, self.fmtrif))
-        # self.setCentralWidget(DetectorPanel(self))
+        # self.setCentralWidget(DetectorPlotView(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
 
@@ -57,12 +57,12 @@ class GSEFocus(QMainWindow):
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
 
-        self.setCentralWidget(DetectorPanel(self))
+        self.setCentralWidget(DetectorPlotView(self))
 
 
 
 class GSEPopout(QWidget):
-    def __init__(self, detector_panel: DetectorPanel):
+    def __init__(self, detector_panel: DetectorPlotView):
         super().__init__()                              # init the parent
 
         # keep a pointer to the main display to reparent popout to on close
@@ -77,7 +77,12 @@ class GSEPopout(QWidget):
         self._restore_alignment = None
 
         self.tabs = QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.TabPosition.North)
         self.tabs.addTab(self.detector_panel, "Plot")
+
+        # if tableview, parameters, etc belong to DetectorPlotView, how to add them as widgets here?
+        #   need to define the plots stuff from DetectorPlotView in its own class, a class for table, etc, then put them all together under DetectorPlotView?
+
         self.tabs.addTab(QWidget(), "Strips/Pixels")
         self.tabs.addTab(QWidget(), "Parameters")
         self.tabs.addTab(QWidget(), "Commanding")
@@ -92,9 +97,6 @@ class GSEPopout(QWidget):
     def closeEvent(self, event):
         logging.debug("closing popout")
         self.grid_display._add_to_layout(self.detector_panel)
-        # self.grid_display.show()
-        # self.detector_panel.popout = None
-        # self.detector_panel.popped = False
 
         self.detector_panel.handlePopin()
 
