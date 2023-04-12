@@ -1,6 +1,6 @@
 import sys, typing, logging, math
 import numpy as np
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
 import pyqtgraph as pg
@@ -282,10 +282,21 @@ class DetectorPlotView(QWidget):
         # initialize buttons:
 
         # used by DetectorContainer and DetectorPopout, do not use here! Gotta find a safer way to do this.
-        self.popout_button = QPushButton("Focus detector", self)
+        # self.popout_button = QPushButton("Focus detector", self)
+        self.popout_button = QPushButton("", parent=self)
+        self.popout_button.setIcon(QtGui.QIcon("./assets/icon_popout_bg.svg"))
+        self.popout_button.setFixedSize(24,24)
+        self.popout_button.setIconSize(QtCore.QSize(24,24))
+        self.popout_button.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
 
         # include buttons to allow GUI start/stop data reading/display
         self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
+        # self.modalStartPlotDataButton = QPushButton("", self)
+        # self.modalStartPlotDataButton.setIcon(QtGui.QIcon("./assets/icon_play_bg.svg"))
+        # self.modalStartPlotDataButton.setFixedSize(32,32)
+        # self.modalStartPlotDataButton.setIconSize(QtCore.QSize(32,32))
+        # self.modalStartPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
+
         self.modalStopPlotDataButton = QPushButton("Stop plotting data", self)
 
         self.plotADCButton = QRadioButton("Plot in ADC bin", self)
@@ -298,14 +309,15 @@ class DetectorPlotView(QWidget):
         self.currentLabel = QLabel("Current (mA):", self)
 
         self.groupBox = QGroupBox(self.name)
+        self.groupBox.setStyleSheet("QGroupBox {border-width: 1px; border-style: outset; border-radius: 10px; border-color: black;}")
         self.globalLayout = QHBoxLayout()
 
         # organize layout
         self.layoutLeftTop = QVBoxLayout()
-        self.layoutLeftTop.addWidget(
-            self.popout_button,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
+        # self.layoutLeftTop.addWidget(
+        #     self.popout_button,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
         self.layoutLeftTop.addStretch(self.spacing)
 
         self.layoutLeftBottom = QVBoxLayout()
@@ -324,6 +336,10 @@ class DetectorPlotView(QWidget):
         self.layoutLeftBottom.addStretch(self.spacing)
 
         self.layoutRightTop = QVBoxLayout()
+        self.layoutRightTop.addWidget(
+            self.popout_button,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        )
         self.layoutRightTop.addWidget(
             self.plotADCButton,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
