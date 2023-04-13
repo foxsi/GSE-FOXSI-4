@@ -6,8 +6,7 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGrou
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
-import FoGSE.application
-# from FoGSE.application import GSEFocus, GSEMain
+
 from FoGSE import communication as comm
 import os
 
