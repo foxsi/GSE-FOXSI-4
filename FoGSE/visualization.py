@@ -1,8 +1,8 @@
-import sys, typing, logging, math
+import sys, typing, logging, math, json
 import numpy as np
 from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
@@ -28,6 +28,102 @@ class AbstractVisualization(QWidget):
 
     def retrieveData(self, source):
         pass
+
+
+
+class SettingsPanel(QWidget):
+    def __init__(self, parent, name="PLACEHOLDER", settings_file="./config/settings.json"):
+        QWidget.__init__(self, parent)
+        self.name = name
+        self.label = "Settings"
+
+        self.settings = {}
+
+        # add a config/settings.json file to store and import all this
+        try:
+            with open(settings_file, 'r') as file:
+                self.settings = json.load(file)
+
+        except EnvironmentError:
+            print("couldn't open settings file")
+
+        # assign all the settings
+        self.uplink_addr = self.settings["uplink_addr"]
+        self.uplink_port = self.settings["uplink_port"]
+        self.downlink_addr = self.settings["downlink_addr"]
+        self.downlink_port = self.settings["downlink_port"]
+        self.logger_addr = self.settings["logger_addr"]
+        self.flight = self.settings["flight"]
+        self.arm_flight = self.settings["arm_flight"]
+        self.systems_path = self.settings["systems_path"]
+        self.command_path = self.settings["command_path"]
+        self.logger_executable_path = self.settings["logger_executable_path"]
+        self.logger_log_path = self.settings["logger_log_path"]
+        self.uplink_log_path = self.settings["uplink_log_path"]
+        self.error_log_path = self.settings["error_log_path"]
+
+        self.open_button = QPushButton("Open settings", self)
+        self.arm_button = QCheckBox("Arm for flight", self)
+        self.fly_button = QCheckBox("Flight mode", self)
+        self.fly_button.setEnabled(False)
+
+        self.group_box = QGroupBox("Settings", self)
+        
+        self.inner_layout = QGridLayout()
+        self.inner_layout.addWidget(self.open_button, 0,0,1,2)
+        self.inner_layout.addWidget(self.arm_button, 1,0,1,1)
+        self.inner_layout.addWidget(self.fly_button, 1,1,1,1)
+        self.layout = QVBoxLayout()
+        self.layout.addLayout(self.inner_layout)
+        self.group_box.setLayout(self.layout)
+
+        self.open_button.clicked.connect(self.openSettingsDialog)
+        self.arm_button.stateChanged.connect(self.handleFlightButtons)
+        self.fly_button.stateChanged.connect(self.handleFlightButtons)
+
+    def openSettingsDialog(self, event):
+        dialog = SettingsDialog(self) 
+        if dialog.exec():
+            logging.debug("got settings accept")
+        else:
+            logging.debug("got settings reject")
+
+    def handleFlightButtons(self, event):
+        if self.arm_button.isChecked():
+            logging.debug("entering flight arm mode")
+            self.fly_button.setEnabled(True)
+        
+        if not self.arm_button.isChecked():
+            logging.debug("exiting flight arm mode")
+            self.fly_button.setEnabled(False)
+
+        if self.fly_button.isChecked():
+            logging.debug("entering flight mode")
+            self.arm_button.setEnabled(False)
+            self.fly_button.setEnabled(False)
+            # todo: actually 
+    
+    def enterArmedMode(self):
+        pass
+
+    def enterFlightMode(self):
+        pass
+    
+
+
+class SettingsDialog(QDialog):
+    def __init__(self, parent):
+        QDialog.__init__(self, parent)
+
+        self.setWindowTitle("Settings")
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self)
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.buttons)
+        self.setLayout(self.layout)
+
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
 
 
 
@@ -1293,6 +1389,8 @@ class DetectorGridDisplay(QWidget):
 
         self.setGeometry(10,10,self.W,self.H)
 
+        self.settings_panel = SettingsPanel(self, name="Settings", settings_file="./config/settings.json")
+
         # explicitly populate all default DetectorPlotView types. NOTE: these are different than in DetectorArrayDisplay.
         self.detector_panels = [
             DetectorPlotViewIM(self, name=detector_names[0]),
@@ -1328,6 +1426,7 @@ class DetectorGridDisplay(QWidget):
             self._add_to_layout(container)
         
         self._add_to_layout(self.command_panel)
+        self._add_to_layout(self.settings_panel)
 
         for container in self.detector_containers:
             container.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -1369,6 +1468,10 @@ class DetectorGridDisplay(QWidget):
         elif widget.name == "Command":
             self.grid_layout.addWidget(
                 widget, 1,4,1,1
+            )
+        elif widget.name == "Settings":
+            self.grid_layout.addWidget(
+                widget, 1,3,1,1
             )
         else:
             raise Warning("widget name not found!")
