@@ -59,7 +59,7 @@ def _checkButtonAndMethod(buttonName, button, method, *args, **kwargs):
     _compareHalvesOfLog(buttonName, method)
 
 
-def test_DetectorPanel():
+def test_DetectorPlotView():
     """
     Test base class for all detector panels.
     
@@ -67,13 +67,10 @@ def test_DetectorPanel():
     """
 
     # check we can initialise
-    q, w = _initWindow(vis.DetectorPanel, TEST_FILE_1D)
+    q, w = _initWindow(vis.DetectorPlotView, TEST_FILE_1D)
 
     # check buttons can be pressed and don't cause error and give same log output as the methods they should be attached to
     #_checkButtonAndMethod(buttonName, button, method, *argsForMethod, **kwargsForMethod)
-    _checkButtonAndMethod("modalPlotButton", w.modalPlotButton, w.modalPlotButtonClicked, 0)
-    _checkButtonAndMethod("modalImageButton", w.modalImageButton, w.modalImageButtonClicked, 0)
-    _checkButtonAndMethod("modalParamsButton", w.modalParamsButton, w.modalParamsButtonClicked, 0)
     _checkButtonAndMethod("plotADCButton", w.plotADCButton, w.plotADCButtonClicked, 0)
     _checkButtonAndMethod("plotEnergyButton", w.plotEnergyButton, w.plotEnergyButtonClicked, 0)
     _checkButtonAndMethod("plotStyleButton", w.plotStyleButton, w.plotStyleButtonClicked, 0)
@@ -81,7 +78,7 @@ def test_DetectorPanel():
     _checkButtonAndMethod("modalStopPlotDataButton", w.modalStopPlotDataButton, w.stopPlotUpdate)
 
 
-def test_DetectorPanel1D():
+def test_DetectorPlotView1D():
     """
     Test base class for all 1D detector panels.
     
@@ -90,13 +87,13 @@ def test_DetectorPanel1D():
     """
 
     # check we can initialise
-    q, w = _initWindow(vis.DetectorPanel1D, TEST_FILE_1D)
+    q, w = _initWindow(vis.DetectorPlotView1D, TEST_FILE_1D)
 
     # should return (None,None). I.e., empty X and Y coords
     xy = w.dataLine.getData()
-    assert xy==(None, None), "No data should initially be in the base `DetectorPanel1D` class. Should have (x,y)=(None, None)."
+    assert xy==(None, None), "No data should initially be in the base `DDetectorPlotView1D` class. Should have (x,y)=(None, None)."
 
-def test_DetectorPanelTP():
+def test_DetectorPlotViewTP():
     """
     Test class for all 1D detector panels showing a time profile.
     
@@ -105,7 +102,7 @@ def test_DetectorPanelTP():
     """
 
     # check we can initialise
-    q, w = _initWindow(vis.DetectorPanelTP, TEST_FILE_1D)
+    q, w = _initWindow(vis.DetectorPlotViewTP, TEST_FILE_1D)
 
     # don't do any averaging over the read values, i.e. average every 1 entry
     w.averageEvery = 1
@@ -131,7 +128,7 @@ def test_DetectorPanelTP():
     # compare output
     assert (np.all(xy[0]==expectedOut[0]) and np.all(xy[0]==expectedOut[0])), "The x and y time profile data doesn\'t match the file data."
 
-def test_DetectorPanelSP():
+def test_DetectorPlotViewSP():
     """
     Test class for all 1D detector panels showing a spectrum.
     
@@ -140,7 +137,7 @@ def test_DetectorPanelSP():
     """
 
     # check we can initialise
-    q, w = _initWindow(vis.DetectorPanelSP, TEST_FILE_1D)
+    q, w = _initWindow(vis.DetectorPlotViewSP, TEST_FILE_1D)
 
     # run method that updates the plot
     w.updatePlotData()
@@ -165,7 +162,7 @@ def test_DetectorPanelSP():
     assert (np.all(xy[0]==expectedOut[0]) and np.all(xy[0]==expectedOut[0])), "The x and y spectrum data doesn\'t match the file data."
 
 
-def test_DetectorPanel2D():
+def test_DetectorPlotView2D():
     """
     Test base class for all 2D detector panels.
     
@@ -173,7 +170,7 @@ def test_DetectorPanel2D():
     """
 
     # check we can initialise
-    q, w = _initWindow(vis.DetectorPanel2D, TEST_FILE_2D)
+    q, w = _initWindow(vis.DetectorPlotView2D, TEST_FILE_2D)
     
     # check default, x and y for all r, g, b, and a cannels with values of rgb at 0 anda at 255
     carr = np.zeros((w.detH, w.detW, 4))
@@ -185,15 +182,15 @@ def test_DetectorPanel2D():
     w.updateImageDimensions(height=height, width=width)
     carr = np.zeros((w.detH, w.detW, 4))
     carr[:,:,3] = w.maxVal
-    assert ((w.detH==height) and (width==width)), "Changing image dimesnions via `DetectorPanel2D.updateImageDimensions` has not worked."
-    assert np.all(w.myArray==carr), "Changing image dimensions via `DetectorPanel2D.updateImageDimensions` has not changed the array to be plotted."
+    assert ((w.detH==height) and (width==width)), "Changing image dimesnions via `DetectorPlotView2D.updateImageDimensions` has not worked."
+    assert np.all(w.myArray==carr), "Changing image dimensions via `DetectorPlotView2D.updateImageDimensions` has not changed the array to be plotted."
 
     # make sure we can change the colour format, essentially remove the alpha channel
     w.updateImageColourFormat(colourFormat="rgb")
-    assert np.all(w.myArray==np.zeros((height, width, 3))), "Changing image colour format via `DetectorPanel2D.updateImageColourFormat` has not changed the array to be plotted."
+    assert np.all(w.myArray==np.zeros((height, width, 3))), "Changing image colour format via `DetectorPlotView2D.updateImageColourFormat` has not changed the array to be plotted."
 
 
-def test_DetectorPanelIM():
+def test_DetectorPlotViewIM():
     """
     Test class for all 2D detector panels showing an image.
     
@@ -202,7 +199,7 @@ def test_DetectorPanelIM():
     """
 
     # check we can initialise
-    q, w = _initWindow(vis.DetectorPanelIM, TEST_FILE_2D)
+    q, w = _initWindow(vis.DetectorPlotViewIM, TEST_FILE_2D)
 
     # don't want to test against a 100x10 array
     w.updateImageDimensions(height=5, width=5)
@@ -255,14 +252,14 @@ if __name__=="__main__":
     # try to do a thorough test...
 
     # test detector panel base class
-    test_DetectorPanel()
+    test_DetectorPlotView()
     # test 1D detector panel base class
-    test_DetectorPanel1D()
+    test_DetectorPlotView1D()
     # test time profile detector panel class
-    test_DetectorPanelTP()
+    test_DetectorPlotViewTP()
     # test spectrum detector panel class
-    test_DetectorPanelSP()
+    test_DetectorPlotViewSP()
     # test 2D detector panel base class
-    test_DetectorPanel2D()
+    test_DetectorPlotView2D()
     # test image detector panel class
-    test_DetectorPanelIM()
+    test_DetectorPlotViewIM()
