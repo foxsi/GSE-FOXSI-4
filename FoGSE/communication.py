@@ -250,7 +250,7 @@ class FormatterUDPInterface:
         self.command_count = 0
 
     def __del__(self):
-        pass
+        self.local_socket.close()
         # if self.do_logging:
         #     self.logfile.close()
 

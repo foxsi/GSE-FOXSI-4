@@ -1,18 +1,21 @@
 import sys, typing, logging, math
 import numpy as np
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
-import os
 
 from FoGSE import communication as comm
+import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 class AbstractVisualization(QWidget):
+    """
+    CURRENTLY UNUSED
+    """
     def __init__(self):
         super().__init__()
         self.widgets = []               # store widgets that comprise the visualization
@@ -25,9 +28,27 @@ class AbstractVisualization(QWidget):
     def retrieveData(self, source):
         pass
 
+
+
 class GlobalCommandPanel(QWidget):
-    def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
+    """
+    `GlobalCommandPanel` provides a unified interface to send any uplink commands to the Formatter. This is enabled by the communication.FormatterUDPInterface, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
+
+    :param name: Unique name of this panel interface.
+    :type name: str
+    :param label: Label for this interface (for display).
+    :type label: str
+    :param cmddeck: Command deck object (instantiated using .json config files), used for command validation and filtering.
+    :type cmddeck: communication.UplinkCommandDeck
+    :param fmtrif: Formatter UDP interface object.
+    :type fmtrif: communication.FormatterUDPInterface
+    """
+
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
+
+        self.name = name
+        self.label = "Global command uplink"
 
         # build and validate list of allowable uplink commands
         self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
@@ -40,12 +61,12 @@ class GlobalCommandPanel(QWidget):
         self._working_command = []
         
         # group all UI elements in widget
-        self.cmd_box = QGroupBox("Global command uplink")   # todo: figure out why this doesn't appear
+        self.cmd_box = QGroupBox(self.label)
 
         # make UI widgets:
         self.box_layout = QVBoxLayout()
         self.grid_layout = QGridLayout()
-        self.system_label = QLabel("FOXSI System")
+        self.system_label = QLabel("System")
         self.system_combo_box = QComboBox()
         self.command_label = QLabel("Command")
         self.command_combo_box = QComboBox()
@@ -163,7 +184,6 @@ class GlobalCommandPanel(QWidget):
 
         # add arg to working command
         self._working_command.append(int(text, 10))
-
         self.command_send_button.setEnabled(True)
 
     def commandSendButtonClicked(self, events):
@@ -171,7 +191,6 @@ class GlobalCommandPanel(QWidget):
         print("\tvalidating command...")
         # todo: validate
         print("\tsending command (placeholder)...")
-        # self.fmtrif.send(byte_cmd)
         if len(self._working_command) == 3:
             self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
         elif len(self._working_command) == 2:
@@ -187,15 +206,67 @@ class GlobalCommandPanel(QWidget):
         self.command_send_button.setEnabled(False)
 
 
-class DetectorPanel(QWidget):
-    def __init__(self, parent=None, name="PLACEHOLDER"):
+
+class DetectorTableView(QWidget):
+    """
+    `DetectorTableView` is a PLACEHOLDER view for a strip/pixel data table. Will be used to view and edit strip/pixel data.
+    """
+
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+        QWidget.__init__(self,parent)
+
+        self.name=name
+        self.label="Table"
+        self.formatter_if=formatter_if
+
+        self.widget = QLabel(self.label)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.widget, 1,1,1,1)
+        self.setLayout(self.layout)
+
+
+
+class DetectorParametersView(QWidget):
+    # PLACEHOLDER
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+        QWidget.__init__(self,parent)
+
+        self.name=name
+        self.label="Parameters"
+        self.formatter_if=formatter_if
+
+        self.widget = QLabel(self.label)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.widget, 1,1,1,1)
+        self.setLayout(self.layout)
+
+
+
+class DetectorCommandView(QWidget):
+    # PLACEHOLDER
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+        QWidget.__init__(self,parent)
+
+        self.name=name
+        self.label="Commands"
+        self.formatter_if=formatter_if
+
+        self.widget = QLabel(self.label)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.widget, 1,1,1,1)
+        self.setLayout(self.layout)
+
+
+
+class DetectorPlotView(QWidget):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
         """
-        Initialize a DetectorPanel (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
+        Initialize a DetectorPlotView (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
         :param parent: Optional parent widget.
         :type parent: PyQt6.QtWidgets.QWidget or None
-        :return: a new DetectorPanel object.
-        :rtype: DetectorPanel
+        :return: a new DetectorPlotView object.
+        :rtype: DetectorPlotView
         """
 
         QWidget.__init__(self, parent)
@@ -204,13 +275,27 @@ class DetectorPanel(QWidget):
         self.graphPane = pg.PlotWidget(self)
         self.spacing = 20
         self.name = name
+        self.label = "Plot"
+        self.formatter_if = formatter_if
 
         # initialize buttons:
-        self.modalPlotButton = QPushButton("Focus Plot", self)
-        self.modalImageButton = QPushButton("Strips/Pixels", self)
-        self.modalParamsButton = QPushButton("Parameters", self)
-        # include butoms to allow GUI start/stop data reading/display
+
+        # used by DetectorContainer and DetectorPopout, do not use here! Gotta find a safer way to do this.
+        # self.popout_button = QPushButton("Focus detector", self)
+        self.popout_button = QPushButton("", parent=self)
+        self.popout_button.setIcon(QtGui.QIcon("./assets/icon_popout_bg.svg"))
+        self.popout_button.setFixedSize(24,24)
+        self.popout_button.setIconSize(QtCore.QSize(24,24))
+        self.popout_button.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
+
+        # include buttons to allow GUI start/stop data reading/display
         self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
+        # self.modalStartPlotDataButton = QPushButton("", self)
+        # self.modalStartPlotDataButton.setIcon(QtGui.QIcon("./assets/icon_play_bg.svg"))
+        # self.modalStartPlotDataButton.setFixedSize(32,32)
+        # self.modalStartPlotDataButton.setIconSize(QtCore.QSize(32,32))
+        # self.modalStartPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
+
         self.modalStopPlotDataButton = QPushButton("Stop plotting data", self)
 
         self.plotADCButton = QRadioButton("Plot in ADC bin", self)
@@ -223,23 +308,15 @@ class DetectorPanel(QWidget):
         self.currentLabel = QLabel("Current (mA):", self)
 
         self.groupBox = QGroupBox(self.name)
-        # self.groupBox = QGroupBox()
+        self.groupBox.setStyleSheet("QGroupBox {border-width: 1px; border-style: outset; border-radius: 10px; border-color: black;}")
         self.globalLayout = QHBoxLayout()
 
         # organize layout
         self.layoutLeftTop = QVBoxLayout()
-        self.layoutLeftTop.addWidget(
-            self.modalPlotButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftTop.addWidget(
-            self.modalImageButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftTop.addWidget(
-            self.modalParamsButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
+        # self.layoutLeftTop.addWidget(
+        #     self.popout_button,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
         self.layoutLeftTop.addStretch(self.spacing)
 
         self.layoutLeftBottom = QVBoxLayout()
@@ -258,6 +335,10 @@ class DetectorPanel(QWidget):
         self.layoutLeftBottom.addStretch(self.spacing)
 
         self.layoutRightTop = QVBoxLayout()
+        self.layoutRightTop.addWidget(
+            self.popout_button,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        )
         self.layoutRightTop.addWidget(
             self.plotADCButton,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
@@ -301,7 +382,6 @@ class DetectorPanel(QWidget):
 
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addLayout(self.layoutLeft)
-        # self.layoutMain.addWidget(self.graphPane)
         self.layoutMain.addLayout(self.layoutCenter)
         self.layoutMain.addLayout(self.layoutRight)
 
@@ -309,14 +389,8 @@ class DetectorPanel(QWidget):
         self.globalLayout.addWidget(self.groupBox)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.setLayout(self.globalLayout)
-
-        # main layout
-        # self.setLayout(self.layoutMain)
         
         # connect to callbacks
-        self.modalPlotButton.clicked.connect(self.modalPlotButtonClicked)
-        self.modalImageButton.clicked.connect(self.modalImageButtonClicked)
-        self.modalParamsButton.clicked.connect(self.modalParamsButtonClicked)
         self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
         self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
         self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
@@ -329,22 +403,6 @@ class DetectorPanel(QWidget):
         self.callInterval = 100
         # read 50,000 bytes from the end of `self.dataFile` at a time
         self.bufferSize = 50_000 
-
-        # self.createWidgets()
-
-    # def createWidgets(self):
-    #     button = QPushButton("breakout plot", self)
-    #     # button.move(100,100)
-
-    # callback functions:
-    def modalPlotButtonClicked(self, events):
-        logging.debug("focusing plot")
-
-    def modalImageButtonClicked(self, events):
-        logging.debug("editing px/strips")
-    
-    def modalParamsButtonClicked(self, events):
-        logging.debug("editing detector parameters")    
 
     def plotADCButtonClicked(self, events):
         logging.debug("plotting in ADC space")
@@ -417,12 +475,12 @@ class DetectorPanel(QWidget):
         graphWidget.setLabel('left', ylabel)
 
 
-class DetectorPanel1D(DetectorPanel):
+class DetectorPlotView1D(DetectorPlotView):
     """
-    Detector panel class specifically for 1D data products (e.g., time profiles and spectra).
+    Detector plot class specifically for 1D data products (e.g., time profiles and spectra).
     """
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel.__init__(self, parent, name)
+        DetectorPlotView.__init__(self, parent, name)
 
         # initial time profile data
         self.x, self.y = [], []
@@ -437,13 +495,13 @@ class DetectorPanel1D(DetectorPanel):
                                             )
 
 
-class DetectorPanelTP(DetectorPanel1D):
+class DetectorPlotViewTP(DetectorPlotView1D):
     """
     Detector panel class specifically for time profiles.
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel1D.__init__(self, parent, name)
+        DetectorPlotView1D.__init__(self, parent, name)
 
         # defines how may x/y points to average over beffore plotting, not important just doing some data processing
         self.averageEvery = 3
@@ -539,13 +597,13 @@ class DetectorPanelTP(DetectorPanel1D):
         # plot the newly updated x and ys
         self.dataLine.setData(np.array(x).squeeze(), np.array(y).squeeze())
 
-class DetectorPanelSP(DetectorPanel1D):
+class DetectorPlotViewSP(DetectorPlotView1D):
     """
     Detector panel class specifically for spectra.
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel1D.__init__(self, parent, name)
+        DetectorPlotView1D.__init__(self, parent, name)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
@@ -636,7 +694,7 @@ class DetectorPanelSP(DetectorPanel1D):
         # plot the newly updated x and ys
         self.dataLine.setData(np.arange(1,self.numSpecBins+1), newY)
 
-class DetectorPanel2D(DetectorPanel):
+class DetectorPlotView2D(DetectorPlotView):
     """
     Detector panel class specifically for 2D data products (e.g., images and spectrograms).
     
@@ -646,7 +704,7 @@ class DetectorPanel2D(DetectorPanel):
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel.__init__(self, parent, name)
+        DetectorPlotView.__init__(self, parent, name)
 
         # set height and width of image in pixels
         self.detH, self.detW = 100, 100
@@ -721,13 +779,13 @@ class DetectorPanel2D(DetectorPanel):
         self.noNewHitsCounterArray = (np.zeros((self.detH, self.detW))).astype(self.numpyFormat)
 
 
-class DetectorPanelIM(DetectorPanel2D):
+class DetectorPlotViewIM(DetectorPlotView2D):
     """
     Detector panel class specifically for images.
     """
 
     def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPanel2D.__init__(self, parent, name)
+        DetectorPlotView2D.__init__(self, parent, name)
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -890,12 +948,175 @@ class DetectorPanelIM(DetectorPanel2D):
     
 
 
+class DetectorContainer(QWidget):
+    """
+    `DetectorContainer` is the interface between `Detector...View`s (frontend) and detector data (backend). This class manages visibility of different detector views in main and focused windows, and persists detector data across view changes.
+
+    :param name: Name for the container.
+    :type name: str
+    :param label: Label for the container for display.
+    :type label: str
+    :param formatter_if: Interface object (socket) to the Formatter uplink.
+    :type formatter_if: FormatterUDPInterface
+    :param plot_view: Detector plot view object.
+    :type plot_view: DetectorPlotView
+    :param table_view: Detector table view object for strips or pixels.
+    :type table_view: DetectorTableView
+    :param parameters_view: Detector parameters view object (fields for assorted detector settings).
+    :type parameters_view: DetectorParametersView
+    :param command_view: Detector command view object for sending uplink commands.
+    :type command_view: DetectorCommandView
+    :param popout_widget: Reference to the focus window for the container, if it exists.
+    :type popout_widget: None | DetectorPopout
+    :param all_widgets: List of all widgets aggregated under DetectorContainer (include plot_view, table_view, etc).
+    :type all_widgets: list[QWidget]
+    :param shown_in_main: List of all widgets which should be shown in main views of many detectors.
+    :type shown_in_main: list[QWidget]
+    :param shown_in_popout: List of all widgets which should be shown in popout view.
+    :type shown_in_popout: list[QWidget]
+    """
+    def __init__(
+        self, parent=None, 
+        name="PLACEHOLDER", label="Placeholder", formatter_if=None,
+        plot_view=None, table_view=None, parameters_view=None, command_view=None
+    ):
+        QWidget.__init__(self, parent)
+
+        # handle init args
+        self.name = name
+        self.label = label
+        self.formatter_if = formatter_if
+        self.plot_view = plot_view
+        self.table_view = table_view
+        self.parameters_view = parameters_view
+        self.command_view = command_view
+
+        self.popout_widget = None
+        
+        # define which widgets get seen in which views:
+        self.all_widgets = [
+            self.plot_view, 
+            self.table_view, 
+            self.parameters_view, 
+            self.command_view
+        ]
+        self.shown_in_main = [
+            self.plot_view
+        ]
+        self.shown_in_popout = [
+            self.plot_view, 
+            self.table_view, 
+            self.parameters_view, 
+            self.command_view
+        ]
+
+        # make the layout
+        self.layout = QGridLayout()
+        self.make_layout()
+
+        # connect DetectorPlotView's Focus button to the popout action. Find a cleaner way of doing this (without reaching all the way into the attribute).
+        self.plot_view.popout_button.clicked.connect(self.on_popout_button_clicked)
+
+    def on_popout_button_clicked(self, events):
+        """
+        Connect this to the button which controls opening the popout window.
+        """
+        self.pop_out()
+
+    def pop_out(self):
+        """
+        This method delegates opening the popout to the `DetectorPopout` constructor. 
+        """
+        # popout button should not be visible from within popout window
+        self.plot_view.popout_button.hide()
+        self.popout_widget = DetectorPopout(self)
+
+    def pop_in(self):
+        """
+        This method "pops the container back in" by restoring the `DetectorContainer` main layout, and cleans up the popout window.
+        """
+        self.make_layout()
+        # popout button should reappear now that popout window is closed
+        self.plot_view.popout_button.show()
+        # clean up popout_widget
+        self.popout_widget = None
+
+    def make_layout(self):
+        """
+        This is a convenience method for laying out the `DetectorContainer` widget. This layout should be used when using a `DetectorContainer` in a main (non-popout) view.
+        """
+        for i, view in enumerate(self.all_widgets):
+            # start by hiding all widgets
+            view.hide()
+
+            # add all widgets to some layout
+            self.layout.addWidget(view, 0, 1+i, 1, 1)
+
+            # only show widgets which should be shown in main view
+            if view in self.shown_in_main:
+                view.show()
+        
+        self.setLayout(self.layout)
+
+
+
+class DetectorPopout(QWidget):
+    """
+    `DetectorPopout` defines the tabbed visual interface for managing all detector parameters and views. This class should be instantiated and fed data from a `DetectorContainer`. Since it has no parent, this object should appear as a free-floating window.
+
+    :param container: The `DetectorContainer` object delegating this popout window.
+    :type container: DetectorContainer
+    :param tabs: The tab manager object for holding different views within the detector container.
+    :type tabs: QTabWidget
+    """
+    def __init__(self, add_container: DetectorContainer=None):
+        QWidget.__init__(self)
+        
+        # add the widgets
+        self.container = add_container
+        self.tabs = QTabWidget()
+
+        # make the layout
+        self.layout = QGridLayout()
+        self.make_layout()
+        
+    def make_layout(self):
+        """
+        This is a convenience method for laying out the `DetectorPopout` widget. This layout should be used when viewing a `DetectorContainer` in a focused (popout) view.
+        """
+        for i, view in enumerate(self.container.all_widgets):
+            # first, hide all widgets
+            view.hide()
+
+            # then, add tabs and show widgets only for container widgets which should be shown in the popout
+            if view in self.container.shown_in_popout:
+                self.tabs.addTab(view, view.label)
+                view.show()
+
+        # add the tab widget to the global layout
+        self.layout.addWidget(self.tabs, 0,0,1,1)
+        self.setLayout(self.layout)
+        self.show()
+
+    def closeEvent(self, event):
+        """
+        This method is executed when the window for `DetectorPopout` is closed. It delegates the container back to the original `DetectorContainer`, then closes the window.
+        """
+
+        # clean up the DetectorPopout object and restore the main DetectorContainer view
+        self.container.pop_in()
+
+        # allow the window to close
+        event.accept()
+
+
+
 class DetectorArrayDisplay(QWidget):
     """
-    A hexagonal tiling of DetectorPanels, à la the real FOXSI focal plane assembly.
+    A hexagonal tiling of DetectorPlotViews, à la the real FOXSI focal plane assembly.
     """
     def __init__(self, parent=None):
-        QWidget.__init__(self, parent)
+        QWidget.__init__(self,parent)
 
         # self.H = 800
         # self.W = 1280
@@ -929,15 +1150,15 @@ class DetectorArrayDisplay(QWidget):
         logging.debug("semiheight: %s" % self.panelHeight)
         logging.debug("hexagon: %s" % self.hexagon)
 
-        # explicitly populate all default DetectorPanel types
+        # explicitly populate all default DetectorPlotView types
         self.detectorPanels = [
-            DetectorPanelIM(self, name=detectorNames[0]),
-            DetectorPanelTP(self, name=detectorNames[1]),
-            DetectorPanelSP(self, name=detectorNames[2]),
-            DetectorPanel(self, name=detectorNames[3]),
-            DetectorPanel(self, name=detectorNames[4]),
-            DetectorPanel(self, name=detectorNames[5]),
-            DetectorPanel(self, name=detectorNames[6]),
+            DetectorPlotViewIM(self, name=detectorNames[0]),
+            DetectorPlotViewTP(self, name=detectorNames[1]),
+            DetectorPlotViewSP(self, name=detectorNames[2]),
+            DetectorPlotView(self, name=detectorNames[3]),
+            DetectorPlotView(self, name=detectorNames[4]),
+            DetectorPlotView(self, name=detectorNames[5]),
+            DetectorPlotView(self, name=detectorNames[6]),
         ]
 
         self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
@@ -1055,10 +1276,10 @@ class DetectorArrayDisplay(QWidget):
 
 class DetectorGridDisplay(QWidget):
     """
-    A gridded tiling of DetectorPanels, maybe more legible that `DetectorArrayDisplay`.
+    A gridded tiling of DetectorPlotViews, maybe more legible that `DetectorArrayDisplay`.
     """
 
-    def __init__(self, parent=None, formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, parent=None, formatter_if=None):
         QWidget.__init__(self, parent)
 
         # self.H = 800
@@ -1067,84 +1288,89 @@ class DetectorGridDisplay(QWidget):
         self.W = parent.width() - 100
 
         # todo: a not-terrible way of assigning these.
-        detectorNames = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
+        detector_names = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
 
         self.setGeometry(10,10,self.W,self.H)
 
-        # explicitly populate all default DetectorPanel types. NOTE: these are different than in DetectorArrayDisplay.
-        self.detectorPanels = [
-            DetectorPanelIM(self, name=detectorNames[0]),
-            DetectorPanelTP(self, name=detectorNames[1]),
-            DetectorPanelSP(self, name=detectorNames[2]),
-            DetectorPanel(self, name=detectorNames[3]),
-            DetectorPanel(self, name=detectorNames[4]),
-            DetectorPanel(self, name=detectorNames[5]),
-            DetectorPanel(self, name=detectorNames[6]),
+        # explicitly populate all default DetectorPlotView types. NOTE: these are different than in DetectorArrayDisplay.
+        self.detector_panels = [
+            DetectorPlotViewIM(self, name=detector_names[0]),
+            DetectorPlotViewTP(self, name=detector_names[1]),
+            DetectorPlotViewSP(self, name=detector_names[2]),
+            DetectorPlotView(self, name=detector_names[3]),
+            DetectorPlotView(self, name=detector_names[4]),
+            DetectorPlotView(self, name=detector_names[5]),
+            DetectorPlotView(self, name=detector_names[6]),
         ]
 
-        self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
-        self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
-        self.detectorPanels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detector_panels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
+        self.detector_panels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detector_panels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
 
-        self.commandPanel = GlobalCommandPanel(self, formatter_if)
+        self.detector_containers = []
+        for panel in self.detector_panels:
+            self.detector_containers.append(DetectorContainer(
+                self, name=panel.name, label=panel.label, formatter_if=formatter_if, 
+                plot_view=panel, 
+                table_view=DetectorTableView(self, "table"), 
+                parameters_view=DetectorParametersView(self, "parameters"), 
+                command_view=DetectorCommandView(self, "commands")
+            ))
 
-        self.gridLayout = QGridLayout()
+        # add commanding panel
+        self.command_panel = GlobalCommandPanel(self, name="Command", formatter_if=formatter_if)
 
-        # timepix
-        self.gridLayout.addWidget(
-            self.detectorPanels[0], 
-            1, 1, 1, 2, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # commanding
-        self.gridLayout.addWidget(
-            self.commandPanel, 
-            1, 4, 1, 1, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        # CMOS 1
-        self.gridLayout.addWidget(
-            self.detectorPanels[3], 
-            2, 1, 1, 2, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CMOS 2
-        self.gridLayout.addWidget(
-            self.detectorPanels[4], 
-            2, 3, 1, 2, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 1
-        self.gridLayout.addWidget(
-            self.detectorPanels[5], 
-            3, 1, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 2
-        self.gridLayout.addWidget(
-            self.detectorPanels[6], 
-            3, 2, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 3
-        self.gridLayout.addWidget(
-            self.detectorPanels[1], 
-            3, 3, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
-        # CdTe 4
-        self.gridLayout.addWidget(
-            self.detectorPanels[2], 
-            3, 4, 1, 1, 
-            # alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignCenter
-        )
+        self.grid_layout = QGridLayout()
 
-        for panel in self.detectorPanels:
-            panel.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        # add everything to the grid layout (based on .name attribute)
+        for container in self.detector_containers:
+            self._add_to_layout(container)
+        
+        self._add_to_layout(self.command_panel)
+
+        for container in self.detector_containers:
+            container.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         
         # self.gridLayout.setRowStretch(self.gridLayout.rowCount(),1)
-        for i in range(self.gridLayout.columnCount()):
-            self.gridLayout.setColumnStretch(i,1)
+        for i in range(self.grid_layout.columnCount()):
+            self.grid_layout.setColumnStretch(i,0)
         # self.gridLayout.setColumnStretch(self.gridLayout.columnCount(),1)
 
-        self.setLayout(self.gridLayout)
+    def _add_to_layout(self, widget):
+        if widget.name == "Timepix":
+            self.grid_layout.addWidget(
+                widget, 1,1,1,2
+            )
+        elif widget.name == "CMOS1":
+            self.grid_layout.addWidget(
+                widget, 2,1,1,2
+            )
+        elif widget.name == "CMOS2":
+            self.grid_layout.addWidget(
+                widget, 2,3,1,2
+            )
+        elif widget.name == "CdTe1":
+            self.grid_layout.addWidget(
+                widget, 3,1,1,1
+            )
+        elif widget.name == "CdTe2":
+            self.grid_layout.addWidget(
+                widget, 3,2,1,1
+            )
+        elif widget.name == "CdTe3":
+            self.grid_layout.addWidget(
+                widget, 3,3,1,1
+            )
+        elif widget.name == "CdTe4":
+            self.grid_layout.addWidget(
+                widget, 3,4,1,1
+            )
+        elif widget.name == "Command":
+            self.grid_layout.addWidget(
+                widget, 1,4,1,1
+            )
+        else:
+            raise Warning("widget name not found!")
+        
+        self.setLayout(self.grid_layout)
+        widget.show()
