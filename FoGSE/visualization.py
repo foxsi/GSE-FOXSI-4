@@ -2,7 +2,7 @@ import sys, typing, logging, math, json
 import numpy as np
 from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
@@ -62,7 +62,7 @@ class SettingsPanel(QWidget):
         self.uplink_log_path = self.settings["uplink_log_path"]
         self.error_log_path = self.settings["error_log_path"]
 
-        self.open_button = QPushButton("Open settings", self)
+        self.open_button = QPushButton("Open settings...", self)
         self.arm_button = QCheckBox("Arm for flight", self)
         self.fly_button = QCheckBox("Flight mode", self)
         self.fly_button.setEnabled(False)
@@ -82,6 +82,7 @@ class SettingsPanel(QWidget):
         self.fly_button.stateChanged.connect(self.handleFlightButtons)
 
     def openSettingsDialog(self, event):
+        # pass in self (as parent of SettingsDialog) so dialog can modify settings stored here
         dialog = SettingsDialog(self) 
         if dialog.exec():
             logging.debug("got settings accept")
@@ -89,19 +90,23 @@ class SettingsPanel(QWidget):
             logging.debug("got settings reject")
 
     def handleFlightButtons(self, event):
+        # enter armed mode
         if self.arm_button.isChecked():
             logging.debug("entering flight arm mode")
             self.fly_button.setEnabled(True)
+            self.enterArmedMode()
         
+        # exit armed mode
         if not self.arm_button.isChecked():
             logging.debug("exiting flight arm mode")
             self.fly_button.setEnabled(False)
-
+            
+        # enter flight mode
         if self.fly_button.isChecked():
             logging.debug("entering flight mode")
             self.arm_button.setEnabled(False)
             self.fly_button.setEnabled(False)
-            # todo: actually 
+            self.enterFlightMode()
     
     def enterArmedMode(self):
         pass
@@ -109,6 +114,35 @@ class SettingsPanel(QWidget):
     def enterFlightMode(self):
         pass
     
+class FilePathLoad(QWidget):
+    def __init__(self, parent, width: int=120, dialog_name: str=""):
+        QWidget.__init__(self, parent)
+
+        self.text_field = QLineEdit()
+        self.text_field.setFixedWidth(width)
+        self.browse_button = QPushButton("Browse...")
+        self.dialog_name = dialog_name
+
+        self.layout = QHBoxLayout()
+        # self.layout.addWidget(self.text_field, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.layout.addWidget(self.text_field)
+        self.layout.addWidget(self.browse_button)
+        self.setLayout(self.layout)
+        # self.setMaximumHeight(50)
+
+        self.browse_button.clicked.connect(self.handleBrowsePush)
+
+    def handleBrowsePush(self, event):
+        print("select file")
+
+        dialog = QFileDialog(self, caption=self.dialog_name)
+        
+        if dialog.exec():
+            filenames = dialog.selectedFiles()
+
+    def handleTextEntry(self, event):
+        pass
+
 
 
 class SettingsDialog(QDialog):
@@ -116,14 +150,75 @@ class SettingsDialog(QDialog):
         QDialog.__init__(self, parent)
 
         self.setWindowTitle("Settings")
-        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self)
+        self.terminal_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self)
 
+        self.uplink_addr_field = QLineEdit()
+        self.uplink_port_field = QLineEdit()
+        self.downlink_port_field = QLineEdit()
+        self.socket_file_field = FilePathLoad(self, width=150, dialog_name="Select socket file path")
+        self.systems_path_field = FilePathLoad(self, width=150, dialog_name="Select systems list file")
+        self.commands_path_field = FilePathLoad(self, width=150, dialog_name="Select commands list file")
+        self.logger_executable_path_field = FilePathLoad(self, width=150, dialog_name="Logger executable file")
+        self.logger_log_path_field = FilePathLoad(self, width=150, dialog_name="Downlink log file path")
+        self.uplink_log_path_field = FilePathLoad(self, width=150, dialog_name="Uplink log file path")
+        self.error_log_path_field = FilePathLoad(self, width=150, dialog_name="Error log file path")
+
+        self.load_settings_path_button = QPushButton("Load settings file...")
+
+        self.network_control_layout = QGridLayout()
+        self.software_configuration_layout = QGridLayout()
+        self.network_control_layout.addWidget(QLabel("Formatter IP address"),      0,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.network_control_layout.addWidget(self.uplink_addr_field,              0,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.network_control_layout.addWidget(QLabel("Uplink port"),               1,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.network_control_layout.addWidget(self.uplink_port_field,              1,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.network_control_layout.addWidget(QLabel("Downlink (local) port"),     2,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.network_control_layout.addWidget(self.downlink_port_field,            2,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.network_control_layout.addWidget(QLabel("Logger socket file path"),   3,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.network_control_layout.addWidget(self.socket_file_field,              3,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.network_control_layout.setRowStretch(self.network_control_layout.rowCount(), 1)
+
+        self.software_configuration_layout.addWidget(QLabel("Systems list file path"),    0,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(self.systems_path_field,             0,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.software_configuration_layout.addWidget(QLabel("Commands list file path"),   1,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(self.commands_path_field,            1,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.software_configuration_layout.addWidget(QLabel("Logger executable path"),    2,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(self.logger_executable_path_field,   2,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.software_configuration_layout.addWidget(QLabel("Downlink log file path"),    3,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(self.logger_log_path_field,          3,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.software_configuration_layout.addWidget(QLabel("Uplink log file path"),      4,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(self.uplink_log_path_field,          4,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.software_configuration_layout.addWidget(QLabel("Error log file path"),       5,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(self.error_log_path_field,           5,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.software_configuration_layout.setRowStretch(self.software_configuration_layout.rowCount(), 1)
+        for i in range(self.software_configuration_layout.rowCount()):
+            self.software_configuration_layout.setRowMinimumHeight(i,50)
+        self.software_configuration_layout.setVerticalSpacing(5)
+        
+        self.inner_layout = QGridLayout()
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.buttons)
+        self.group_box = QGroupBox("Settings")
+        
+        self.inner_layout.addLayout(self.network_control_layout, 0,0,1,1)
+        self.inner_layout.addLayout(self.software_configuration_layout, 0,1,1,1)
+        self.inner_layout.addWidget(self.load_settings_path_button, 1,1,1,2)
+        self.group_box.setLayout(self.inner_layout)
+
+        self.layout.addWidget(self.group_box)
+        self.layout.addWidget(self.terminal_buttons)
         self.setLayout(self.layout)
 
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
+        self.terminal_buttons.accepted.connect(self.accept)
+        self.terminal_buttons.rejected.connect(self.reject)
+        self.load_settings_path_button.clicked.connect(self.handleLoadSettings)
+
+        # settings dialog should also have a modal file browser to load a settings json file
+    
+    def handleLoadSettings(self, events):
+        # dialog = QFileDialog(self, caption=self.dialog_name)
+        # if dialog.exec():
+        #     filenames = dialog.selectedFiles()
+        filename = QFileDialog.getOpenFileName(self,filter="JSON file (*.json)")[0]
+        logging.debug("selected " + str(filename))
 
 
 

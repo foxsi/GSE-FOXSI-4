@@ -71,9 +71,6 @@ def test_DetectorPlotView():
 
     # check buttons can be pressed and don't cause error and give same log output as the methods they should be attached to
     #_checkButtonAndMethod(buttonName, button, method, *argsForMethod, **kwargsForMethod)
-    _checkButtonAndMethod("modalPlotButton", w.modalFocusButton, w.modalFocusButtonClicked, 0)
-    _checkButtonAndMethod("modalImageButton", w.modalImageButton, w.modalImageButtonClicked, 0)
-    _checkButtonAndMethod("modalParamsButton", w.modalParamsButton, w.modalParamsButtonClicked, 0)
     _checkButtonAndMethod("plotADCButton", w.plotADCButton, w.plotADCButtonClicked, 0)
     _checkButtonAndMethod("plotEnergyButton", w.plotEnergyButton, w.plotEnergyButtonClicked, 0)
     _checkButtonAndMethod("plotStyleButton", w.plotStyleButton, w.plotStyleButtonClicked, 0)
