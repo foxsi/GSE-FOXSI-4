@@ -398,11 +398,11 @@ class DetectorPlotView(QWidget):
         self.modalStopPlotDataButton.clicked.connect(self.stopPlotUpdate)
 
         # set file to listen for that has the data in it
-        self.dataFile = "foxsi.txt"
+        self.data_file = "foxsi.txt"
         # update plot every 100 ms
         self.callInterval = 100
-        # read 50,000 bytes from the end of `self.dataFile` at a time
-        self.bufferSize = 50_000 
+        # read 50,000 bytes from the end of `self.data_file` at a time
+        self.bufferSize = 50_000
 
     def plotADCButtonClicked(self, events):
         logging.debug("plotting in ADC space")
@@ -474,6 +474,19 @@ class DetectorPlotView(QWidget):
         graphWidget.setLabel('bottom', xlabel)
         graphWidget.setLabel('left', ylabel)
 
+    def check_file_exists(self):
+        """
+        Method to check if the file that should have the data does indeed exist.
+
+        Returns
+        -------
+        `bool` :
+            Boolean where True means `self.data_file` does exist and False means it does not.
+        """
+        if not os.path.exists(self.data_file):
+            return False # empty x, y
+        return True
+
 
 class DetectorPlotView1D(DetectorPlotView):
     """
@@ -493,7 +506,150 @@ class DetectorPlotView1D(DetectorPlotView):
                                              xlabel="x",
                                              ylabel="y"
                                             )
+        
+    def process_data(self, *args):
+        """
+        Placeholder for a data processing step (e.g., averaging, etc.).
+        
+        Applied before `getData()` returns.
+        """
+        return args
+    
+    def return_empty(self):
+        """
+        Define what should take the place of the data if the file is either empty or doesn't 
+        have anything new to plot.
+        """
+        return [],[]
+    
+    def check_enough_data(self, lines):
+        """
+        Method to check if there is enough data in the file to continue.
 
+        Parameters
+        ----------
+        lines : list of strings
+            The lines from the content of `self.data_file` obtained using 
+            `FoGSE.readBackwards.BackwardsReader`.
+
+        Returns
+        -------
+        `bool` :
+            Boolean where True means there is enough data to plot and False means there is not.
+        """
+        if (lines==[]) or (len(lines)<3):
+            return False # empty x, y
+        return True
+    
+    def check_new_entries(self, data, lastT):
+        """
+        Method to check if there are entries read from the file that have not been plotted yet.
+
+        Parameters
+        ----------
+        data : `tuple`
+            The data (tuple of `numpy.array`) read from the file. First column (data[:,0]) should 
+            indicate the axis being selected over (e.g., times so we onnly plot data that has not 
+            been handled before).
+
+        lastT : `int`, `float`
+            The value of the last x-value plotted. Used to filter out data lines already plotted.
+
+        Returns
+        -------
+        `tuple` :
+            (x, y) The new x and y coordinates as lists to be plots where x>`lastT`.
+        """
+        newTs, newDs = data
+
+        # find indices of the x and ys not plotted yet
+        mask = (newTs>lastT) if lastT is not None else np.array([True]*len(newTs))
+
+        # if no entries are to be plotted just return nothing
+        if (~mask).all():
+            return self.return_empty() # empty x, y
+        
+        # apply mask
+        return newTs[mask].tolist(), newDs[mask].tolist()
+
+    def extract_data(self):
+        """
+        Method to extract the data from `self.data_file` and return the desired data.
+
+        Returns
+        -------
+        `tuple` :
+            (x, y) The new x and y coordinates read from `self.data_file`.
+        """
+        # read the file `self.bufferSize` bytes from the end and extract the lines
+        # forward=True: reads buffer from the back but doesn't reverse the data 
+        with BackwardsReader(file=self.data_file, blksize=self.bufferSize, forward=True) as f:
+            lines = f.readlines()
+
+        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
+        if not self.check_enough_data(lines):
+            return self.return_empty() # empty x, y
+
+        # got the data from file, now format for new_x and new_y
+        data = [l.split(b' ') for l in lines]
+
+        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
+        data = data[1:-1] 
+        
+        # extract the x and y data into two arrays
+        data = np.array(data, dtype=float)
+        Ts, Ds = data[:,0], data[:,1]
+
+        return Ts, Ds
+    
+    def get_plot_data(self):
+        """
+        Method to extract the data already plotted.
+
+        Returns
+        -------
+        `tuple` :
+            (x, y) The new x and y coordinates displayed on the plot.
+        """
+        # get already-plotted data and format into a more convenient form
+        x, y = self.dataLine.getData()
+        x, y = x if x is not None else [], y if y is not None else []
+        x, y = np.array(x).squeeze(), np.array(y).squeeze()
+        
+        # now tray to make it a list, may fail but catch that too
+        try:
+            return x.tolist(), y.tolist()
+        except AttributeError:
+            #AttributeError: 'NoneType' object has no attribute 'tolist', this from having nothing plotted originally
+            return [], []
+        
+    def getData(self, lastT):
+        """
+        Read the file `self.data_file` from the end with a memory buffer size of `self.bufferSize` and 
+        return data from lines with a first value greater than `lastT`
+
+        Parameters
+        ----------
+        lastT : `int`, `float`
+            The value of the last x-value plotted. Used to filter out data lines already plotted.
+
+        Returns
+        -------
+        `tuple` :
+            (x, y) The new x and y coordinates to be plots where x>`lastT`.
+        """
+
+        # check if the file exists yet, if not return nothing
+        if not self.check_file_exists():
+            return self.return_empty() # empty x, y
+
+        data = self.extract_data()
+
+        if data==self.return_empty():
+            return self.return_empty()
+
+        return self.check_new_entries(data, lastT)
+    
 
 class DetectorPlotViewTP(DetectorPlotView1D):
     """
@@ -504,88 +660,42 @@ class DetectorPlotViewTP(DetectorPlotView1D):
         DetectorPlotView1D.__init__(self, parent, name)
 
         # defines how may x/y points to average over beffore plotting, not important just doing some data processing
-        self.averageEvery = 3
+        self.average_every = 3
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Time [?]", ylabel="Counts [?]", title="Time Profile")
-
-    def getData(self, lastX):
+    
+    def process_data(self, arrx, arry, average_every):
         """
-        Read the file `self.dataFile` from the end with a memory buffer size of `self.bufferSize` and 
-        return data from lines with a first value greater than `lastX`
+        An extra processing step for the data before it is plotted.
+
+        ** Not important:** just here as a stand-in really for an example.
+        """
+
+        if (arrx, arry)==self.return_empty():
+            return self.return_empty()
+        
+        arrx, arry = np.array(arrx), np.array(arry)
+        # apply some averaging, not important at all
+        xs = np.mean(arrx[:(len(arrx)//average_every)*average_every].reshape(-1,average_every), axis=1)
+        ys = np.mean(arry[:(len(arry)//average_every)*average_every].reshape(-1,average_every), axis=1)
+        return xs.tolist(), ys.tolist()
+    
+    def add_plot_data(self, x, y, newX, newY):
+        """
+        Method to add new data to the extracted plot data.
 
         Parameters
         ----------
-        lastX : `int`, `float`
-            The value of the last x-value plotted. Used to filter out data lines already plotted.
+        x, y, newX, newY : `list`, `list`, `list`, `list`
+            The data extracted from the plot (x, y) and the data to be added to the plot 
+            (newX, newY).
 
         Returns
         -------
         `tuple` :
-            (x, y) The new x and y coordinates to be plots where x>`lastX`.
+            (x, y) The new x and y coordinates displayed on the plot.
         """
-
-        # check if the file exists yet, if not return nothing
-        if not os.path.exists(self.dataFile):
-            return [],[] # empty x, y
-
-        # read the file `self.bufferSize` bytes from the end and extract the lines
-        # forward=True: reads buffer from the back but doesn't reverse the data 
-        with BackwardsReader(file=self.dataFile, blksize=self.bufferSize, forward=True) as f:
-            lines = f.readlines()
-
-        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
-        if lines==[] or len(lines)<3:
-            return [],[] # empty x, y
-
-        # got the data from file, now format for new_x and new_y
-        data = [l.split(b' ') for l in lines]
-
-        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
-        data = data[1:-1] 
-        
-        # extract the x and y data into two arrays
-        data = np.array(data, dtype=float)
-        newXs, newYs = data[:,0], data[:,1]
-
-        # find indices of the x and ys not plotted yet
-        mask = (newXs>lastX) if lastX is not None else np.array([True]*len(newXs))
-
-        # if no entries are to be plotted just return nothing
-        if (~mask).all():
-            return [],[] # empty x, y
-        
-        # apply mask
-        arrx, arry = newXs[mask], newYs[mask]
-
-        # apply some averaging, not important at all
-        xs = np.mean(arrx[:(len(arrx)//self.averageEvery)*self.averageEvery].reshape(-1,self.averageEvery), axis=1)
-        ys = np.mean(arry[:(len(arry)//self.averageEvery)*self.averageEvery].reshape(-1,self.averageEvery), axis=1)
-        
-        # return the new x and ys
-        return xs.tolist(), ys.tolist()
-
-    def updatePlotData(self):
-        """
-        Defines how the plot window is updated.
-        """
-        
-        # get already-plotted data and format into a more convenient form
-        x, y = self.dataLine.getData()
-        x, y = x if x is not None else [], y if y is not None else []
-        x, y = np.array(x).squeeze(), np.array(y).squeeze()
-        
-        # now tray to make it a list, may fail but catch that too
-        try:
-            x, y = x.tolist(), y.tolist()
-        except AttributeError:
-            #AttributeError: 'NoneType' object has no attribute 'tolist', this from having nothing plotted originally
-            x, y = [], []
-
-        # find the last x-value plotted
-        lastX = x[-1] if len(x)>0 else None
-        newX, newY = self.getData(lastX)
-
         # depending on 1 or more new values, add or append into the x and y list
         if type(newX)==list:
             x += newX
@@ -593,9 +703,29 @@ class DetectorPlotViewTP(DetectorPlotView1D):
         else:  
             x.append(newX)
             y.append(newY)
+            
+        return np.array(x).squeeze(), np.array(y).squeeze()
+
+    def updatePlotData(self):
+        """
+        Defines how the plot window is updated.
+        """
+        
+        # get already-plotted data and format into a convenient form
+        x, y = self.get_plot_data()
+
+        # find the last x-value plotted
+        lastX = x[-1] if len(x)>0 else None
+        newX, newY = self.getData(lastX)
+
+        # just average over some coordinates fto reduce the number of points being plotted
+        newX, newY = self.process_data(arrx=newX, arry=newY, average_every=self.average_every)
+
+        # defined how to add/append onto the new data arrays
+        x, y = self.add_plot_data(x, y, newX, newY)
 
         # plot the newly updated x and ys
-        self.dataLine.setData(np.array(x).squeeze(), np.array(y).squeeze())
+        self.dataLine.setData(x, y)
 
 class DetectorPlotViewSP(DetectorPlotView1D):
     """
@@ -609,90 +739,81 @@ class DetectorPlotViewSP(DetectorPlotView1D):
         self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
 
         # only update bins, so x is fixed and y will be updated
-        self.numSpecBins = 50
+        self.num_spec_bins = 50
+        self.bins = np.arange(0,self.num_spec_bins)
 
-    def getData(self, lastX):
+    def update_spec_bin_num(self, num_spec_bins):
         """
-        Read the file `self.dataFile` from the end with a memory buffer size of `self.bufferSize` and 
-        return data from lines with a first value greater than `lastX`
+        Change the number of spectral bins.
 
         Parameters
         ----------
-        lastX : `int`, `float`
-            The value of the last x-value plotted. Used to filter out data lines already plotted.
+        num_spec_bins : `int`
+            The new number of spectral bins.
+        """
+        num_spec_bins = num_spec_bins if num_spec_bins>0 else self.num_spec_bins
+
+        self.num_spec_bins = num_spec_bins
+        self.bins = np.arange(0,self.num_spec_bins)
+
+    def process_data(self, arrx, arry, no_of_ebins):
+        """
+        An extra processing step for the data before it is plotted.
+
+        Will define how spectral data is binned.
+        """
+
+        if (arrx, arry)==self.return_empty():
+            return self.return_empty()
+        
+        # scale arry to be between [0,50) to get fake spectrum
+        sarry = ((np.array(arry) - np.min(arry))*((no_of_ebins-1)/np.max(np.array(arry) - np.min(arry)))).astype(int)
+        
+        hist = np.histogram(sarry, bins=self.bins)
+        
+        return self.bins[:-1]+0.5, hist[0]
+    
+    def add_plot_data(self, x, y, newX, newY):
+        """
+        Method to add new data to the extracted plot data.
+
+        Parameters
+        ----------
+        x, y, newX, newY : `list`, `list`, `list`, `list`
+            The data extracted from the plot (x, y) and the data to be added to the plot 
+            (newX, newY).
 
         Returns
         -------
         `tuple` :
-            (x, y) The new x and y coordinates to be plots where x>`lastX`.
+            (x, y) The new x and y coordinates displayed on the plot.
         """
 
-        # check if the file exists yet, if not return nothing
-        if not os.path.exists(self.dataFile):
-            return [],[] # empty x, y
-
-        # read the file `self.bufferSize` bytes from the end and extract the lines
-        # forward=True: reads buffer from the back but doesn't reverse the data 
-        with BackwardsReader(file=self.dataFile, blksize=self.bufferSize, forward=True) as f:
-            lines = f.readlines()
-
-        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
-        if lines==[] or len(lines)<3:
-            return [],[] # empty x, y
-
-        # got the data from file, now format for new_x and new_y
-        data = [l.split(b' ') for l in lines]
-
-        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
-        data = data[1:-1] 
-        
-        # extract the x and y data into two arrays
-        data = np.array(data, dtype=float)
-        newXs, newYs = data[:,0], data[:,1]
-
-        # find indices of the x and ys not plotted yet
-        mask = (newXs>lastX) if lastX is not None else np.array([True]*len(newXs))
-
-        # if no entries are to be plotted just return nothing
-        if (~mask).all():
-            return [],[] # empty x, y
-        
-        # apply mask
-        arrx, arry = newXs[mask], newYs[mask]
-        
-        # return the new x and ys
-        return arrx.tolist(), arry.tolist()
+        if (y==[]):
+            y = np.zeros(len(newY))
+            
+        return newX, np.array(y)*0.5+newY
 
     def updatePlotData(self):
         """
         Defines how the plot window is updated.
-
-        *** Revisit, not finished (obviously). Needs to be smarter. ***
         """
 
         # get already-plotted data and format into a more convenient form
-        x, y = self.dataLine.getData()
-        x, y = x if x is not None else [], y if y is not None else []
-        x, y = np.array(x).squeeze(), np.array(y).squeeze()
-        
-        # now tray to make it a list, may fail but catch that too
-        try:
-            x, y = x.tolist(), y.tolist()
-        except AttributeError:
-            #AttributeError: 'NoneType' object has no attribute 'tolist', this from having nothing plotted originally
-            x, y = [], []
+        x, y = self.get_plot_data()
 
         # find the last x-value plotted
         lastX = x[-1] if len(x)>0 else None
         newX, newY = self.getData(lastX)
 
         # make new spectrum
-        diff = self.numSpecBins-len(newY)
-        newY = newY+[0]*diff if diff>0 else newY[:self.numSpecBins]
-        
+        newX, newY = self.process_data(newX, newY, self.num_spec_bins)
+
+        x, y = self.add_plot_data(x, y, newX, newY)
 
         # plot the newly updated x and ys
-        self.dataLine.setData(np.arange(1,self.numSpecBins+1), newY)
+        self.dataLine.setData(x, y)
+
 
 class DetectorPlotView2D(DetectorPlotView):
     """
@@ -710,7 +831,7 @@ class DetectorPlotView2D(DetectorPlotView):
         self.detH, self.detW = 100, 100
 
         # number of frames to fade old counts over
-        self.fadeOut = 10
+        self.fade_out = 100
 
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
         self.colourMode = "rgba"
@@ -731,7 +852,7 @@ class DetectorPlotView2D(DetectorPlotView):
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(qImage))
         self.graphPane.addItem(self.img)
 
-    def updateImageDimensions(self, height=-1, width=-1):
+    def update_image_dimensions(self, height, width):
         """
         Change image height and width after initialisation.
 
@@ -739,10 +860,9 @@ class DetectorPlotView2D(DetectorPlotView):
         ----------
         height, width : `int`
             The new image height and width in pixels.
-            Default: -1
         """
-        height = height if height!=-1 else self.detH
-        width = width if width!=-1 else self.detW
+        height = height if height>0 else self.detH
+        width = width if width>0 else self.detW
 
         self.detH, self.detW = height, width
         self.setImageNdarray()
@@ -778,6 +898,13 @@ class DetectorPlotView2D(DetectorPlotView):
         # define array to keep track of the last hit to each pixel
         self.noNewHitsCounterArray = (np.zeros((self.detH, self.detW))).astype(self.numpyFormat)
 
+    def return_empty(self):
+        """
+        Define what should take the place of the data if the file is either empty or doesn't 
+        have anything new to plot.
+        """
+        return []
+
 
 class DetectorPlotViewIM(DetectorPlotView2D):
     """
@@ -790,9 +917,11 @@ class DetectorPlotViewIM(DetectorPlotView2D):
         # set title and labels
         self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
 
+        self.image_colour = "blue"
+
     def getData(self, lastT):
         """
-        Read the file `self.dataFile` from the end with a memory buffer size of `self.bufferSize` and 
+        Read the file `self.data_file` from the end with a memory buffer size of `self.bufferSize` and 
         return data from lines with a first value greater than `lastX`.
 
         Parameters
@@ -803,21 +932,21 @@ class DetectorPlotViewIM(DetectorPlotView2D):
         Returns
         -------
         `numpy.ndarray` :
-            The image frame made from a histogram of the new data in `self.dataFile`.
+            The image frame made from a histogram of the new data in `self.data_file`.
         """
 
         # check if the file exists yet, if not return nothing
-        if not os.path.exists(self.dataFile ):
-            return [] # empty frame
+        if not self.check_file_exists():
+            return self.return_empty() # empty frame
 
         # read the file `self.bufferSize` bytes from the end and extract the lines
         # forward=True: reads buffer from the back but doesn't reverse the data 
-        with BackwardsReader(file=self.dataFile , blksize=self.bufferSize, forward=True) as f:
+        with BackwardsReader(file=self.data_file , blksize=self.bufferSize, forward=True) as f:
             lines = f.readlines()
             
         # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
         if lines==[] or len(lines)<3:
-            return [] # empty frame
+            return self.return_empty() # empty frame
 
         # got the data from file, now format lines into each event
         data = [l.split(b' ') for l in lines]
@@ -827,7 +956,7 @@ class DetectorPlotViewIM(DetectorPlotView2D):
         
         # extract the events data into arrays
         data = np.array(data, dtype=float)
-        newTs, _, newXs, newYs = data[:,0], data[:,1], data[:,2], data[:,3]
+        newTs, newXs, newYs = data[:,0], data[:,2], data[:,3]
 
         # filter out events already plotted
         mask = (newTs>lastT) if lastT is not None else np.array([True]*len(newXs))
@@ -837,7 +966,7 @@ class DetectorPlotViewIM(DetectorPlotView2D):
 
         # make sure there is new data to plot and mask the data
         if (~mask).all():
-            return [] # empty frame
+            return self.return_empty() # empty frame
         newXs, newYs = newXs[mask], newYs[mask]
         
         # make a histogram from the events
@@ -870,18 +999,15 @@ class DetectorPlotViewIM(DetectorPlotView2D):
         # what pixels have a brand new hit? (0 = False, not 0 = True)
         new_hits = newFrame.astype(bool) 
         
+        self.fadeControl(newHitsArray=new_hits, control_with=self.image_colour)
+
         # add the new frame to the blue channel values and update the `self.myArray` to be plotted
-        self.myArray[:,:,self.channel["blue"]] = existingFrame[:,:,self.channel["blue"]] + newFrame
+        self.myArray[:,:,self.channel[self.image_colour]] = existingFrame[:,:,self.channel[self.image_colour]] + newFrame
 
-        # if there is an alpha channel, use to fade out pixels that haven't had a new count
-        if self.colourMode == "rgba":
-            self.fadeControl(newHitsArray=new_hits)
-
-
-    def fadeControl(self, newHitsArray):
+    def fadeControl(self, newHitsArray, control_with="alpha"):
         """
-        Fades out pixels that haven't had a new count in steps of `self.maxVal//self.fadeOut` until a pixel has not had an 
-        event for `self.fadeOut` frames. If a pixel has not had a detection in `self.fadeOut` frames then reset the colour 
+        Fades out pixels that haven't had a new count in steps of `self.maxVal//self.fade_out` until a pixel has not had an 
+        event for `self.fade_out` frames. If a pixel has not had a detection in `self.fade_out` frames then reset the colour 
         channel to zero and the alpha channel back to `self.maxVal`.
 
         *** Will likely revisit and control fading with decreasing the colour channel value instead with the same maths used to 
@@ -901,21 +1027,29 @@ class DetectorPlotViewIM(DetectorPlotView2D):
         # add to counter if pixel has no hits
         self.noNewHitsCounterArray += ~newHitsArray
 
-        # set alpha channel, fade by decreasing steadily over `self.fadeOut` steps 
-        # (a step for every frame the pixel has not detected an event)
-        self.myArray[:,:,self.alpha] = self.maxVal - (self.maxVal//self.fadeOut)*self.noNewHitsCounterArray
+        if (control_with=="alpha") and (self.colourMode=="rgba"):
+            # set alpha channel, fade by decreasing steadily over `self.fade_out` steps 
+            # (a step for every frame the pixel has not detected an event)
+            index = self.alpha
+            self.myArray[:,:,index] = self.maxVal - (self.maxVal//self.fade_out)*self.noNewHitsCounterArray
 
+            # find where alpha is zero (completely faded)
+            turnOffColour = (self.myArray[:,:,self.alpha]==0)
 
-        # find where alpha is zero (completely faded)
-        turnOffColour = (self.myArray[:,:,self.alpha]==0)
+            # now set the colour back to zero and return alhpa to max, ready for new counts
+            for k in self.channel.keys():
+                self.myArray[:,:,self.channel[k]][turnOffColour] = 0
 
-        # now set the colour back to zero and return alhpa to max, ready for new counts
-        for k in self.channel.keys():
-            self.myArray[:,:,self.channel[k]][turnOffColour] = 0
-        # reset alpha
-        self.myArray[:,:,self.alpha][turnOffColour] = self.maxVal 
+            # reset alpha
+            self.myArray[:,:,self.alpha][turnOffColour] = self.maxVal
+
+        elif control_with in ["red", "green", "blue"]:
+            index = self.channel[control_with]
+            self.myArray[:,:,index] = self.myArray[:,:,index] - (self.myArray[:,:,index]/self.fade_out)*self.noNewHitsCounterArray
         
-    
+        # reset the no hits counter when max is reached
+        self.noNewHitsCounterArray[self.noNewHitsCounterArray==self.fade_out] = 0
+
     def updatePlotData(self):
         """
         Defines how the plot window is updated.
@@ -1161,9 +1295,9 @@ class DetectorArrayDisplay(QWidget):
             DetectorPlotView(self, name=detectorNames[6]),
         ]
 
-        self.detectorPanels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
-        self.detectorPanels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
-        self.detectorPanels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detectorPanels[0].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detectorPanels[1].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detectorPanels[2].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
 
         # putting rectangles in hexagon
         # rects = [QtCore.QRect(
@@ -1297,15 +1431,25 @@ class DetectorGridDisplay(QWidget):
             DetectorPlotViewIM(self, name=detector_names[0]),
             DetectorPlotViewTP(self, name=detector_names[1]),
             DetectorPlotViewSP(self, name=detector_names[2]),
-            DetectorPlotView(self, name=detector_names[3]),
-            DetectorPlotView(self, name=detector_names[4]),
-            DetectorPlotView(self, name=detector_names[5]),
-            DetectorPlotView(self, name=detector_names[6]),
+            DetectorPlotViewIM(self, name=detector_names[3]),
+            DetectorPlotViewIM(self, name=detector_names[4]),
+            DetectorPlotViewTP(self, name=detector_names[5]),
+            DetectorPlotViewSP(self, name=detector_names[6]),
         ]
 
-        self.detector_panels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
-        self.detector_panels[1].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
-        self.detector_panels[2].dataFile = "/Volumes/sd-kris0/fake_foxsi_1d.txt"
+        self.detector_panels[0].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detector_panels[1].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detector_panels[2].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+
+        self.detector_panels[3].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detector_panels[3].fade_out, self.detector_panels[3].image_colour = 5, "green"
+        self.detector_panels[4].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detector_panels[4].update_image_dimensions(height=10, width=50)
+        self.detector_panels[4].image_colour = "red"
+        self.detector_panels[5].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detector_panels[5].average_every = 100
+        self.detector_panels[6].data_file = "/Volumes/sd-kris0/fake_foxsi.txt"
+        self.detector_panels[6].update_spec_bin_num(num_spec_bins=100)
 
         self.detector_containers = []
         for panel in self.detector_panels:
