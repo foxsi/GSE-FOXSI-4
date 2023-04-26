@@ -31,36 +31,50 @@ class AbstractVisualization(QWidget):
 
 
 
-class SettingsPanel(QWidget):
-    def __init__(self, parent, name="PLACEHOLDER", settings_file="./config/settings.json"):
-        QWidget.__init__(self, parent)
-        self.name = name
-        self.label = "Settings"
-
-        self.settings = {}
-
-        # add a config/settings.json file to store and import all this
+class SystemConfiguration():
+    def __init__(self, settings_file: str="./config/settings.json"):
+        settings_dict = {}
         try:
             with open(settings_file, 'r') as file:
-                self.settings = json.load(file)
-
+                settings_dict = json.load(file)
         except EnvironmentError:
             print("couldn't open settings file")
 
-        # assign all the settings
-        self.uplink_addr = self.settings["uplink_addr"]
-        self.uplink_port = self.settings["uplink_port"]
-        self.downlink_addr = self.settings["downlink_addr"]
-        self.downlink_port = self.settings["downlink_port"]
-        self.logger_addr = self.settings["logger_addr"]
-        self.flight = self.settings["flight"]
-        self.arm_flight = self.settings["arm_flight"]
-        self.systems_path = self.settings["systems_path"]
-        self.command_path = self.settings["command_path"]
-        self.logger_executable_path = self.settings["logger_executable_path"]
-        self.logger_log_path = self.settings["logger_log_path"]
-        self.uplink_log_path = self.settings["uplink_log_path"]
-        self.error_log_path = self.settings["error_log_path"]
+        self.uplink_addr = settings_dict["uplink_addr"]
+        self.uplink_port = settings_dict["uplink_port"]
+        self.downlink_addr = settings_dict["downlink_addr"]
+        self.downlink_port = settings_dict["downlink_port"]
+        self.logger_addr = settings_dict["logger_addr"]
+        self.flight = settings_dict["flight"]
+        self.arm_flight = settings_dict["arm_flight"]
+        self.systems_path = settings_dict["systems_path"]
+        self.command_path = settings_dict["command_path"]
+        self.logger_executable_path = settings_dict["logger_executable_path"]
+        self.logger_log_path = settings_dict["logger_log_path"]
+        self.uplink_log_path = settings_dict["uplink_log_path"]
+        self.error_log_path = settings_dict["error_log_path"]
+        
+    # def __init__(self, settings_dict: dict=None):
+    #     pass
+
+
+# right now, passing as init args.
+# if inheriting these, make sure attributes are private enough where they are defined.
+class DetectorBackend():
+    def __init__(self, name="PLACEHOLDER", label="Placeholder", system_configuration=None, formatter_interface=comm.FormatterUDPInterface()):
+        self.name = name
+        self.label = label
+        self.system_configuration = system_configuration
+        self.formatter_interface = formatter_interface
+
+
+
+class SettingsPanel(QWidget):
+    def __init__(self, parent, name="PLACEHOLDER", settings_file="./config/settings.json", system_configuration=SystemConfiguration()):
+        QWidget.__init__(self, parent)
+        self.name = name
+        self.label = "Settings"
+        self.system_configuration = system_configuration
 
         self.open_button = QPushButton("Open settings...", self)
         self.arm_button = QCheckBox("Arm for flight", self)
@@ -83,7 +97,7 @@ class SettingsPanel(QWidget):
 
     def openSettingsDialog(self, event):
         # pass in self (as parent of SettingsDialog) so dialog can modify settings stored here
-        dialog = SettingsDialog(self) 
+        dialog = SettingsDialog(self, self.system_configuration) 
         if dialog.exec():
             logging.debug("got settings accept")
         else:
@@ -109,11 +123,14 @@ class SettingsPanel(QWidget):
             self.enterFlightMode()
     
     def enterArmedMode(self):
-        pass
+        self.system_configuration.arm_flight = False
 
     def enterFlightMode(self):
-        pass
+        self.system_configuration.arm_flight = False
+        self.system_configuration.flight = True
     
+
+
 class FilePathLoad(QWidget):
     def __init__(self, parent, width: int=120, dialog_name: str=""):
         QWidget.__init__(self, parent)
@@ -146,22 +163,35 @@ class FilePathLoad(QWidget):
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, system_configuration: SystemConfiguration):
         QDialog.__init__(self, parent)
+
+        self.system_configuration = system_configuration
+        basewidth = 200
 
         self.setWindowTitle("Settings")
         self.terminal_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self)
 
         self.uplink_addr_field = QLineEdit()
+        self.uplink_addr_field.setText(self.system_configuration.uplink_addr)
         self.uplink_port_field = QLineEdit()
+        self.uplink_port_field.setText(str(self.system_configuration.uplink_port))
         self.downlink_port_field = QLineEdit()
-        self.socket_file_field = FilePathLoad(self, width=150, dialog_name="Select socket file path")
-        self.systems_path_field = FilePathLoad(self, width=150, dialog_name="Select systems list file")
-        self.commands_path_field = FilePathLoad(self, width=150, dialog_name="Select commands list file")
-        self.logger_executable_path_field = FilePathLoad(self, width=150, dialog_name="Logger executable file")
-        self.logger_log_path_field = FilePathLoad(self, width=150, dialog_name="Downlink log file path")
-        self.uplink_log_path_field = FilePathLoad(self, width=150, dialog_name="Uplink log file path")
-        self.error_log_path_field = FilePathLoad(self, width=150, dialog_name="Error log file path")
+        self.downlink_port_field.setText(str(self.system_configuration.downlink_port))
+        self.socket_file_field = FilePathLoad(self, width=basewidth, dialog_name="Select socket file path")
+        self.socket_file_field.text_field.setText(self.system_configuration.logger_addr)
+        self.systems_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select systems list file")
+        self.systems_path_field.text_field.setText(self.system_configuration.systems_path)
+        self.commands_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select commands list file")
+        self.commands_path_field.text_field.setText(self.system_configuration.command_path)
+        self.logger_executable_path_field = FilePathLoad(self, width=basewidth, dialog_name="Logger executable file")
+        self.logger_executable_path_field.text_field.setText(self.system_configuration.logger_executable_path)
+        self.logger_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Downlink log file path")
+        self.logger_log_path_field.text_field.setText(self.system_configuration.logger_log_path)
+        self.uplink_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Uplink log file path")
+        self.uplink_log_path_field.text_field.setText(self.system_configuration.uplink_log_path)
+        self.error_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Error log file path")
+        self.error_log_path_field.text_field.setText(self.system_configuration.error_log_path)
 
         self.load_settings_path_button = QPushButton("Load settings file...")
 
