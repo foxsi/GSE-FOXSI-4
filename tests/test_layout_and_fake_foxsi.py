@@ -3,7 +3,7 @@ import time
 from PyQt6.QtWidgets import QApplication
 # from FOGSE import application
 from FoGSE.application import GSEMain, GSEFocus, GSECommand
-from FoGSE.fakeFOXSI.createDataFile import write_numbers
+from FoGSE.fake_foxsi.createDataFile import write_numbers
 from FoGSE.visualization import DATA_FILE
 
 from multiprocessing import Process
