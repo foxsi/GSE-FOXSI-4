@@ -2,7 +2,7 @@ import sys, typing, logging, math, json
 import numpy as np
 from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog, QSlider
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
@@ -81,12 +81,26 @@ class SettingsPanel(QWidget):
         self.fly_button = QCheckBox("Flight mode", self)
         self.fly_button.setEnabled(False)
 
+        self.playback_slider = QSlider(orientation=QtCore.Qt.Orientation.Horizontal, parent=self)
+
+        self.playback_button = QPushButton("", parent=self)
+        self.playback_pause_icon = QtGui.QIcon("assets/icon_pause_col_bg.svg") # put these in memory so we don't do disk I/O every pause/play
+        self.playback_play_icon = QtGui.QIcon("assets/icon_play_col_bg.svg")
+        self.playback_button.setIcon(self.playback_play_icon)
+        self.playback_button.setFixedSize(32,32)
+        self.playback_button.setIconSize(QtCore.QSize(32,32))
+        self.playback_button.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
+        self.do_play = True
+
         self.group_box = QGroupBox("Settings", self)
         
         self.inner_layout = QGridLayout()
-        self.inner_layout.addWidget(self.open_button, 0,0,1,2)
-        self.inner_layout.addWidget(self.arm_button, 1,0,1,1)
-        self.inner_layout.addWidget(self.fly_button, 1,1,1,1)
+        self.inner_layout.addWidget(self.open_button, 0,0,1,4)
+        self.inner_layout.addWidget(self.arm_button, 1,0,1,2)
+        self.inner_layout.addWidget(self.fly_button, 1,2,1,2)
+        self.inner_layout.addWidget(self.playback_button, 2,0,1,1)
+        self.inner_layout.addWidget(self.playback_slider, 2,1,1,3)
+
         self.layout = QVBoxLayout()
         self.layout.addLayout(self.inner_layout)
         self.group_box.setLayout(self.layout)
@@ -94,6 +108,7 @@ class SettingsPanel(QWidget):
         self.open_button.clicked.connect(self.openSettingsDialog)
         self.arm_button.stateChanged.connect(self.handleFlightButtons)
         self.fly_button.stateChanged.connect(self.handleFlightButtons)
+        self.playback_button.clicked.connect(self.handlePlaybackButton)
 
     def openSettingsDialog(self, event):
         # pass in self (as parent of SettingsDialog) so dialog can modify settings stored here
@@ -114,6 +129,7 @@ class SettingsPanel(QWidget):
         if not self.arm_button.isChecked():
             logging.debug("exiting flight arm mode")
             self.fly_button.setEnabled(False)
+            self.exitArmedMode()
             
         # enter flight mode
         if self.fly_button.isChecked():
@@ -121,9 +137,24 @@ class SettingsPanel(QWidget):
             self.arm_button.setEnabled(False)
             self.fly_button.setEnabled(False)
             self.enterFlightMode()
+
+    def handlePlaybackButton(self, event):
+        if self.do_play:
+            logging.debug("playing data display")
+            self.playback_button.setIcon(self.playback_pause_icon)
+            self.do_play  = False
+        else:
+            logging.debug("pausing data display")
+            self.playback_button.setIcon(self.playback_play_icon)
+            self.do_play  = True
     
     def enterArmedMode(self):
+        self.system_configuration.arm_flight = True
+        self.playback_slider.setEnabled(False)
+   
+    def exitArmedMode(self):
         self.system_configuration.arm_flight = False
+        self.playback_slider.setEnabled(True)
 
     def enterFlightMode(self):
         self.system_configuration.arm_flight = False
