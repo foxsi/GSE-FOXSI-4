@@ -5,6 +5,7 @@ from PyQt6.QtGui import QIcon
 
 from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPlotView, GlobalCommandPanel
 from FoGSE.communication import FormatterUDPInterface
+from FoGSE.configuration import SystemConfiguration
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -25,11 +26,12 @@ class GSEMain(QMainWindow):
         # self.settings = self._restoreSettings()         # restore old settings
 
         self.fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+        self.config = SystemConfiguration(settings_file="config/settings.json", formatter_if=self.fmtrif)
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
-        self.setCentralWidget(DetectorGridDisplay(self, formatter_if=self.fmtrif))
+        self.setCentralWidget(DetectorGridDisplay(self, configuration=self.config, formatter_if=self.fmtrif))
         # self.setCentralWidget(DetectorPlotView(self))
         
         # logging.debug(str(self.width()) + str(self.height()))

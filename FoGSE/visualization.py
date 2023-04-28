@@ -9,6 +9,7 @@ from FoGSE.readBackwards import BackwardsReader
 import FoGSE.application
 # from FoGSE.application import GSEFocus, GSEMain
 from FoGSE import communication as comm
+from FoGSE import configuration as config
 import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -31,258 +32,6 @@ class AbstractVisualization(QWidget):
 
 
 
-class SystemConfiguration():
-    def __init__(self, settings_file: str="./config/settings.json"):
-        settings_dict = {}
-        try:
-            with open(settings_file, 'r') as file:
-                settings_dict = json.load(file)
-        except EnvironmentError:
-            print("couldn't open settings file")
-
-        self.uplink_addr = settings_dict["uplink_addr"]
-        self.uplink_port = settings_dict["uplink_port"]
-        self.downlink_addr = settings_dict["downlink_addr"]
-        self.downlink_port = settings_dict["downlink_port"]
-        self.logger_addr = settings_dict["logger_addr"]
-        self.flight = settings_dict["flight"]
-        self.arm_flight = settings_dict["arm_flight"]
-        self.systems_path = settings_dict["systems_path"]
-        self.command_path = settings_dict["command_path"]
-        self.logger_executable_path = settings_dict["logger_executable_path"]
-        self.logger_log_path = settings_dict["logger_log_path"]
-        self.uplink_log_path = settings_dict["uplink_log_path"]
-        self.error_log_path = settings_dict["error_log_path"]
-        
-    # def __init__(self, settings_dict: dict=None):
-    #     pass
-
-
-# right now, passing as init args.
-# if inheriting these, make sure attributes are private enough where they are defined.
-class DetectorBackend():
-    def __init__(self, name="PLACEHOLDER", label="Placeholder", system_configuration=None, formatter_interface=comm.FormatterUDPInterface()):
-        self.name = name
-        self.label = label
-        self.system_configuration = system_configuration
-        self.formatter_interface = formatter_interface
-
-
-
-class SettingsPanel(QWidget):
-    def __init__(self, parent, name="PLACEHOLDER", settings_file="./config/settings.json", system_configuration=SystemConfiguration()):
-        QWidget.__init__(self, parent)
-        self.name = name
-        self.label = "Settings"
-        self.system_configuration = system_configuration
-
-        self.open_button = QPushButton("Open settings...", self)
-        self.arm_button = QCheckBox("Arm for flight", self)
-        self.fly_button = QCheckBox("Flight mode", self)
-        self.fly_button.setEnabled(False)
-
-        self.playback_slider = QSlider(orientation=QtCore.Qt.Orientation.Horizontal, parent=self)
-
-        self.playback_button = QPushButton("", parent=self)
-        self.playback_pause_icon = QtGui.QIcon("assets/icon_pause_col_bg.svg") # put these in memory so we don't do disk I/O every pause/play
-        self.playback_play_icon = QtGui.QIcon("assets/icon_play_col_bg.svg")
-        self.playback_button.setIcon(self.playback_play_icon)
-        self.playback_button.setFixedSize(32,32)
-        self.playback_button.setIconSize(QtCore.QSize(32,32))
-        self.playback_button.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
-        self.do_play = True
-
-        self.group_box = QGroupBox("Settings", self)
-        
-        self.inner_layout = QGridLayout()
-        self.inner_layout.addWidget(self.open_button, 0,0,1,4)
-        self.inner_layout.addWidget(self.arm_button, 1,0,1,2)
-        self.inner_layout.addWidget(self.fly_button, 1,2,1,2)
-        self.inner_layout.addWidget(self.playback_button, 2,0,1,1)
-        self.inner_layout.addWidget(self.playback_slider, 2,1,1,3)
-
-        self.layout = QVBoxLayout()
-        self.layout.addLayout(self.inner_layout)
-        self.group_box.setLayout(self.layout)
-
-        self.open_button.clicked.connect(self.openSettingsDialog)
-        self.arm_button.stateChanged.connect(self.handleFlightButtons)
-        self.fly_button.stateChanged.connect(self.handleFlightButtons)
-        self.playback_button.clicked.connect(self.handlePlaybackButton)
-
-    def openSettingsDialog(self, event):
-        # pass in self (as parent of SettingsDialog) so dialog can modify settings stored here
-        dialog = SettingsDialog(self, self.system_configuration) 
-        if dialog.exec():
-            logging.debug("got settings accept")
-        else:
-            logging.debug("got settings reject")
-
-    def handleFlightButtons(self, event):
-        # enter armed mode
-        if self.arm_button.isChecked():
-            logging.debug("entering flight arm mode")
-            self.fly_button.setEnabled(True)
-            self.enterArmedMode()
-        
-        # exit armed mode
-        if not self.arm_button.isChecked():
-            logging.debug("exiting flight arm mode")
-            self.fly_button.setEnabled(False)
-            self.exitArmedMode()
-            
-        # enter flight mode
-        if self.fly_button.isChecked():
-            logging.debug("entering flight mode")
-            self.arm_button.setEnabled(False)
-            self.fly_button.setEnabled(False)
-            self.enterFlightMode()
-
-    def handlePlaybackButton(self, event):
-        if self.do_play:
-            logging.debug("playing data display")
-            self.playback_button.setIcon(self.playback_pause_icon)
-            self.do_play  = False
-        else:
-            logging.debug("pausing data display")
-            self.playback_button.setIcon(self.playback_play_icon)
-            self.do_play  = True
-    
-    def enterArmedMode(self):
-        self.system_configuration.arm_flight = True
-        self.playback_slider.setEnabled(False)
-   
-    def exitArmedMode(self):
-        self.system_configuration.arm_flight = False
-        self.playback_slider.setEnabled(True)
-
-    def enterFlightMode(self):
-        self.system_configuration.arm_flight = False
-        self.system_configuration.flight = True
-    
-
-
-class FilePathLoad(QWidget):
-    def __init__(self, parent, width: int=120, dialog_name: str=""):
-        QWidget.__init__(self, parent)
-
-        self.text_field = QLineEdit()
-        self.text_field.setFixedWidth(width)
-        self.browse_button = QPushButton("Browse...")
-        self.dialog_name = dialog_name
-
-        self.layout = QHBoxLayout()
-        # self.layout.addWidget(self.text_field, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.layout.addWidget(self.text_field)
-        self.layout.addWidget(self.browse_button)
-        self.setLayout(self.layout)
-        # self.setMaximumHeight(50)
-
-        self.browse_button.clicked.connect(self.handleBrowsePush)
-
-    def handleBrowsePush(self, event):
-        print("select file")
-
-        dialog = QFileDialog(self, caption=self.dialog_name)
-        
-        if dialog.exec():
-            filenames = dialog.selectedFiles()
-
-    def handleTextEntry(self, event):
-        pass
-
-
-
-class SettingsDialog(QDialog):
-    def __init__(self, parent, system_configuration: SystemConfiguration):
-        QDialog.__init__(self, parent)
-
-        self.system_configuration = system_configuration
-        basewidth = 200
-
-        self.setWindowTitle("Settings")
-        self.terminal_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self)
-
-        self.uplink_addr_field = QLineEdit()
-        self.uplink_addr_field.setText(self.system_configuration.uplink_addr)
-        self.uplink_port_field = QLineEdit()
-        self.uplink_port_field.setText(str(self.system_configuration.uplink_port))
-        self.downlink_port_field = QLineEdit()
-        self.downlink_port_field.setText(str(self.system_configuration.downlink_port))
-        self.socket_file_field = FilePathLoad(self, width=basewidth, dialog_name="Select socket file path")
-        self.socket_file_field.text_field.setText(self.system_configuration.logger_addr)
-        self.systems_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select systems list file")
-        self.systems_path_field.text_field.setText(self.system_configuration.systems_path)
-        self.commands_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select commands list file")
-        self.commands_path_field.text_field.setText(self.system_configuration.command_path)
-        self.logger_executable_path_field = FilePathLoad(self, width=basewidth, dialog_name="Logger executable file")
-        self.logger_executable_path_field.text_field.setText(self.system_configuration.logger_executable_path)
-        self.logger_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Downlink log file path")
-        self.logger_log_path_field.text_field.setText(self.system_configuration.logger_log_path)
-        self.uplink_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Uplink log file path")
-        self.uplink_log_path_field.text_field.setText(self.system_configuration.uplink_log_path)
-        self.error_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Error log file path")
-        self.error_log_path_field.text_field.setText(self.system_configuration.error_log_path)
-
-        self.load_settings_path_button = QPushButton("Load settings file...")
-
-        self.network_control_layout = QGridLayout()
-        self.software_configuration_layout = QGridLayout()
-        self.network_control_layout.addWidget(QLabel("Formatter IP address"),      0,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.network_control_layout.addWidget(self.uplink_addr_field,              0,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.network_control_layout.addWidget(QLabel("Uplink port"),               1,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.network_control_layout.addWidget(self.uplink_port_field,              1,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.network_control_layout.addWidget(QLabel("Downlink (local) port"),     2,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.network_control_layout.addWidget(self.downlink_port_field,            2,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.network_control_layout.addWidget(QLabel("Logger socket file path"),   3,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.network_control_layout.addWidget(self.socket_file_field,              3,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.network_control_layout.setRowStretch(self.network_control_layout.rowCount(), 1)
-
-        self.software_configuration_layout.addWidget(QLabel("Systems list file path"),    0,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.software_configuration_layout.addWidget(self.systems_path_field,             0,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QLabel("Commands list file path"),   1,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.software_configuration_layout.addWidget(self.commands_path_field,            1,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QLabel("Logger executable path"),    2,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.software_configuration_layout.addWidget(self.logger_executable_path_field,   2,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QLabel("Downlink log file path"),    3,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.software_configuration_layout.addWidget(self.logger_log_path_field,          3,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QLabel("Uplink log file path"),      4,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.software_configuration_layout.addWidget(self.uplink_log_path_field,          4,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QLabel("Error log file path"),       5,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
-        self.software_configuration_layout.addWidget(self.error_log_path_field,           5,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.setRowStretch(self.software_configuration_layout.rowCount(), 1)
-        for i in range(self.software_configuration_layout.rowCount()):
-            self.software_configuration_layout.setRowMinimumHeight(i,50)
-        self.software_configuration_layout.setVerticalSpacing(5)
-        
-        self.inner_layout = QGridLayout()
-        self.layout = QVBoxLayout()
-        self.group_box = QGroupBox("Settings")
-        
-        self.inner_layout.addLayout(self.network_control_layout, 0,0,1,1)
-        self.inner_layout.addLayout(self.software_configuration_layout, 0,1,1,1)
-        self.inner_layout.addWidget(self.load_settings_path_button, 1,1,1,2)
-        self.group_box.setLayout(self.inner_layout)
-
-        self.layout.addWidget(self.group_box)
-        self.layout.addWidget(self.terminal_buttons)
-        self.setLayout(self.layout)
-
-        self.terminal_buttons.accepted.connect(self.accept)
-        self.terminal_buttons.rejected.connect(self.reject)
-        self.load_settings_path_button.clicked.connect(self.handleLoadSettings)
-
-        # settings dialog should also have a modal file browser to load a settings json file
-    
-    def handleLoadSettings(self, events):
-        # dialog = QFileDialog(self, caption=self.dialog_name)
-        # if dialog.exec():
-        #     filenames = dialog.selectedFiles()
-        filename = QFileDialog.getOpenFileName(self,filter="JSON file (*.json)")[0]
-        logging.debug("selected " + str(filename))
-
-
-
 class GlobalCommandPanel(QWidget):
     """
     `GlobalCommandPanel` provides a unified interface to send any uplink commands to the Formatter. This is enabled by the communication.FormatterUDPInterface, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
@@ -297,7 +46,7 @@ class GlobalCommandPanel(QWidget):
     :type fmtrif: communication.FormatterUDPInterface
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
 
         self.name = name
@@ -465,7 +214,7 @@ class DetectorTableView(QWidget):
     `DetectorTableView` is a PLACEHOLDER view for a strip/pixel data table. Will be used to view and edit strip/pixel data.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -481,7 +230,7 @@ class DetectorTableView(QWidget):
 
 class DetectorParametersView(QWidget):
     # PLACEHOLDER
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -497,7 +246,7 @@ class DetectorParametersView(QWidget):
 
 class DetectorCommandView(QWidget):
     # PLACEHOLDER
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -512,7 +261,7 @@ class DetectorCommandView(QWidget):
 
 
 class DetectorPlotView(QWidget):
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         """
         Initialize a DetectorPlotView (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
@@ -732,8 +481,8 @@ class DetectorPlotView1D(DetectorPlotView):
     """
     Detector plot class specifically for 1D data products (e.g., time profiles and spectra).
     """
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView.__init__(self, parent, name, configuration=kwargs["configuration"])
 
         # initial time profile data
         self.x, self.y = [], []
@@ -753,8 +502,8 @@ class DetectorPlotViewTP(DetectorPlotView1D):
     Detector panel class specifically for time profiles.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView1D.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView1D.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["formatter_if"])
 
         # defines how may x/y points to average over beffore plotting, not important just doing some data processing
         self.averageEvery = 3
@@ -855,8 +604,8 @@ class DetectorPlotViewSP(DetectorPlotView1D):
     Detector panel class specifically for spectra.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView1D.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView1D.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["formatter_if"])
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="Bin [?]", ylabel="Counts [?]", title="Spectrum")
@@ -956,8 +705,8 @@ class DetectorPlotView2D(DetectorPlotView):
     [3] https://doc.qt.io/qtforpython/PySide6/QtGui/QImage.html
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["formatter_if"])
 
         # set height and width of image in pixels
         self.detH, self.detW = 100, 100
@@ -1037,8 +786,8 @@ class DetectorPlotViewIM(DetectorPlotView2D):
     Detector panel class specifically for images.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView2D.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView2D.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["configuration"])
 
         # set title and labels
         self.setlabels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -1230,7 +979,7 @@ class DetectorContainer(QWidget):
     """
     def __init__(
         self, parent=None, 
-        name="PLACEHOLDER", label="Placeholder", formatter_if=None,
+        name="PLACEHOLDER", label="Placeholder", configuration=None, formatter_if=None,
         plot_view=None, table_view=None, parameters_view=None, command_view=None
     ):
         QWidget.__init__(self, parent)
@@ -1532,7 +1281,7 @@ class DetectorGridDisplay(QWidget):
     A gridded tiling of DetectorPlotViews, maybe more legible that `DetectorArrayDisplay`.
     """
 
-    def __init__(self, parent=None, formatter_if=None):
+    def __init__(self, parent=None, configuration=None, formatter_if=None):
         QWidget.__init__(self, parent)
 
         # self.H = 800
@@ -1545,17 +1294,17 @@ class DetectorGridDisplay(QWidget):
 
         self.setGeometry(10,10,self.W,self.H)
 
-        self.settings_panel = SettingsPanel(self, name="Settings", settings_file="./config/settings.json")
+        self.settings_panel = config.SettingsPanel(self, name="Settings", settings_file="./config/settings.json", system_configuration=configuration)
 
         # explicitly populate all default DetectorPlotView types. NOTE: these are different than in DetectorArrayDisplay.
         self.detector_panels = [
-            DetectorPlotViewIM(self, name=detector_names[0]),
-            DetectorPlotViewTP(self, name=detector_names[1]),
-            DetectorPlotViewSP(self, name=detector_names[2]),
-            DetectorPlotView(self, name=detector_names[3]),
-            DetectorPlotView(self, name=detector_names[4]),
-            DetectorPlotView(self, name=detector_names[5]),
-            DetectorPlotView(self, name=detector_names[6]),
+            DetectorPlotViewIM(self, name=detector_names[0], configuration=configuration, formatter_if=formatter_if),
+            DetectorPlotViewTP(self, name=detector_names[1], configuration=configuration, formatter_if=formatter_if),
+            DetectorPlotViewSP(self, name=detector_names[2], configuration=configuration, formatter_if=formatter_if),
+            DetectorPlotView(self, name=detector_names[3], configuration=configuration, formatter_if=formatter_if),
+            DetectorPlotView(self, name=detector_names[4], configuration=configuration, formatter_if=formatter_if),
+            DetectorPlotView(self, name=detector_names[5], configuration=configuration, formatter_if=formatter_if),
+            DetectorPlotView(self, name=detector_names[6], configuration=configuration, formatter_if=formatter_if),
         ]
 
         self.detector_panels[0].dataFile = "/Volumes/sd-kris0/fake_foxsi_2d.txt"
@@ -1565,7 +1314,7 @@ class DetectorGridDisplay(QWidget):
         self.detector_containers = []
         for panel in self.detector_panels:
             self.detector_containers.append(DetectorContainer(
-                self, name=panel.name, label=panel.label, formatter_if=formatter_if, 
+                self, name=panel.name, label=panel.label, configuration=configuration, formatter_if=formatter_if, 
                 plot_view=panel, 
                 table_view=DetectorTableView(self, "table"), 
                 parameters_view=DetectorParametersView(self, "parameters"), 
@@ -1573,7 +1322,7 @@ class DetectorGridDisplay(QWidget):
             ))
 
         # add commanding panel
-        self.command_panel = GlobalCommandPanel(self, name="Command", formatter_if=formatter_if)
+        self.command_panel = GlobalCommandPanel(self, name="Command", configuration=configuration, formatter_if=formatter_if)
 
         self.grid_layout = QGridLayout()
 

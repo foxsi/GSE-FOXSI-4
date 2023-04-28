@@ -77,7 +77,7 @@ class UplinkCommand:
 
 class UplinkCommandDeck:
     """
-    `UplinkCommandDeck` is used to safely ingest desired system and command list, and provide a reliable interface to the commands that does not allow commands to be misaplied to systems.
+    `UplinkCommandDeck` is used to safely ingest desired system and command list, and provide a reliable interface to the commands that does not allow commands to be misapplied to systems.
 
     :param commands: List of `UplinkCommand`s.
     :type commands: list[UplinkCommand]
@@ -253,6 +253,12 @@ class FormatterUDPInterface:
         self.local_socket.close()
         # if self.do_logging:
         #     self.logfile.close()
+
+    def change_endpoint(self, addr, port):
+        params.DEBUG_PRINT("modifying UDP endpoint")
+        self.formatter_ip = addr
+        self.formatter_port = port
+        self.remote_addr = (self.formatter_ip, self.formatter_port)
 
     # send message to Formatter.
     def send(self, message):
