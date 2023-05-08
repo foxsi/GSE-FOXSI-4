@@ -22,12 +22,12 @@ class CommandSystem:
 
 class UplinkCommand:
     """
-    `UplinkCommand` structures command data to provide a safe interface for sending commands during testing and flight. These commands are sent over UDP to the FOXSI Formatter, and must be prefixed with a target address before being wrapped in the UDP/Ethernet packets. This class only defines the command bitstring and requirements for the target.
+    `UplinkCommand` structures command data to provide a safe interface for sending commands during testing and flight. These commands are sent over UDP to the FOXSI Formatter, and must be prefixed with a target address before being wrapped in the UDP/Ethernet packets. This class only defines the command hex code and requirements for the target.
 
     :param name: A human-readable and informative name for the command.
     :type name: str
-    :param bytestring: The unique encoding of the command which will be transmitted to FOXSI.
-    :type bytestring: list[int]
+    :param hex: The unique encoding of the command which will be transmitted to FOXSI.
+    :type hex: list[int]
     :param arg_len: The length (in bytes) of the argument to the command. If `arg_len <= 0`, assume no arguments required.
     :type arg_len: int
     :param reply_len: The length (in bytes) of the expected reply to the command. If `reply_len <= 0`, assume no reply.
@@ -40,10 +40,10 @@ class UplinkCommand:
     :type valid_systems: set
     """
 
-    def __init__(self, name: str, bytestring: list[int], arg_len: int, reply_len: int, targets: set or list, flight: bool, valid_systems: set or list):
-        # assign name and bytestring
+    def __init__(self, name: str, hex: list[int], arg_len: int, reply_len: int, targets: set or list, flight: bool, valid_systems: set or list):
+        # assign name and hex code
         self.name = name
-        self.bytestring = bytestring
+        self.hex = hex
 
         # assign reply_len, then change read/write properties based on it
         self.reply_len = reply_len
@@ -61,6 +61,8 @@ class UplinkCommand:
         if set(targets) <= set(valid_systems):
             self.targets = targets
         else:
+            print(targets)
+            print(valid_systems)
             raise Exception("targets must be a subset of valid_systems set")
         
         # assign flight usability
@@ -111,34 +113,48 @@ class UplinkCommandDeck:
 
         for command in commands_json:
             thistargets = []
-            for tg in command["targets"]:
-                if tg in named_systems:
-                    thistargets.append(named_systems[tg])
+            for field in command.keys():
+                if field.upper() in named_systems and int(command[field]):
+                    thistargets.append(named_systems[field.upper()])
+            # for tg in command["targets"]:
+            #     if tg in named_systems:
+            #         thistargets.append(named_systems[tg])
+
+            arglen = 0
+            replen = 0
+            if command["reply.length [B]"]:
+                if command["reply.length [B]"].isnumeric():
+                    replen = int(command["reply.length [B]"])
+
+            if command["arg1.length [B]"]:
+                if command["arg1.length [B]"].isnumeric():
+                    arglen = 0
 
             self.commands.append(UplinkCommand(
-                command["name"],
-                int(command["bytestring"], 0),
-                command["arg_len"],
-                command["reply_len"],
+                command["name"].upper(),
+                int(command["hex"], 0),
+                arglen,
+                replen,
                 set(thistargets),
-                command["flight"],
+                1,
+                # command["flight"],
                 self.systems
             ))
     
         self.validate()
 
     def validate(self):
-        """
-        `validate` checks that all uplink commands and systems are unique (unique `name` and `bytestring` or `addr`). Exceptions are raised if this is not the case.
-        """
         # you got this! you can do it.
+        """
+        `validate` checks that all uplink commands and systems are unique (unique `name` and `hex` or `addr`). Exceptions are raised if this is not the case.
+        """
         
         params.DEBUG_PRINT("validating command and system list...")
         if len(self.commands) != len(set(self.commands)):
             raise Exception("command objects are not unique.")
         
         cmd_names = [cmd.name for cmd in self.commands]
-        cmd_ids = [cmd.bytestring for cmd in self.commands]
+        cmd_ids = [cmd.hex for cmd in self.commands]
 
         if len(cmd_names) != len(set(cmd_names)):
             raise Exception("command names are not unique.")
