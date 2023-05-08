@@ -184,13 +184,32 @@ class SettingsPanel(QtWidgets.QWidget):
 
 
 class FilePathLoad(QtWidgets.QWidget):
-    def __init__(self, parent, width: int=120, dialog_name: str=""):
+    def __init__(self, parent, width: int=120, dialog_name: str="", accept_types: str=""):
         QtWidgets.QWidget.__init__(self, parent)
 
         self.text_field = QtWidgets.QLineEdit()
         self.text_field.setFixedWidth(width)
         self.browse_button = QtWidgets.QPushButton("Browse...")
         self.dialog_name = dialog_name
+        self._accept_types = ""
+        self._validator = QtGui.QRegularExpressionValidator(parent=self)
+        if accept_types == "any":
+            self._validator.setRegularExpression(QtCore.QRegularExpression("^(\/|\~\/|[A-Za-z])*([A-Za-z0-9-_]+\/)*([A-Za-z0-9-_]+\.([A-z0-9])*)$"))
+        elif accept_types == "ip":
+            self._validator.setRegularExpression(QtCore.QRegularExpression("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"))
+        elif accept_types == "none":
+            self._validator.setRegularExpression(QtCore.QRegularExpression("^(\/|\~\/|[A-Za-z])*([A-Za-z0-9-_]+\/)*([A-Za-z0-9-_]+\.)*$"))
+            # TODO: no way to filter the QFileDialog EITHER based on a str or QtCore.QDir.Filter.etc. Have to choose one. 
+            # there ought to be some way to construct a QtCore.QDir.Filter from a str, so then could use .setFilter for both cases (when 
+            # QFileDialog is constructed below in handleBrowsePush)
+            # self._accept_types = QtCore.QDir.Filter.Executable | QtCore.QDir.Filter.Files
+        else:
+            self._validator.setRegularExpression(QtCore.QRegularExpression("^(\/|\~\/|[A-Za-z])*([A-Za-z0-9-_]+\/)*([A-Za-z0-9-_]+\.(" + accept_types + "))$"))
+            self._accept_types = "files (" + " ".join(["*." + substr for substr in accept_types.split("|")]) + ")"
+
+        self.text_field.setValidator(self._validator)
+
+        self.current_file = ""
 
         self.layout = QtWidgets.QHBoxLayout()
         # self.layout.addWidget(self.text_field, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
@@ -200,17 +219,29 @@ class FilePathLoad(QtWidgets.QWidget):
         # self.setMaximumHeight(50)
 
         self.browse_button.clicked.connect(self.handleBrowsePush)
+        self.text_field.textChanged.connect(self.handleTextEntry)
 
     def handleBrowsePush(self, event):
         print("select file")
 
-        dialog = QtWidgets.QFileDialog(self, caption=self.dialog_name)
+        dialog = QtWidgets.QFileDialog(self, caption=self.dialog_name, filter=self._accept_types)
+        # dialog.setFilter(self._accept_types)
         
         if dialog.exec():
             filenames = dialog.selectedFiles()
+        self.current_file = dialog.selectedFiles()[0]
+        self.text_field.setText(self.current_file)
 
     def handleTextEntry(self, event):
-        pass
+        # validate first
+        if self.text_field.hasAcceptableInput():
+            logging.debug("entered a valid pathname")
+            self.text_field.setStyleSheet("color: black;")
+        else:
+            logging.debug("invalid pathname")
+            self.text_field.setStyleSheet("color: red;")
+
+        self.current_file = self.text_field.text()
 
 
 
@@ -226,23 +257,26 @@ class SettingsDialog(QtWidgets.QDialog):
 
         self.uplink_addr_field = QtWidgets.QLineEdit()
         self.uplink_addr_field.setText(self.system_configuration.uplink_addr)
+        self._ip_validator = QtGui.QRegularExpressionValidator(parent=self)
+        self._ip_validator.setRegularExpression(QtCore.QRegularExpression("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"))
+        self.uplink_addr_field.setValidator(self._ip_validator)
         self.uplink_port_field = QtWidgets.QLineEdit()
         self.uplink_port_field.setText(str(self.system_configuration.uplink_port))
         self.downlink_port_field = QtWidgets.QLineEdit()
         self.downlink_port_field.setText(str(self.system_configuration.downlink_port))
-        self.socket_file_field = FilePathLoad(self, width=basewidth, dialog_name="Select socket file path")
+        self.socket_file_field = FilePathLoad(self, width=basewidth, dialog_name="Select socket file path", accept_types="s|sock")
         self.socket_file_field.text_field.setText(self.system_configuration.logger_addr)
-        self.systems_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select systems list file")
+        self.systems_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select systems list file", accept_types="json")
         self.systems_path_field.text_field.setText(self.system_configuration.systems_path)
-        self.commands_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select commands list file")
+        self.commands_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select commands list file", accept_types="json")
         self.commands_path_field.text_field.setText(self.system_configuration.command_path)
-        self.logger_executable_path_field = FilePathLoad(self, width=basewidth, dialog_name="Logger executable file")
+        self.logger_executable_path_field = FilePathLoad(self, width=basewidth, dialog_name="Logger executable file", accept_types="none")
         self.logger_executable_path_field.text_field.setText(self.system_configuration.logger_executable_path)
-        self.logger_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Downlink log file path")
+        self.logger_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Downlink log file path", accept_types="any")
         self.logger_log_path_field.text_field.setText(self.system_configuration.logger_log_path)
-        self.uplink_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Uplink log file path")
+        self.uplink_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Uplink log file path", accept_types="any")
         self.uplink_log_path_field.text_field.setText(self.system_configuration.uplink_log_path)
-        self.error_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Error log file path")
+        self.error_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Error log file path", accept_types="any")
         self.error_log_path_field.text_field.setText(self.system_configuration.error_log_path)
 
         self.load_settings_path_button = QtWidgets.QPushButton("Load settings file...")
@@ -314,7 +348,14 @@ class SettingsDialog(QtWidgets.QDialog):
 
     # for the below, input validation should happen in SystemConfiguration
     def handleUplinkAddrChanged(self, events):
-        self.system_configuration.set_uplink_addr(self.uplink_addr_field.text())
+        if self.uplink_addr_field.hasAcceptableInput():
+            logging.debug("entered a valid IP address")
+            self.uplink_addr_field.setStyleSheet("color: black;")
+            self.system_configuration.set_uplink_addr(self.uplink_addr_field.text())
+        else:
+            logging.debug("invalid IP address")
+            self.uplink_addr_field.setStyleSheet("color: red;")
+        
     def handleUplinkPortChanged(self, events):
         self.system_configuration.set_uplink_port(self.uplink_port_field.text())
     def handleDownlinkPortChanged(self, events):
