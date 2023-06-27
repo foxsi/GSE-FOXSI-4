@@ -54,7 +54,8 @@ class GlobalCommandPanel(QWidget):
 
         # build and validate list of allowable uplink commands
         # self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
-        self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/all_systems.json", "foxsi4-commands/commands.json")
+        # self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/all_systems.json", "foxsi4-commands/commands.json")
+        self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/systems.json")
 
         # open UDP socket to remote
         # self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
@@ -80,10 +81,10 @@ class GlobalCommandPanel(QWidget):
 
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
-            self.system_combo_box.addItem(sys.name)
+            self.system_combo_box.addItem(sys.name.lower())
 
-        for cmd in self.cmddeck.commands:
-            self.command_combo_box.addItem(cmd.name)
+        # for cmd in self.cmddeck[].commands:
+        #     self.command_combo_box.addItem(cmd.name)
 
         # populate layout:
         self.grid_layout.addWidget(
@@ -170,7 +171,7 @@ class GlobalCommandPanel(QWidget):
     def commandComboBoxClicked(self, events):
         self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
+        cmd = self.cmddeck.get_command_by_system_by_name(self.system_combo_box.currentText(), self.command_combo_box.currentText())
 
         # add cmd bitstring to working command
         self._working_command.append(cmd.hex)
@@ -311,7 +312,7 @@ class DetectorPlotView(QWidget):
         self.currentLabel = QLabel("Current (mA):", self)
 
         self.groupBox = QGroupBox(self.name)
-        self.groupBox.setStyleSheet("QGroupBox {border-width: 1px; border-style: outset; border-radius: 10px; border-color: black;}")
+        self.groupBox.setStyleSheet("QGroupBox {border-width: 2px; border-style: outset; border-radius: 10px; border-color: black;}")
         self.globalLayout = QHBoxLayout()
 
         # organize layout

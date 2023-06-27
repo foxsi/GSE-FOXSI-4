@@ -87,8 +87,9 @@ class UplinkCommandDeck:
     :type systems: list[CommandSystem]
     """
 
-    def __init__(self, system_file: str, command_file: str):
-        self.commands: list[UplinkCommand] = []
+    def __init__(self, system_file: str):
+        # self.commands: list[UplinkCommand] = []
+        self.deck: dict[int, list(UplinkCommand)] = {}
         self.systems: list[CommandSystem] = []
         named_systems = {}
 
@@ -98,71 +99,98 @@ class UplinkCommandDeck:
         systems_json = json.loads(systems_in)
         params.DEBUG_PRINT("loaded experiment systems definition")
 
-        with open(command_file) as cmdf:
-            cmds_in = cmdf.read()
-
-        commands_json = json.loads(cmds_in)
-        params.DEBUG_PRINT("loaded experiment commands definition")
-
         for sys in systems_json:
+            # add the system to the system list
             self.systems.append(CommandSystem(
-                sys["name"],
-                int(sys["id"], 0)
+                sys["name"].lower(),
+                int(sys["hex"], 0)
             ))
             named_systems[sys["name"]] = self.systems[-1]
 
-        for command in commands_json:
-            thistargets = []
-            for field in command.keys():
-                if field.upper() in named_systems and int(command[field]):
-                    thistargets.append(named_systems[field.upper()])
-            # for tg in command["targets"]:
-            #     if tg in named_systems:
-            #         thistargets.append(named_systems[tg])
+        for sys in systems_json:
+            this_name = sys["name"].lower()
 
-            arglen = 0
-            replen = 0
-            if command["reply.length [B]"]:
-                if command["reply.length [B]"].isnumeric():
-                    replen = int(command["reply.length [B]"])
+            params.DEBUG_PRINT("\nsearching for commands for " + sys["name"])
 
-            if command["arg1.length [B]"]:
-                if command["arg1.length [B]"].isnumeric():
-                    arglen = 0
+            this_command_list: list[UplinkCommand] = []
 
-            self.commands.append(UplinkCommand(
-                command["name"].upper(),
-                int(command["hex"], 0),
-                arglen,
-                replen,
-                set(thistargets),
-                1,
-                # command["flight"],
-                self.systems
-            ))
+            command_path = ""
+            try:
+                command_path = sys["ethernet_interface"]["command_path"]
+                params.DEBUG_PRINT("found command file " + command_path + " for " + sys["name"])
+                this_command_list = self.add_commands_for_system(self.get_system_by_name(this_name), command_path)
+            except:
+                print("found no ethernet commands for system " + sys["name"])
+            try:
+                command_path = sys["ethernet_interface"]["spacewire_interface"]["command_path"]
+                params.DEBUG_PRINT("found command file " + command_path + " for " + sys["name"])
+                this_command_list = self.add_commands_for_system(self.get_system_by_name(this_name), command_path)
+            except:
+                print("found no spacewire commands for system " + sys["name"])
+            try:
+                command_path = sys["uart_interface"]["command_path"]
+                params.DEBUG_PRINT("found command file " + command_path + " for " + sys["name"])
+                this_command_list = self.add_commands_for_system(self.get_system_by_name(this_name), command_path)
+            except:
+                print("found no uart commands for system " + sys["name"])
+
+            # if sys["ethernet_interface"]["command_path"] is not None:
+            #     params.DEBUG_PRINT("found command file " + sys["ethernet_interface"]["command_path"] + " for " + sys["name"])
+            #     this_command_list = self.add_commands_for_system(self.get_system_by_name[this_name], sys["ethernet_interface"]["command_path"])
+            # elif sys["ethernet_interface"]["spacewire_interface"]["command_path"] is not None:
+            #     params.DEBUG_PRINT("found command file " + sys["ethernet_interface"]["spacewire_interface"]["command_path"] + " for " + sys["name"])
+            #     this_command_list = self.add_commands_for_system(self.get_system_by_name[this_name], sys["ethernet_interface"]["spacewire_interface"]["command_path"])
+            # elif sys["uart_interface"]["command_path"] is not None:
+            #     params.DEBUG_PRINT("found command file " + sys["uart_interface"]["command_path"] + " for " + sys["name"])
+            #     this_command_list = self.add_commands_for_system(self.get_system_by_name[this_name], sys["uart_interface"]["command_path"])
+            # else:
+            #     params.DEBUG_PRINT("Could not find commands for system " + sys["name"] +". Removing from deck.")
+            #     continue
+
+            # add the commands to the deck
+            self.deck[named_systems[this_name].addr] = this_command_list
+            
+            # todo: remove this
+            # for command in sys["???"]:
+            #     thistargets = []
+            #     for field in command.keys():
+            #         if field.upper() in named_systems and int(command[field]):
+            #             thistargets.append(named_systems[field.upper()])
+            #     # for tg in command["targets"]:
+            #     #     if tg in named_systems:
+            #     #         thistargets.append(named_systems[tg])
+
+            #     arglen = 0
+            #     replen = 0
+            #     if command["reply.length [B]"]:
+            #         if command["reply.length [B]"].isnumeric():
+            #             replen = int(command["reply.length [B]"])
+
+            #     if command["arg1.length [B]"]:
+            #         if command["arg1.length [B]"].isnumeric():
+            #             arglen = 0
+
+            #     self.commands.append(UplinkCommand(
+            #         command["name"].upper(),
+            #         int(command["hex"], 0),
+            #         arglen,
+            #         replen,
+            #         set(thistargets),
+            #         1,
+            #         # command["flight"],
+            #         self.systems
+            #     ))
     
         self.validate()
+        self.print()
 
     def validate(self):
         # you got this! you can do it.
         """
         `validate` checks that all uplink commands and systems are unique (unique `name` and `hex` or `addr`). Exceptions are raised if this is not the case.
         """
-        
-        params.DEBUG_PRINT("validating command and system list...")
-        if len(self.commands) != len(set(self.commands)):
-            raise Exception("command objects are not unique.")
-        
-        cmd_names = [cmd.name for cmd in self.commands]
-        cmd_ids = [cmd.hex for cmd in self.commands]
 
-        if len(cmd_names) != len(set(cmd_names)):
-            raise Exception("command names are not unique.")
-        if len(cmd_ids) != len(set(cmd_ids)):
-            raise Exception("command ids are not unique.")
-        
-        params.DEBUG_PRINT("\tcommands are unique.")
-
+        params.DEBUG_PRINT("validating systems...")
         sys_names = [sys.name for sys in self.systems]
         sys_addrs = [sys.addr for sys in self.systems]
 
@@ -173,11 +201,92 @@ class UplinkCommandDeck:
         
         params.DEBUG_PRINT("\tsystems are unique.")
 
-    def get_command_by_name(self, name: str):
+        params.DEBUG_PRINT("validating command deck...")
+        # todo: loop for all systems, check uniqueness of commands per-system
+
+        for key in self.deck.keys():
+            these_commands = self.deck[key]
+            if len(these_commands) != len(set(these_commands)):
+                raise Exception("command objects are not unique.")
+            
+            cmd_names = [cmd.name for cmd in these_commands]
+            cmd_ids = [cmd.hex for cmd in these_commands]
+
+            if len(cmd_names) != len(set(cmd_names)):
+                raise Exception("command names are not unique.")
+            if len(cmd_ids) != len(set(cmd_ids)):
+                raise Exception("command ids are not unique.")
+        
+        params.DEBUG_PRINT("\tcommands are unique.")
+    
+    def add_commands_for_system(self, system: CommandSystem, command_file: str):
+        command_list: list[UplinkCommand] = []
+
+        with open(command_file) as file:
+            cmd_file = file.read()
+        cmd_json = json.loads(cmd_file)
+        params.DEBUG_PRINT("\tloaded command definitions for " + system.name)
+
+        system_names = [sys.name.lower() for sys in self.systems]
+
+        for cmd in cmd_json:
+            params.DEBUG_PRINT("\tadding command " + cmd["hex"])
+            thistargets = []
+            for field in cmd.keys():
+                if field.lower() in system_names:
+                    thistargets.append(self.get_system_by_name(field.lower()))
+       
+            arglen = 0
+            replen = 0
+            if cmd["reply.length [B]"]:
+                if cmd["reply.length [B]"].isnumeric():
+                    replen = int(cmd["reply.length [B]"])
+
+            if cmd["arg1.length [B]"]:
+                if cmd["arg1.length [B]"].isnumeric():
+                    arglen = 0
+
+            this_cmd = UplinkCommand(
+                cmd["name"],
+                int(cmd["hex"], 0),
+                arglen,
+                replen,
+                thistargets,
+                True,
+                self.systems
+            )
+            command_list.append(this_cmd)
+
+        return command_list
+        
+    def print(self):
         """
-        `get_command_by_name` returns the `UplinkCommand` object with the provided `name`.
+        `print` displays the command deck tree, indexed by system hex code.
         """
-        command = next((cmd for cmd in self.commands if cmd.name == name), None)
+        print("printing command deck:")
+        for sys in self.deck.keys():
+            print("\t" + hex(sys))
+            for cmd in self.deck[sys]:
+                print("\t\t" + cmd.name + ", " + hex(cmd.hex))
+    
+    def get_command_by_system_by_name(self, system: CommandSystem, name: str):
+        """
+        `get_command_by_system_by_name` returns the `UplinkCommand` object with the provided `name` for the provided `system`.
+        """
+        command = next((cmd for cmd in self.deck[system.addr] if cmd.name == name), None)
+        return command
+    
+    def get_command_by_system_by_name(self, system: int, name: str):
+        """
+        `get_command_by_system_by_name` returns the `UplinkCommand` object with the provided `name` for the provided `system`.
+        """
+        command = next((cmd for cmd in self.deck[system] if cmd.name == name), None)
+        return command
+    def get_command_by_system_by_name(self, system: str, name: str):
+        """
+        `get_command_by_system_by_name` returns the `UplinkCommand` object with the provided `name` for the provided `system`.
+        """
+        command = next((cmd for cmd in self.deck[self.get_system_by_name(system).addr] if cmd.name == name), None)
         return command
 
     def get_system_by_name(self, name: str):
@@ -191,33 +300,13 @@ class UplinkCommandDeck:
         """
         `get_commands_for_system` returns all the commands that can be sent to `system`.
         """
-        commands = []
-        for cmd in self.commands:
-            if system in cmd.targets:
-                commands.append(cmd)
-        return commands
+        return self.deck[system.addr]
 
     def get_commands_for_system(self, system: str):
         """
         `get_commands_for_system` returns all the commands that can be sent to `system`.
         """
-        commands = []
-        for cmd in self.commands:
-            if self.get_system_by_name(system) in cmd.targets:
-                commands.append(cmd)
-        return commands
-
-    def get_systems_for_command(self, command: UplinkCommand):
-        """
-        `get_systems_for_command` returns all the systems that can `command` can be sent to.
-        """
-        return command.targets
-
-    def get_systems_for_command(self, command: str):
-        """
-        `get_systems_for_command` returns all the systems that can `command` can be sent to.
-        """
-        return self.get_command_by_name(command).targets
+        return self.deck[self.get_system_by_name(system).addr]
 
 
 

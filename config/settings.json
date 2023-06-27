@@ -1,8 +1,8 @@
 {
     "uplink_addr":"192.168.1.8",
     "uplink_port":9999,
-    "downlink_addr":"192.168.1.18",
-    "downlink_port":10000,
+    "downlink_addr":"192.168.1.8",
+    "downlink_port":9999,
     "logger_addr":"./tmp/local/socket.s",
     "flight":false,
     "arm_flight":false,
