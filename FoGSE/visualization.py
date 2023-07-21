@@ -194,12 +194,12 @@ class GlobalCommandPanel(QWidget):
 
         print("\tvalidating command...")
         # todo: validate
-        print("\tsending command (placeholder)...")
         if len(self._working_command) == 3:
             self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
         elif len(self._working_command) == 2:
             self.fmtrif.send(self._working_command[0], self._working_command[1])
         else:
+            print(self._working_command)
             raise Exception("wrong length working command")
 
         print("\tlogging command (placeholder)...")
