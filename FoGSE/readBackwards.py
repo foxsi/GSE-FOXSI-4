@@ -99,6 +99,21 @@ class BackwardsReader:
         self.close()
 
 
+def read_raw_cdte(file):
+    # blksize=41204 for first full frame, blksize=73984 to do 2 frames, 
+    # so 73984 + (73984-41204) for the next? -> correct, so 41204 bytes
+    # to get to the end of the first frame, 32780 bytes thereafter
+    with BackwardsReader(file=file, blksize=50_000, forward=True) as f:
+        iterative_unpack=struct.iter_unpack("<I",f.read_block())
+        datalist=[]
+        for _,data in enumerate(iterative_unpack):
+
+            datalist.append(data[0])
+
+        flags, event_df, all_hkdicts = CdTerawalldata2parser(datalist)
+    return flags, event_df, all_hkdicts
+
+
 if(__name__ == "__main__"):
     # # do a thorough test...
 
@@ -164,18 +179,3 @@ if(__name__ == "__main__"):
     print(f"Last line of file at the top, then second last, and so on until the start of the buffer (buffer:{sb}).")
 
     # len(line.decode('utf-8')) will display the byte size of a string
-
-
-def read_raw_cdte(file):
-    # blksize=41204 for first full frame, blksize=73984 to do 2 frames, 
-    # so 73984 + (73984-41204) for the next? -> correct, so 41204 bytes
-    # to get to the end of the first frame, 32780 bytes thereafter
-    with BackwardsReader(file=file, blksize=50_000, forward=True) as f:
-        iterative_unpack=struct.iter_unpack("<I",f.read_block())
-        datalist=[]
-        for _,data in enumerate(iterative_unpack):
-
-            datalist.append(data[0])
-
-        flags, event_df, all_hkdicts = CdTerawalldata2parser(datalist)
-    return flags, event_df, all_hkdicts
