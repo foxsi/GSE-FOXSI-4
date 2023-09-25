@@ -365,25 +365,50 @@ def CdTerawalldata2parser(datalist):
         print("CAUTION!! : INPUT DATA IS FRAME DATA? BOTH HK AND EVENT DATA ARE FOUND")
 
     #print(framecount)
+    # df  = pl.DataFrame(
+    #     {
+    #        "ti":np.array(Lti,dtype=np.uint32),
+    #         "unixtime":np.array(Lunixtime,dtype=np.uint32),
+    #         "livetime":np.array(Llivetime,dtype=np.uint32),
+    #         "adc_cmn_al":np.array(Ladccmn_al,dtype=np.int32),
+    #         "adc_cmn_pt":np.array(Ladccmn_pt,dtype=np.int32),
+    #         "cmn_al":np.array(Lcmn_al,dtype=np.uint32),
+    #         "cmn_pt":np.array(Lcmn_pt,dtype=np.uint32),
+    #         "index_al":np.array(Lindex_al,dtype=np.uint8),
+    #         "index_pt":np.array(Lindex_pt,dtype=np.uint8),
+    #         "hitnum_al":np.array(Lhitnum_al,dtype=np.uint8),
+    #         "hitnum_pt":np.array(Lhitnum_pt,dtype=np.uint8),
+    #         "flag_pseudo":np.array(Lflag_pseudo,dtype=np.uint8),
+    #         #"all_adc":np.array(all_array_adc,dtype=np.uint8),
+    #         #"all_index":np.array(all_array_index,dtype=np.uint8),
+    #     }
+    # )
 
-    df  = pl.DataFrame(
-        {
-           "ti":np.array(Lti,dtype=np.uint32),
-            "unixtime":np.array(Lunixtime,dtype=np.uint32),
-            "livetime":np.array(Llivetime,dtype=np.uint32),
-            "adc_cmn_al":np.array(Ladccmn_al,dtype=np.int16),
-            "adc_cmn_pt":np.array(Ladccmn_pt,dtype=np.int16),
-            "cmn_al":np.array(Lcmn_al,dtype=np.uint16),
-            "cmn_pt":np.array(Lcmn_pt,dtype=np.uint16),
-            "index_al":np.array(Lindex_al,dtype=np.uint8),
-            "index_pt":np.array(Lindex_pt,dtype=np.uint8),
-            "hitnum_al":np.array(Lhitnum_al,dtype=np.uint8),
-            "hitnum_pt":np.array(Lhitnum_pt,dtype=np.uint8),
-            "flag_pseudo":np.array(Lflag_pseudo,dtype=np.uint8),
-            #"all_adc":np.array(all_array_adc,dtype=np.uint8),
-            #"all_index":np.array(all_array_index,dtype=np.uint8),
-        }
-    )
-    Flags=[hkflag,eventflag, errorflag]
-    #return pl_ti,pl_unixtime, pl_livetime, pl_e_al, pl_e_pt, pl_cmn_al,pl_cmn_pt, pl_pos_al, pl_pos_pt,pl_hitnum_al, pl_hitnum_pt,pl_flag_pseudo
-    return Flags,df,all_hkdicts
+    # # Example of Numpy structured array
+    # dt = np.dtype({'names':('t',"y"),'formats':('(3,)f4', 'i4')})
+    # data = np.zeros(3, dtype=dt)
+    # data['t'] = np.array([[1,2,3],[4,5,6],[7,8,9]])
+    # data['y'] = np.array([56,87,23])
+    # data ==array([([1., 2., 3.], 56), ([4., 5., 6.], 87), ([7., 8., 9.], 23)],
+    #   dtype=[('t', '<f4', (3,)), ('y', '<i4')])
+
+    evt_num = len(Lti)
+    dt = np.dtype({'names':('ti', 'unixtime', 'livetime', 'adc_cmn_al', 'adc_cmn_pt', 'cmn_al', 'cmn_pt', 'index_al', 'index_pt', 'hitnum_al', 'hitnum_pt', 'flag_pseudo'),
+                   'formats':('u4', 'u4', 'u4', '(128,)i4', '(128,)i4', '(2,)i4', '(2,)i4', '(128,)u1', '(128,)u1', 'u1', 'u1', 'u1')}) # u1==np.uint8,u4==np.uint32, i4==int32
+    df = np.zeros(evt_num, dtype=dt)
+    df['ti'] = np.array(Lti,dtype=np.uint32)
+    df['unixtime'] = np.array(Lunixtime,dtype=np.uint32)
+    df['livetime'] = np.array(Llivetime,dtype=np.uint32)
+    df['adc_cmn_al'] = np.array(Ladccmn_al,dtype=np.int32)
+    df['adc_cmn_pt'] = np.array(Ladccmn_pt,dtype=np.int32)
+    df['cmn_al'] = np.array(Lcmn_al,dtype=np.uint32)
+    df['cmn_pt'] = np.array(Lcmn_pt,dtype=np.uint32)
+    df['index_al'] = np.array(Lindex_al,dtype=np.uint8)
+    df['index_pt'] = np.array(Lindex_pt,dtype=np.uint8)
+    df['hitnum_al'] = np.array(Lhitnum_al,dtype=np.uint8)
+    df['hitnum_pt'] = np.array(Lhitnum_pt,dtype=np.uint8)
+    df['flag_pseudo'] = np.array(Lflag_pseudo,dtype=np.uint8)
+
+    flags=[hkflag,eventflag, errorflag]
+
+    return flags,df,all_hkdicts
