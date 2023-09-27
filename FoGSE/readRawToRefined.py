@@ -21,6 +21,7 @@ binary data to a collected, human readable form for investigation and analysis.
 
 import time
 import struct
+from sys import getsizeof
 from copy import copy 
 
 import numpy as np
@@ -30,6 +31,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
 
 from FoGSE.readBackwards import BackwardsReader, read_raw_cdte
 from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
+from FoGSE.parsers.CdTerawalldata2parser_test import CdTerawalldata2parser_test
 
 import pyqtgraph as pg
 
@@ -37,7 +39,7 @@ class Reader(QWidget):
     # need to be class variable to connect
     value_changed_collections = QtCore.pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, datafile, parent=None):
         """
         Raw : binary
         Parsed : human readable
@@ -48,8 +50,9 @@ class Reader(QWidget):
         self._collections = []
 
         # stand-in log file
-        self.data_file = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
+        self.data_file = datafile
         self._old_data = 0
+        self.old_data_time = 0
 
         # for timing tests
         self.start = time.time()
@@ -57,9 +60,16 @@ class Reader(QWidget):
         # default is update plot every 100 ms
         self.call_interval()
         # read 50,000 bytes from the end of `self.data_file` at a time
-        self.buffer_size = 50_000
+        self.define_buffer_size(size=50_000)
 
         self.setup_and_start_timer()
+
+    def define_buffer_size(self, size):
+        if size%4!=0:
+            new_size = int(int(size/4)*4)
+            print(f"Buffer size must be divisable by 4 for parser code, changing to {new_size}.")
+            self.buffer_size = new_size
+        self.buffer_size = size
 
     def call_interval(self,call_interval=1000):
         self._call_interval = call_interval
@@ -157,16 +167,18 @@ class Reader(QWidget):
     def parsed_2_collections(self, parsed_data):
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        return CdTeCollection(parsed_data)
+        col = CdTeCollection(parsed_data, self.old_data_time)
+        self.old_data_time = col.last_data_time
+        return col
 
     def raw_2_collected(self):
         raw = self.extract_raw_data()
 
-        if raw!=self.return_empty():
-            parsed = self.raw_2_parsed(raw)
+        # might need in future: `if raw!=self.return_empty():``
+        parsed = self.raw_2_parsed(raw)
 
-            # assign the collected data and trigger the `emit`
-            self.collections = self.parsed_2_collections(parsed)
+        # assign the collected data and trigger the `emit`
+        self.collections = self.parsed_2_collections(parsed)
 
 
 class CdTeCollection:
@@ -180,6 +192,11 @@ class CdTeCollection:
     parsed_data : `tuple`, length 3
             Contains `Flags`, `event_df`, `all_hkdicts` as returned from 
             the parser.
+
+    parsed_data : `int`, `float`
+            The last time of the last data point previously extracted and 
+            used. Default is `0` and so should take all data.
+            Default: 0
             
     Example
     -------
@@ -201,16 +218,23 @@ class CdTeCollection:
     plt.show()
     """
     
-    def __init__(self, parsed_data):
+    def __init__(self, parsed_data, old_data_time=0):
+        # bring in the parsed data
         _, self.event_dataframe, _ = parsed_data
         
+        # define all the strip sizes in CdTe detectors
         self.strip_bins, self.side_strip_bins, self.adc_bins = self.channel_bins()
         
+        # for easy remapping of channels
         self.channel_map = self.remap_strip_dict()
 
-        self.last_data_time = 0
+        # used in the filter to only consider data with times > than this
+        self.last_data_time = old_data_time
+
+        # filter the counts somehow, go for crude single strip right now
         self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
         
+        # get more physical information about detector geometry
         self.strip_width_edges = self.strip_widths()
         self.pixel_area = self.pixel_areas()
 
@@ -278,7 +302,15 @@ class CdTeCollection:
         """
 
         new = event_dataframe['ti']>self.last_data_time
+        
+        if np.all(~new):
+            return {'times':np.array([]), 
+                    'pt_strip_adc':np.array([]), 
+                    'al_strip_adc':np.array([]), 
+                    'pt_strips':np.array([]), 
+                    'al_strips':np.array([])}
 
+        trig_times = event_dataframe['ti'][new]
         pt = event_dataframe['index_pt'][new]
         al = event_dataframe['index_al'][new]+128
         pt_adc = event_dataframe['adc_cmn_pt'][new]
@@ -291,7 +323,7 @@ class CdTeCollection:
         
         # choose single strip events
         single = [True if np.sum(pts)==np.sum(als)==1 else False for pts,als in zip(pt_selection,al_selection)]
-        trig_times = event_dataframe['ti'][new & single]
+        single_trig_times = trig_times[single]
         single = np.array(single)[:,None]
 
         pt_strip = pt[pt_selection & single]
@@ -300,7 +332,7 @@ class CdTeCollection:
         al_value = al_adc[al_selection & single]
         
         self.last_data_time = event_dataframe['ti'][-1]
-        return {'times':trig_times, 
+        return {'times':single_trig_times, 
                 'pt_strip_adc':pt_value, 
                 'al_strip_adc':al_value, 
                 'pt_strips':pt_strip, 
@@ -606,34 +638,71 @@ class CdTeCollection:
         return np.diff(self.strip_width_edges)[:,None]@np.diff(self.strip_width_edges)[None,:]
     
 
-class CdTeReader(Reader):
-    """ Class only to test one CdTe data file. """
-    def __init__(self, parent=None):
+class CdTeFileReader(Reader):
+    """ A reader for a CdTe data file already obtained. """
+    def __init__(self, datafile, parent=None):
         """
         Raw : binary
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        Reader.__init__(self, parent)
+        
+        Reader.__init__(self, datafile, parent)
+        self.define_buffer_size(size=25_000)
+        self._read_counter = 0#28983837-self.buffer_size#-0
 
-        self.data_file = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
-
-    def extract_raw_data(self):
+    def extract_raw_data_cdte(self):
         """
-        Method to extract the data from `self.data_file` and return the 
+        Mocl method to extract the CdTe data from `self.data_file` and return the 
         desired data.
+
+        This just reads in the whole file but then iterates through the file.
 
         Returns
         -------
         `tuple` :
             (x, y) The new x and y coordinates read from `self.data_file`.
         """
-        return self.extract_raw_data_cdte()
+        # read the file `self.bufferSize` bytes from the end and extract the lines
+        # forward=True: reads buffer from the back but doesn't reverse the data 
+        if not hasattr(self,"data_unpack"):
+            try:
+                with open(self.data_file, 'rb') as f:
+                    iterative_unpack=struct.iter_unpack("<I",f.read())
+                self.data_unpack = []
+                for i,data in enumerate(iterative_unpack):
+                    self.data_unpack.append(data[0])
+                self.data_len = i
+            except FileNotFoundError:
+                return self.return_empty() 
+        
+        if self._read_counter>self.data_len:
+            return self.return_empty() 
+        
+        if (self._read_counter+self.buffer_size)<=self.data_len:
+            datalist = self.data_unpack[self._read_counter:(self._read_counter+self.buffer_size)]
+        else:
+            datalist = self.data_unpack[self._read_counter:]
+        
+        # pretend 50% of the buffer size has been written since last read
+        self._read_counter += int(self.buffer_size*0.5) 
+        return datalist
     
-    def parsed_2_collections(self, parsed_data):
-        # take human readable and convert and set to 
-        # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        return CdTeCollection(parsed_data)
+    def raw_2_parsed(self, raw_data):
+        """ 
+        Since `extract_raw_data_cdte` is re-defined then this points 
+        to a _slightly_ different parser that will not break if half an 
+        event/trigger is in raw data. 
+        """
+        # return or set human readable data
+        # do stuff with the raw data and return nice, human readable data
+        try:
+            flags, event_df, all_hkdicts = CdTerawalldata2parser_test(raw_data)
+        except ValueError:
+            # no data from parser so pass nothing on with a time of -1
+            print("No data from parser.")
+            flags, event_df, all_hkdicts = (None,{'ti':-1},None)
+        return flags, event_df, all_hkdicts
     
     
 class fake_window_cdte(QWidget):
@@ -656,7 +725,7 @@ class fake_window_cdte(QWidget):
         # colours range from 0->255 in RGBA
         self.min_val, self.max_val = 0, 255
 
-        self.fade_out = 100
+        self.fade_out = 5
 
         # create QImage from numpy array 
         self.deth, self.detw = 128, 128
@@ -671,7 +740,7 @@ class fake_window_cdte(QWidget):
         # set title and labels
         self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
 
-        self.image_colour = "blue"
+        self.image_colour = "green"
 
         self.setLayout(self.layoutCenter)
 
@@ -687,7 +756,7 @@ class fake_window_cdte(QWidget):
         *`update_image` to define how the new image affects the current one,
         *`process_data` to perform any last steps before updating the plot.
         """
-
+        
         # get the new frame
         new_frame = self.reader.collections.image_array()
 
@@ -704,6 +773,7 @@ class fake_window_cdte(QWidget):
         self.graphPane.removeItem(self.img)
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(qImage))
         self.graphPane.addItem(self.img)
+        self.update()
 
     def update_image(self, existing_frame, new_frame):
         """
@@ -729,7 +799,7 @@ class fake_window_cdte(QWidget):
         # what pixels have a brand new hit? (0 = False, not 0 = True)
         new_hits = new_frame.astype(bool) 
         
-        self.fade_control(new_hits_array=new_hits, control_with=self.image_colour)
+        self.fade_control(new_hits_array=new_hits)#, control_with=self.image_colour)
 
         # add the new frame to the blue channel values and update the `self.my_array` to be plotted
         self.my_array[:,:,self.channel[self.image_colour]] = existing_frame[:,:,self.channel[self.image_colour]] + new_frame
@@ -833,9 +903,17 @@ class fake_window_cdte(QWidget):
 if __name__=="__main__":
     app = QApplication([])
 
-    R = Reader()
+    # different data files to try
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Am241/test_berk_20230803_proto_Am241_1min_postvibe2_00006_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Fe55/test_berk_20230803_proto_Fe55_1min__postvibe2_00008_001"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Fe55/1min/test_berk_20230728_det05_00006_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Cr51/1min/test_berk_20230728_det05_00007_001"
+
+    R = CdTeFileReader(datafile)
 
     f0 = fake_window_cdte(R)
-    print(R.collections)
+    # print(R.collections)
     f0.show()
     app.exec()
