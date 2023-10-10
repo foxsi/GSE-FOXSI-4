@@ -725,7 +725,7 @@ class fake_window_cdte(QWidget):
         # colours range from 0->255 in RGBA
         self.min_val, self.max_val = 0, 255
 
-        self.fade_out = 5
+        self.fade_out = 25
 
         # create QImage from numpy array 
         self.deth, self.detw = 128, 128
@@ -758,7 +758,7 @@ class fake_window_cdte(QWidget):
         """
         
         # get the new frame
-        new_frame = self.reader.collections.image_array()
+        new_frame = self.reader.collections.image_array(area_correction=False)
 
         # update current plotted data with new frame
         self.update_image(existing_frame=self.my_array, new_frame=new_frame)
@@ -905,9 +905,9 @@ if __name__=="__main__":
 
     # different data files to try
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Am241/test_berk_20230803_proto_Am241_1min_postvibe2_00006_001"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Am241/test_berk_20230803_proto_Am241_1min_postvibe2_00006_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Fe55/test_berk_20230803_proto_Fe55_1min__postvibe2_00008_001"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Fe55/1min/test_berk_20230728_det05_00006_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Cr51/1min/test_berk_20230728_det05_00007_001"
 

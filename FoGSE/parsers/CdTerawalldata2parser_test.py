@@ -395,11 +395,12 @@ def CdTerawalldata2parser_test(datalist):
     # )
 
     # # Example of Numpy structured array
-    # dt = np.dtype({'names':('t',"y"),'formats':('(3,)f4', 'i4')})
-    # data = np.zeros(3, dtype=dt)
-    # data['t'] = np.array([[1,2,3],[4,5,6],[7,8,9]])
-    # data['y'] = np.array([56,87,23])
-    # data ==array([([1., 2., 3.], 56), ([4., 5., 6.], 87), ([7., 8., 9.], 23)],
+    # >> dt = np.dtype({'names':('t',"y"),'formats':('(3,)f4', 'i4')})
+    # >> data = np.zeros(3, dtype=dt)
+    # >> data['t'] = np.array([[1,2,3],[4,5,6],[7,8,9]])
+    # >> data['y'] = np.array([56,87,23])
+    # >> data
+    # array([([1., 2., 3.], 56), ([4., 5., 6.], 87), ([7., 8., 9.], 23)],
     #   dtype=[('t', '<f4', (3,)), ('y', '<i4')])
 
     evt_num = len(Lti)
