@@ -68,6 +68,9 @@ class IndividualWindowCdTe(QWidget):
         self.setLayout(self.layoutCenter)
 
         self.reader.value_changed_collections.connect(self.update_plot)
+
+        # Disable interactivity
+        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
         
 
     def update_plot(self):
