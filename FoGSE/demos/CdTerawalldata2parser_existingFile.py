@@ -3,7 +3,7 @@ import polars as pl
 import struct
 import statistics
 
-def CdTerawalldata2parser_test(datalist):
+def CdTerawalldata2parser_existingFile(datalist):
     framesize = 32776#;  #static const int // 32780-4 //16396-4
     framewordsize = 8194#;static const int
 
