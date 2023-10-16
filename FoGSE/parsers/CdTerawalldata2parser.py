@@ -171,11 +171,17 @@ def CdTerawalldata2parser(datalist):
         elif(tmpdata == 0x02):#//10
             print("eventframestart")
             framedata=datalist[nlist:nlist+framewordsize+1]
+
             nlist+=framewordsize
-            #print(framedata[0],framedata[framewordsize-1],framedata[framewordsize-2],len(framedata))
-            if( not((framedata[framewordsize-1] == 0x2301FFFF))):
-                errorflag=True
-                print("************ERROR: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT************")
+        
+            try:
+                if( not((framedata[framewordsize-1] == 0x2301FFFF))):
+                    errorflag=True
+                    print("************ERROR: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT************")
+            except IndexError:
+                # to test full files being artificially split-up  - kris
+                print("A non-full frame was encountered.")
+                break
 
             else:
                 unixtime =  framedata[framewordsize-2]
@@ -385,11 +391,12 @@ def CdTerawalldata2parser(datalist):
     # )
 
     # # Example of Numpy structured array
-    # dt = np.dtype({'names':('t',"y"),'formats':('(3,)f4', 'i4')})
-    # data = np.zeros(3, dtype=dt)
-    # data['t'] = np.array([[1,2,3],[4,5,6],[7,8,9]])
-    # data['y'] = np.array([56,87,23])
-    # data ==array([([1., 2., 3.], 56), ([4., 5., 6.], 87), ([7., 8., 9.], 23)],
+    # >> dt = np.dtype({'names':('t',"y"),'formats':('(3,)f4', 'i4')})
+    # >> data = np.zeros(3, dtype=dt)
+    # >> data['t'] = np.array([[1,2,3],[4,5,6],[7,8,9]])
+    # >> data['y'] = np.array([56,87,23])
+    # >> data
+    # array([([1., 2., 3.], 56), ([4., 5., 6.], 87), ([7., 8., 9.], 23)],
     #   dtype=[('t', '<f4', (3,)), ('y', '<i4')])
 
     evt_num = len(Lti)

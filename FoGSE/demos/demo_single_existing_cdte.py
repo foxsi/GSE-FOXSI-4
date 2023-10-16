@@ -44,6 +44,9 @@ class IndividualWindowCdTe(QWidget):
         self.min_val, self.max_val = 0, 255
 
         self.fade_out = 25
+        # the minimum fade for a pixel, should be redunant but this can end up being 
+        # anincredibly small value (e.g, 1e-14) instead of exactly 0
+        self._min_fade_alpha = self.max_val - (self.max_val/self.fade_out)*self.fade_out
 
         # create QImage from numpy array 
         self.image_product = image_product
@@ -101,11 +104,11 @@ class IndividualWindowCdTe(QWidget):
         self.process_data()
 
         # # new image
-        qImage = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
+        q_image = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
 
         # faster long term to remove pervious frame and replot new one
         self.graphPane.removeItem(self.img)
-        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(qImage))
+        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
         self.update()
 
@@ -154,22 +157,21 @@ class IndividualWindowCdTe(QWidget):
             a new count and False if it hasn't.
         """
 
-        # reset counter if pixel has new hit
-        self.no_new_hits_counter_array[new_hits_array] = 0
-
         # add to counter if pixel has no hits
         self.no_new_hits_counter_array += ~new_hits_array
+
+        # reset counter if pixel has new hit
+        self.no_new_hits_counter_array[new_hits_array] = 0
 
         if (control_with=="alpha") and (self.colour_mode=="rgba"):
             # set alpha channel, fade by decreasing steadily over `self.fade_out` steps 
             # (a step for every frame the pixel has not detected an event)
-            index = self.alpha
-            self.my_array[:,:,index] = self.max_val - (self.max_val//self.fade_out)*self.no_new_hits_counter_array
+            self.my_array[:,:,self.alpha] = self.max_val - (self.max_val/self.fade_out)*self.no_new_hits_counter_array
 
             # find where alpha is zero (completely faded)
-            turn_off_colour = (self.my_array[:,:,self.alpha]==0)
+            turn_off_colour = (self.my_array[:,:,self.alpha]==self._min_fade_alpha)
 
-            # now set the colour back to zero and return alhpa to max, ready for new counts
+            # now set the colour back to zero and return alpha to max, ready for new counts
             for k in self.channel.keys():
                 self.my_array[:,:,self.channel[k]][turn_off_colour] = 0
 
@@ -179,9 +181,9 @@ class IndividualWindowCdTe(QWidget):
         elif control_with in ["red", "green", "blue"]:
             index = self.channel[control_with]
             self.my_array[:,:,index] = self.my_array[:,:,index] - (self.my_array[:,:,index]/self.fade_out)*self.no_new_hits_counter_array
-        
+
         # reset the no hits counter when max is reached
-        self.no_new_hits_counter_array[self.no_new_hits_counter_array==self.fade_out] = 0
+        self.no_new_hits_counter_array[self.no_new_hits_counter_array>=self.fade_out] = 0
 
     def process_data(self):
         """
@@ -244,9 +246,15 @@ if __name__=="__main__":
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Am241/test_berk_20230803_proto_Am241_1min_postvibe2_00006_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Fe55/test_berk_20230803_proto_Fe55_1min__postvibe2_00008_001"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Fe55/1min/test_berk_20230728_det05_00006_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Cr51/1min/test_berk_20230728_det05_00007_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/vibetest_presinez_berk_20230802_proto_00012_001"
+    
+    import os
+    FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+    datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
+    print(datafile)
 
     R = CdTeFileReader(datafile)
 
