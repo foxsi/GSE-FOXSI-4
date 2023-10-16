@@ -40,7 +40,7 @@ def fake_rtds(target_file, loops=1_000):
         with open(target_file, "a") as file:
             f = fake_rtd()
             file.write(f)
-            time.sleep(0.1)
+            time.sleep(0.5)
     
 
 def fake_rtd():
@@ -66,8 +66,9 @@ def fake_rtd():
     temps = ''
     for _ in range(9):
         error = '01' if np.random.rand()<0.99 else '3f'
+        
         sign = '00' if np.random.rand()<0.8 else '01'
-        _te = np.arange(0,temps_range)[np.random.randint(temps_range)]
+        _te = np.arange(0,temps_range)[np.random.randint(temps_range)] if np.random.rand()<0.99 else temps_range*10
         temp = hex(_te)[2:]
         temps += error + sign + temp.rjust(4,"0")
         assert len(error + sign + temp.rjust(4,"0"))==8
@@ -81,7 +82,7 @@ def fake_rtd():
 if __name__=="__main__":
     import os
     # package top-level
-    DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../fake_temperatures.txt"
+    DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
     fake_rtds(DATAFILE, loops=5)
     # print(fake_rtd())
     # print("0200000000010000220dc0f0200080f8340081f8340080f02000c2f0200081f8300080f0200081f83400")

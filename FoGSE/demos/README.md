@@ -1,0 +1,8 @@
+# GSE Demo Folder
+
+This folder contains demos for the FOXSI-4 GSE:
+
+* Run `python demo_single_existing_cdte.py` to step through an existing CdTe detector data file and display images and spectrograms.
+* Run `python demo_rtd.py` to generate fake RTD data while plotting the new data being written to the generated file.
+
+This folder contains stand-alone demo examples of the basic GUI creation for each data source expected for FOXSI-4 that will be combined for the full GSE.

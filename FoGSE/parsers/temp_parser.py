@@ -1,5 +1,5 @@
 import numpy as np
-# import numpy.lib.recfunctions as rfn
+import polars as pl
 import logging
 import os
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -43,10 +43,10 @@ def temp_parser(file_raw):
     # split raw data into 42-byte long frames (2 entries per byte=84)
     frames_r = chop_string(raw_string=file_raw[::-1], seg_len=84)
 
-    frames = [f[::-1] for f in frames_r]
+    frames = [f[::-1] for f in frames_r][::-1]
 
     if len(frames)<1:
-        return numpy_struct(sensor_value_fmt='f4', num=1), numpy_struct(sensor_value_fmt='<U16', num=1)
+        return polar_struct([[0]]*19, dttype=pl.Float32), polar_struct([['0']]*19, dttype=pl.Utf8)
 
     # run through and process each read frame
     times = []
@@ -58,15 +58,11 @@ def temp_parser(file_raw):
         read_frames_data[:,c] = data
         read_frames_error[:,c] = error
 
-    df = numpy_struct(sensor_value_fmt='f4', num=len(times))
-    df_err = numpy_struct(sensor_value_fmt='<U16', num=len(times))
-
-    df['ti'], df_err['ti'] = times, times
-    for c,t in enumerate(df.dtype.names[1:]):
-        df[t], df_err[t] = read_frames_data[c,:], read_frames_error[c,:]
+    df = polar_struct([times,*list(read_frames_data)], dttype=pl.Float32)
+    df_err = polar_struct([times,*list(read_frames_error)], dttype=pl.Utf8)
         
-    logging.info(f'{data}\n')
-    logging.error(f'{error}\n\n')
+    logging.info(f'{times}\n{read_frames_data}\n')
+    logging.error(f'{read_frames_error}\n\n')
 
     return df, df_err
 
@@ -103,6 +99,31 @@ def numpy_struct(sensor_value_fmt, num, _default_fill=np.nan):
     
     return np.full(10, _default_fill, dtype=dt)[0]
 
+def polar_struct(data, dttype=pl.Float32):
+    """ 
+    Function to set-up a Polars dataframe to be filled with values 
+    obtained from the temeprature readout.
+    
+    Parameters
+    ----------
+    data : `list`
+        The list of temperature arrays.
+
+    dttype : `polars.dtype`
+        The type of the temperature information.
+        Default: `polars.Float32`
+
+    Returns
+    -------
+    `polars.DataFrame`: 
+        The time, temperature information.
+    """
+
+    # 9 temperature sensors for each chip
+    temp_sensors = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 'ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
+
+    return pl.DataFrame(dict(zip(['ti', *temp_sensors], data)), schema={"ti": pl.Int32, **dict.fromkeys(temp_sensors, dttype)})
+
 def temp_frame_parser(frame):
     """
     Function to parse a single raw temperature frame and return the 
@@ -124,12 +145,7 @@ def temp_frame_parser(frame):
 
     # get chip information 
     _chip = int(frame[:2],16)
-
-    # # define the structured arrays to be filled
-    # df = numpy_struct(sensor_value_fmt='f4', )
-    # print("h",df['ti'])
-    # temp_sensor_names = df.dtype.names[1:10] if _chip==1 else df.dtype.names[10:]
-    # df_err = numpy_struct(sensor_value_fmt='<U16', )
+    s_no = 0 if _chip==1 else 9
 
     _ = frame[2:4]
 
@@ -145,10 +161,10 @@ def temp_frame_parser(frame):
         _err, _msrmt = temp_sensor_parser(_sensors_sep[t])
         if (_err==b'01') or (_err=='01'):
             # if error is '01' then good data 
-            temp_info[t] = (get_temp(_msrmt))
+            temp_info[s_no+t] = (get_temp(_msrmt))
         else:
             # else just record the sensors raw byte string
-            temp_error_info[t] = _sensors_sep[t]
+            temp_error_info[s_no+t] = _sensors_sep[t]
 
     return _time, temp_info, temp_error_info
 

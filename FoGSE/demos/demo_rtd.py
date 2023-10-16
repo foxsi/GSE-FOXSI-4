@@ -3,9 +3,8 @@ A demo to walk through an existing CdTe raw file.
 """
 
 import numpy as np
-import sys
 
-from PyQt6 import QtCore#, QtWidgets
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
 import pyqtgraph as pg
 
@@ -27,20 +26,24 @@ class IndividualWindowRTD(QWidget):
 
         self.reader = reader
         self.graphPane = pg.PlotWidget(self)
-        self.graphPane.setMinimumSize(QtCore.QSize(500,500))
+        self.graphPane.setMinimumSize(QtCore.QSize(1500,700))
 
         self.layoutCenter = QVBoxLayout()
         self.layoutCenter.addWidget(self.graphPane)
+        self.graphPane.setBackground('w')
+        self.graphPane.showGrid(x=True, y=True)
+
+        #https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/legenditem.html
+        self.graphPane.addLegend(offset=-0.5, labelTextSize='15pt',labelTextColor='k', **{'background-color':'w'}) 
 
         # should match the data, big problems if not
         self.temp_sensors = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 'ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
-        self.colors       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown', 'k',  'purple','b',  'g',   'r',    'c',    'y',    'm',    'brown','k',    'purple']
+        self.colors       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple','k', 'gray',    'r',    'c',    'y',    'm',    'brown','pink',    'purple']
 
-        # self.sensor_plot_data = dict.fromkeys(['ti', *self.temp_sensors], [])
         self.sensor_plot_data = dict(zip(['ti', *self.temp_sensors], [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]))
         self.sensor_plots = dict()
         for c,t in enumerate(self.temp_sensors):
-            self.sensor_plots[t] = self.plot([], [], color=self.colors[c], plotname=t)
+            self.sensor_plots[t] = self.plot([0,0], [0,0], color=self.colors[c], plotname=t)
 
         # set title and labels
         self.set_labels(self.graphPane, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="RTD Temperatures")
@@ -65,28 +68,41 @@ class IndividualWindowRTD(QWidget):
         
         new_data = self.reader.collections.new_data
 
-        # just average over some coordinates fto reduce the number of points being plotted
-        # separated_data = self.process_data(new_data)
-        # print(new_data['ti'],new_data['ts0'])
-
+        if len(new_data['ti'])==0:
+            return
+        
         # defined how to add/append onto the new data arrays
         self.add_plot_data(new_data)
-        print("plotted",self.sensor_plot_data['ti'])
 
         # plot the newly updated x and ys
         for c,t in enumerate(self.temp_sensors):
-            self.sensor_plots[t] = self.plot(self.sensor_plot_data['ti'], self.sensor_plot_data[t], color=self.colors[c], plotname=t)
-
-        # self.update()
+            _no_nans = ~np.isnan(self.sensor_plot_data[t]) #avoid plotting nans
+            if len(self.sensor_plot_data[t][_no_nans])>1:
+                #pyqtgraph won't plot 1 data-point and throws an error instead :|
+                self.sensor_plots[t].clear()
+                self.sensor_plots[t].setData(self.sensor_plot_data['ti'][_no_nans], self.sensor_plot_data[t][_no_nans])
 
     def add_plot_data(self, separated_data):
-        _keep = 30
-        _from = -_keep if len(self.sensor_plot_data['ti'])>_keep else 0
+        """ Adds the new data to the array to be plotted. """
+
+        _keep_s = 20 # secs
+
+        self.sensor_plot_data['ti'] = np.array(list(self.sensor_plot_data['ti']) + list(separated_data['ti']))
+        _keep_i = np.nonzero(self.sensor_plot_data['ti']>=(self.sensor_plot_data['ti'][-1]-_keep_s))
+        self.sensor_plot_data['ti'] = self.sensor_plot_data['ti'][_keep_i]
+
+        minmax = []
         for t in self.temp_sensors:
-            self.sensor_plot_data[t] = self.sensor_plot_data[t][_from:] + list(separated_data[t])
-        self.sensor_plot_data['ti'] = self.sensor_plot_data['ti'][_from:] + list(separated_data['ti'])
+            self.sensor_plot_data[t] = np.array(list(self.sensor_plot_data[t]) + list(separated_data[t]))[_keep_i]
+            minmax.append([np.min(self.sensor_plot_data[t]), np.max(self.sensor_plot_data[t])])
+        minmax = np.array(minmax)
+        
+        if (not np.all(np.isnan(minmax[:,0]))):
+            self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(minmax[:,0]))
+        if (not np.all(np.isnan(minmax[:,1]))):
+            self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(minmax[:,1]))
         self.graphPane.plotItem.vb.setLimits(xMin=self.sensor_plot_data['ti'][0], 
-                                             xMax=self.sensor_plot_data['ti'][-1])
+                                             xMax=self.sensor_plot_data['ti'][-1]+1)#2.5 to make space for legend
         
 
     def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
@@ -104,14 +120,14 @@ class IndividualWindowRTD(QWidget):
         xlabel, ylabel, title : `str`
             The strings relating to each label to be set.
         """
-
-        graph_widget.setTitle(title)
+        graph_widget.setTitle(title, color='k', size='25pt')
 
         # Set label for both axes
-        graph_widget.setLabel('bottom', xlabel)
-        graph_widget.setLabel('left', ylabel)
+        styles = {'color':'k', 'font-size':'20pt'} 
+        graph_widget.setLabel('bottom', xlabel, **styles)
+        graph_widget.setLabel('left', ylabel, **styles)
 
-    def plot(self, x, y, color, plotname):
+    def plot(self, x, y, color, plotname=''):
         pen = pg.mkPen(color=color, width=5)
         return self.graphPane.plot(x, y, name=plotname, pen=pen)
 
@@ -120,7 +136,7 @@ class IndividualWindowRTD(QWidget):
 import os
 from FoGSE.demos.fake_rtds import fake_rtds
 # package top-level
-DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../fake_temperatures.txt"
+DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
 
 def initiate_gui():
     app = QApplication([])
@@ -130,7 +146,7 @@ def initiate_gui():
     f0 = IndividualWindowRTD(R)
 
     f0.show()
-    sys.exit(app.exec())
+    app.exec()
 
 def initiate_fake_rtds():
 
@@ -141,10 +157,10 @@ if __name__=="__main__":
 
     from multiprocessing import Process
 
-    # layout
-    p1 = Process(target = initiate_gui)
+    # fake temps
+    p1 = Process(target = initiate_fake_rtds)
     p1.start()
-    # fake FOXSI
-    p2 = Process(target = initiate_fake_rtds)
+    # live plot
+    p2 = Process(target = initiate_gui)
     p2.start()
     p2.join()

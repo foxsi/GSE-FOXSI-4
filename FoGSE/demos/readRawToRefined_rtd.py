@@ -3,11 +3,7 @@ Create a class that will read the LOG file containing raw binary data received f
 the RTDs
 """
 
-# import time
-# import struct
-
 from PyQt6 import QtCore
-# from PyQt6.QtWidgets import QWidget
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.temp_parser import temp_parser
@@ -107,32 +103,6 @@ class RTDFileReader(Reader):
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = RTDCollection(parsed_data, self.old_data_time)
         self.old_data_time = col.last_data_time
+        if not hasattr(self,"data_start_time"):
+            self.data_start_time = col.event['ti'][0]
         return col
-    
-
-def extract_raw_data_rtd(data_file):
-        """
-        Method to extract the CdTe data from `self.data_file` and return the 
-        desired data.
-
-        Returns
-        -------
-        `tuple` :
-            (x, y) The new x and y coordinates read from `self.data_file`.
-        """
-        # read the file `self.bufferSize` bytes from the end and extract the lines
-        # forward=True: reads buffer from the back but doesn't reverse the data 
-
-        with BackwardsReader(file=data_file, blksize=350, forward=True) as f:
-            datalist = f.read_block()
-        
-        return datalist
-
-if __name__=="__main__":
-    import os
-    # package top-level
-    DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../fake_temperatures.txt"
-
-    raw_data = extract_raw_data_rtd(DATAFILE)
-    print(raw_data)
-    print(temp_parser(file_raw=raw_data))
