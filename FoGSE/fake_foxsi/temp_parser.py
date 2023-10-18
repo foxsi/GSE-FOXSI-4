@@ -3,7 +3,7 @@ import polars as pl
 import logging
 import os
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-logging.basicConfig(filename=FILE_DIR+"/../../temp_parser.log", encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename=FILE_DIR+"/../../temp_fake_parser.log", encoding='utf-8', level=logging.DEBUG)
 
 
 def chop_string(raw_string, seg_len):
@@ -51,7 +51,7 @@ def temp_parser(file_raw):
     # run through and process each read frame
     times = []
     read_frames_data = np.full((18,len(frames)), np.nan)
-    read_frames_error = np.full((18,len(frames)), '')
+    read_frames_error = np.full((18,len(frames)), ' '*8)
     for c,frame in enumerate(frames):
         time, data, error = temp_frame_parser(frame)
         times.append(time)

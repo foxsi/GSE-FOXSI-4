@@ -3,6 +3,7 @@ import struct
 
 import numpy as np
 import polars as pl
+import pandas as pd
 import logging
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -65,7 +66,7 @@ def temp_parser(file_raw):
     # run through and process each read frame
     times = []
     read_frames_data = np.full((18,len(frames)), np.nan)
-    read_frames_error = np.full((18,len(frames)), '')
+    read_frames_error = np.full((18,len(frames)), ' '*8)
     for c,frame in enumerate(frames):
         time, data, error = temp_frame_parser(frame)
         times.append(time)
@@ -172,12 +173,13 @@ def temp_frame_parser(frame):
     temp_info, temp_error_info = [np.nan]*18, [np.nan]*18
     for t in range(len(_sensors_sep)):
         _err, _msrmt = temp_sensor_parser(_sensors_sep[t])
-        if (_err==b'00') or (_err=='00'):
+        if (_err==b'01') or (_err=='01'):
             # if error is '01' then good data 
             temp_info[s_no+t] = (get_temp(_msrmt))
         else:
             # else just record the sensors raw byte string
-            temp_error_info[s_no+t] = _sensors_sep[t]
+            print(f"{_sensors_sep[t]:8}")
+            temp_error_info[s_no+t] = f"{_sensors_sep[t]:8}"
 
     return _time, temp_info, temp_error_info
 
