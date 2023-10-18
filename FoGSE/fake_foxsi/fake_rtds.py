@@ -5,13 +5,6 @@ A demo to walk through an existing CdTe raw file.
 import numpy as np
 import time
 
-from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
-import pyqtgraph as pg
-
-from FoGSE.demos.readRawToRefined_rtd import RTDFileReader
-from FoGSE.parsers.temp_parser import temp_parser
-
 import os.path
 
     

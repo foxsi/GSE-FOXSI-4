@@ -1,10 +1,7 @@
-import os
-import struct
-
 import numpy as np
 import polars as pl
 import logging
-
+import os
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 logging.basicConfig(filename=FILE_DIR+"/../../temp_parser.log", encoding='utf-8', level=logging.DEBUG)
 
@@ -43,23 +40,12 @@ def temp_parser(file_raw):
         structure.
     """
 
-    if len(file_raw)<1:
-        print("No data given to parser.")
-        return polar_struct([[0]]*19, dttype=pl.Float32), polar_struct([['0']]*19, dttype=pl.Utf8)
-
-    # convert from binary to hex
-    byte_array = bytearray(file_raw)
-    hex_string = ''.join(struct.pack('B', x).hex() for x in byte_array)
-
     # split raw data into 42-byte long frames (2 entries per byte=84)
-    # work from the end, depending on backward buffer might cut off start
-    frames_r = chop_string(raw_string=hex_string[::-1], seg_len=84)
+    frames_r = chop_string(raw_string=file_raw[::-1], seg_len=84)
 
-    # run through each frame and reverse internally then externally to 
-    # get in the correct written order
     frames = [f[::-1] for f in frames_r][::-1]
+
     if len(frames)<1:
-        print("No data from parser.")
         return polar_struct([[0]]*19, dttype=pl.Float32), polar_struct([['0']]*19, dttype=pl.Utf8)
 
     # run through and process each read frame
@@ -157,7 +143,8 @@ def temp_frame_parser(frame):
         codes for each sensor in the same structure.
     """
 
-    _chip = int(frame[:2])#.replace(b'\\x', b''))#
+    # get chip information 
+    _chip = int(frame[:2],16)
     s_no = 0 if _chip==1 else 9
 
     _ = frame[2:4]
@@ -172,7 +159,7 @@ def temp_frame_parser(frame):
     temp_info, temp_error_info = [np.nan]*18, [np.nan]*18
     for t in range(len(_sensors_sep)):
         _err, _msrmt = temp_sensor_parser(_sensors_sep[t])
-        if (_err==b'00') or (_err=='00'):
+        if (_err==b'01') or (_err=='01'):
             # if error is '01' then good data 
             temp_info[s_no+t] = (get_temp(_msrmt))
         else:

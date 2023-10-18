@@ -255,6 +255,7 @@ if __name__=="__main__":
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
     print(datafile)
+    datafile = FILE_DIR+"/../data/cdte.log"
 
     R = CdTeFileReader(datafile)
 

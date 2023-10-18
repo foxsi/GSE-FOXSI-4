@@ -8,7 +8,7 @@ from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
 import pyqtgraph as pg
 
-from FoGSE.demos.readRawToRefined_rtd import RTDFileReader
+from FoGSE.demos.readRawToRefined_existing_rtd import RTDFileReader
 
     
 class IndividualWindowRTD(QWidget):
@@ -131,36 +131,17 @@ class IndividualWindowRTD(QWidget):
         pen = pg.mkPen(color=color, width=5)
         return self.graphPane.plot(x, y, name=plotname, pen=pen)
 
-    
 
-import os
-from FoGSE.demos.fake_rtds import fake_rtds
-# package top-level
-DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
+if __name__=="__main__":
+    import os
+    FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+    datafile = FILE_DIR+"/../data/housekeeping.log"
 
-def initiate_gui():
     app = QApplication([])
 
-    R = RTDFileReader(DATAFILE)
+    R = RTDFileReader(datafile)
 
     f0 = IndividualWindowRTD(R)
 
     f0.show()
     app.exec()
-
-def initiate_fake_rtds():
-
-    # generate fake data and save to `datafile`
-    fake_rtds(DATAFILE, loops=1_000_000)
-
-if __name__=="__main__":
-
-    from multiprocessing import Process
-
-    # fake temps
-    p1 = Process(target = initiate_fake_rtds)
-    p1.start()
-    # live plot
-    p2 = Process(target = initiate_gui)
-    p2.start()
-    p2.join()
