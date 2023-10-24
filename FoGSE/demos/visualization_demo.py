@@ -1287,11 +1287,7 @@ class DetectorPopout(QWidget):
         # allow the window to close
         event.accept()
 
-import FoGSE.windows.windowCdTe as wcdte
-from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-import os
-FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-_datafile = FILE_DIR+"/data/test_berk_20230728_det05_00007_001"
+
 
 class DetectorArrayDisplay(QWidget):
     """
@@ -1337,7 +1333,7 @@ class DetectorArrayDisplay(QWidget):
             DetectorPlotViewIM(self, name=detectorNames[0]),
             DetectorPlotViewTP(self, name=detectorNames[1]),
             DetectorPlotViewSP(self, name=detectorNames[2]),
-            wcdte.WindowCdTe(reader=CdTeFileReader(_datafile),name=detectorNames[3]),
+            DetectorPlotView(self, name=detectorNames[3]),
             DetectorPlotView(self, name=detectorNames[4]),
             DetectorPlotView(self, name=detectorNames[5]),
             DetectorPlotView(self, name=detectorNames[6]),
@@ -1479,8 +1475,8 @@ class DetectorGridDisplay(QWidget):
             DetectorPlotViewIM(self, name=detector_names[0]),
             DetectorPlotViewTP(self, name=detector_names[1]),
             DetectorPlotViewSP(self, name=detector_names[2]),
-            wcdte.WindowCdTe(reader=CdTeFileReader(_datafile),name=detector_names[3]),
-            wcdte.WindowCdTe(reader=CdTeFileReader(_datafile),plotting_product="spectrogram",name=detector_names[4]),
+            DetectorPlotViewIM(self, name=detector_names[3]),
+            DetectorPlotViewIM(self, name=detector_names[4]),
             DetectorPlotViewTP(self, name=detector_names[5]),
             DetectorPlotViewSP(self, name=detector_names[6]),
         ]
@@ -1489,10 +1485,11 @@ class DetectorGridDisplay(QWidget):
         self.detector_panels[1].data_file = DATA_FILE
         self.detector_panels[2].data_file = DATA_FILE
 
-        self.detector_panels[3].set_fade_out(5)
-        self.detector_panels[3].set_image_colour("red")
-        # self.detector_panels[4].update_image_dimensions(height=10, width=50)
-        # self.detector_panels[4].image_colour = "red"
+        self.detector_panels[3].data_file = DATA_FILE
+        self.detector_panels[3].fade_out, self.detector_panels[3].image_colour = 5, "green"
+        self.detector_panels[4].data_file = DATA_FILE
+        self.detector_panels[4].update_image_dimensions(height=10, width=50)
+        self.detector_panels[4].image_colour = "red"
         self.detector_panels[5].data_file = DATA_FILE
         self.detector_panels[5].average_every = 100
         self.detector_panels[6].data_file = DATA_FILE

@@ -23,7 +23,7 @@ def chop_string(raw_string, seg_len):
     
     return groups if len(groups[-1])==seg_len else groups[:-1]
 
-def temp_parser(file_raw):
+def rtdparser(file_raw):
     """ 
     Designed to split the file data into 42-byte frames and pass each of 
     them off to `temp_frame_parser`.
@@ -178,7 +178,6 @@ def temp_frame_parser(frame):
             temp_info[s_no+t] = (get_temp(_msrmt))
         else:
             # else just record the sensors raw byte string
-            print(f"{_sensors_sep[t]:8}")
             temp_error_info[s_no+t] = f"{_sensors_sep[t]:8}"
 
     return _time, temp_info, temp_error_info

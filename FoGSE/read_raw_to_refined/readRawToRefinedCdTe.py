@@ -1,23 +1,28 @@
 """
 Create a class that will read the LOG file containing raw binary data received from 
-the RTDs
+FOXSI and parse the data to be readyfor the GUI plotting windows. 
+
+Can read:
+    * CdTe
 """
 
-from PyQt6 import QtCore
+# `import time`
+import struct
+
+# `from PyQt6 import QtCore`
+# `from PyQt6.QtWidgets import QWidget`
+
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.rtdparser import rtdparser
-from FoGSE.collections.RTDCollection import RTDCollection
-from FoGSE.demos.readRawToRefined_single_det import Reader
+from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
+from FoGSE.collections.CdTeCollection import CdTeCollection
 
 
-class RTDFileReader(Reader):
+class CdTeReader(ReaderBase):
     """
-    Reader for the RTD readout.
+    Reader for the FOXSI CdTe instrument.
     """
-
-    # need to be class variable to connect
-    value_changed_collections = QtCore.pyqtSignal()
 
     def __init__(self, datafile, parent=None):
         """
@@ -25,8 +30,9 @@ class RTDFileReader(Reader):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        Reader.__init__(self, datafile, parent)
-        self.define_buffer_size(size=2_000)
+        ReaderBase.__init__(self, datafile, parent)
+
+        self.define_buffer_size(size=25_000)
         self.call_interval(1000)
 
     def extract_raw_data(self):
@@ -39,9 +45,9 @@ class RTDFileReader(Reader):
         `tuple` :
             (x, y) The new x and y coordinates read from `self.data_file`.
         """
-        return self.extract_raw_data_rtd()
+        return self.extract_raw_data_cdte()
     
-    def extract_raw_data_rtd(self):
+    def extract_raw_data_cdte(self):
         """
         Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
@@ -55,8 +61,11 @@ class RTDFileReader(Reader):
         # forward=True: reads buffer from the back but doesn't reverse the data 
         try:
             with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
-                datalist = f.read_block()
+                iterative_unpack=struct.iter_unpack("<I",f.read_block())
+                datalist=[]
+                for _,data in enumerate(iterative_unpack):
 
+                    datalist.append(data[0])
             if self._old_data==datalist:
                 return self.return_empty() 
         except FileNotFoundError:
@@ -82,10 +91,15 @@ class RTDFileReader(Reader):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        data, errors = rtdparser(file_raw=raw_data)
-        return data, errors
+        try:
+            flags, event_df, all_hkdicts = CdTerawalldata2parser(raw_data)
+        except ValueError:
+            # no data from parser so pass nothing on with a time of -1
+            print("No data from parser.")
+            flags, event_df, all_hkdicts = (None,{'ti':-1},None)
+        return flags, event_df, all_hkdicts
 
-    def parsed_2_collections(self, parsed_data):
+    def parsed_2_collection(self, parsed_data):
         """
         Method to move the parsed data to the relevant collection.
 
@@ -101,8 +115,6 @@ class RTDFileReader(Reader):
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = RTDCollection(parsed_data, self.old_data_time)
+        col = CdTeCollection(parsed_data, self.old_data_time)
         self.old_data_time = col.last_data_time
-        if not hasattr(self,"data_start_time"):
-            self.data_start_time = col.event['ti'][0]
         return col

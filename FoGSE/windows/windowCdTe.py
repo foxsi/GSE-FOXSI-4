@@ -8,33 +8,56 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
 import pyqtgraph as pg
 
-from FoGSE.readRawToRefined import Reader
+from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
+from FoGSE.visualization import DetectorPlotView
 
-    
-class IndividualWindowCdTe(QWidget):
+
+class WindowCdTe(DetectorPlotView):
     """
     An individual window to display CdTe data read from a file.
 
     Parameters
     ----------
-    reader : `FoGSE.demos.readRawToRefined_single_cdte.CdTeFileReader()`
-        The class in charge of using the CdTe parser and containing the result in a ``.
+    data_file : `str` 
+        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        If given, takes priority over `reader` input.
+        Default: None
 
-    image_product : `str`
+    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.ReaderBase()`
+        The reader already given a file.
+        Default: None
+
+    plotting_product : `str`
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, reader, image_product="image", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", parent=None, name="CdTe"):
 
-        QWidget.__init__(self, parent)
+        DetectorPlotView.__init__(self, parent, name)
 
-        self.reader = reader
-        # self.graphPane = pg.PlotWidget(self)
-        # self.graphPane.setMinimumSize(QtCore.QSize(500,500))
+        # decide how to read the data
+        if data_file is not None:
+            # probably the main way to use it
+            self.reader = CdTeReader(data_file)
+        elif reader is not None:
+            # useful for testing and if multiple windows need to share the same file
+            self.reader = reader
+        else:
+            print("How do I read the CdTe data?")
+            
+        self.image_product = plotting_product
+        if self.image_product in ["image", "spectrogram"]:
+            self.setup_2d()
+        else:
+            print("Nothing else is set-up yet.")
 
-        # self.layoutCenter = QVBoxLayout()
-        # self.layoutCenter.addWidget(self.graphPane)
+        self.reader.value_changed_collections.connect(self.update_plot)
 
+        # Disable interactivity
+        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
+        
+    def setup_2d(self):
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
         self.colour_mode = "rgba"
         self.channel = {"red":0, "green":1, "blue":2}
@@ -43,13 +66,10 @@ class IndividualWindowCdTe(QWidget):
         # colours range from 0->255 in RGBA
         self.min_val, self.max_val = 0, 255
 
-        self.fade_out = 25
-        # the minimum fade for a pixel, should be redunant but this can end up being 
-        # anincredibly small value (e.g, 1e-14) instead of exactly 0
-        self._min_fade_alpha = self.max_val - (self.max_val/self.fade_out)*self.fade_out
+        # define how many frames to fade a count out over
+        self.set_fade_out(no_of_frames=25)
 
         # create QImage from numpy array 
-        self.image_product = image_product
         if self.image_product=="image":
             self.deth, self.detw = 128, 128
         elif self.image_product=="spectrogram":
@@ -59,22 +79,33 @@ class IndividualWindowCdTe(QWidget):
         self.set_image_ndarray()
         q_image = pg.QtGui.QImage(self.my_array, self.deth, self.detw, self.cformat)
 
-        # send image to fram and add to plot
+        # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
 
         # set title and labels
         self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
 
-        self.image_colour = "green"
+        self.set_image_colour("green")
 
-        self.setLayout(self.layoutCenter)
+    def set_fade_out(self, no_of_frames):
+        """ Define how many frames to fade a count out over. """
+        self.fade_out = 25
+        # the minimum fade for a pixel, should be redunant but this can end up being 
+        # an incredibly small value (e.g, 1e-14) instead of exactly 0
+        self._min_fade_alpha = self.max_val - (self.max_val/self.fade_out)*self.fade_out
 
-        self.reader.value_changed_collections.connect(self.update_plot)
+    def set_image_colour(self, colour):
+        """ Define image colour to use. """
 
-        # Disable interactivity
-        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
-        
+        if colour not in list(self.channel):
+            print("Need colour of:", list(self.channel))
+            return
+
+        if hasattr(self, "image_colour") and hasattr(self, "my_array"):
+            self.my_array[:,:,self.channel[colour]] = self.my_array[:,:,self.channel[self.image_colour]]
+            self.my_array[:,:,self.channel[self.image_colour]] = np.zeros(np.shape(self.my_array[:,:,self.channel[self.image_colour]]))
+        self.image_colour = colour
 
     def update_plot(self):
         """
@@ -130,7 +161,7 @@ class IndividualWindowCdTe(QWidget):
         """
 
         # if new_frame is a list then it's empty and so no new frame, make all 0s
-        if type(new_frame)==list:
+        if isinstance(new_frame,list): 
             new_frame = np.zeros((self.deth, self.detw))
         
         if self.update_method=="fade":
@@ -246,14 +277,21 @@ if __name__=="__main__":
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Am241/test_berk_20230803_proto_Am241_1min_postvibe2_00006_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Fe55/test_berk_20230803_proto_Fe55_1min__postvibe2_00008_001"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Fe55/1min/test_berk_20230728_det05_00006_001"
     # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Cr51/1min/test_berk_20230728_det05_00007_001"
+    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/vibetest_presinez_berk_20230802_proto_00012_001"
+    
+    import os
+    FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+    datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
 
-    R = Reader(datafile)
+    # `datafile = FILE_DIR+"/../data/cdte.log"`
+    reader = CdTeFileReader(datafile)#CdTeReader(data_file)
 
-    # f0 = IndividualWindowCdTe(R, image_product="spectrogram")
-    f0 = IndividualWindowCdTe(R, image_product="image")
+    f0 = WindowCdTe(reader=reader, plotting_product="spectrogram")
+    f1 = WindowCdTe(reader=reader, plotting_product="image")
     # print(R.collections)
     f0.show()
+    f1.show()
     app.exec()

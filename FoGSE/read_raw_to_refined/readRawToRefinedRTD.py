@@ -3,21 +3,19 @@ Create a class that will read the LOG file containing raw binary data received f
 the RTDs
 """
 
-from PyQt6 import QtCore
+# `from PyQt6 import QtCore`
+
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.rtdparser import rtdparser
 from FoGSE.collections.RTDCollection import RTDCollection
-from FoGSE.demos.readRawToRefined_single_det import Reader
 
 
-class RTDFileReader(Reader):
+class RTDReader(ReaderBase):
     """
     Reader for the RTD readout.
     """
-
-    # need to be class variable to connect
-    value_changed_collections = QtCore.pyqtSignal()
 
     def __init__(self, datafile, parent=None):
         """
@@ -25,7 +23,8 @@ class RTDFileReader(Reader):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        Reader.__init__(self, datafile, parent)
+        ReaderBase.__init__(self, datafile, parent)
+
         self.define_buffer_size(size=2_000)
         self.call_interval(1000)
 
@@ -85,7 +84,7 @@ class RTDFileReader(Reader):
         data, errors = rtdparser(file_raw=raw_data)
         return data, errors
 
-    def parsed_2_collections(self, parsed_data):
+    def parsed_2_collection(self, parsed_data):
         """
         Method to move the parsed data to the relevant collection.
 

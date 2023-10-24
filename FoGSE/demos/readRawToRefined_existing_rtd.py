@@ -6,7 +6,7 @@ the RTDs
 from PyQt6 import QtCore
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.temp_parser import temp_parser
+from FoGSE.parsers.rtdparser import rtdparser
 from FoGSE.collections.RTDCollection import RTDCollection
 from FoGSE.demos.readRawToRefined_single_det import Reader
 
@@ -89,7 +89,7 @@ class RTDFileReader(Reader):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        data, errors = temp_parser(file_raw=raw_data)
+        data, errors = rtdparser(file_raw=raw_data)
         return data, errors
 
     def parsed_2_collections(self, parsed_data):
