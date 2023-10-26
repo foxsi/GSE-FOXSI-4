@@ -1346,39 +1346,39 @@ class DetectorGridDisplay(QWidget):
     def _add_to_layout(self, widget):
         if widget.name == "Timepix":
             self.grid_layout.addWidget(
-                widget, 1,1,1,2
+                widget, 3,3,1,1
             )
         elif widget.name == "CMOS1":
             self.grid_layout.addWidget(
-                widget, 2,1,1,2
+                widget, 3,1,1,1
             )
         elif widget.name == "CMOS2":
             self.grid_layout.addWidget(
-                widget, 2,3,1,2
+                widget, 3,2,1,1
             )
         elif widget.name == "CdTe1":
             self.grid_layout.addWidget(
-                widget, 3,1,1,1
+                widget, 1,1,1,1
             )
         elif widget.name == "CdTe2":
             self.grid_layout.addWidget(
-                widget, 3,2,1,1
+                widget, 1,2,1,1
             )
         elif widget.name == "CdTe3":
             self.grid_layout.addWidget(
-                widget, 3,3,1,1
+                widget, 2,1,1,1
             )
         elif widget.name == "CdTe4":
             self.grid_layout.addWidget(
-                widget, 3,4,1,1
+                widget, 2,2,1,1
             )
         elif widget.name == "Command":
             self.grid_layout.addWidget(
-                widget, 1,4,1,1
+                widget, 1,3,1,1
             )
         elif widget.name == "Settings":
             self.grid_layout.addWidget(
-                widget, 1,3,1,1
+                widget, 2,3,1,1
             )
         else:
             raise Warning("widget name not found!")
