@@ -285,6 +285,8 @@ if __name__=="__main__":
     import os
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
+    datafile = "/Users/kris/Desktop/test_230306_00001_001_nohk"
+    datafile="/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/calibration/j-sideRootData/usingDAQ/raw2root/backgrounds-20230331-newGrounding/20230331_bkg_00001_001"
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
     reader = CdTeFileReader(datafile)#CdTeReader(data_file)

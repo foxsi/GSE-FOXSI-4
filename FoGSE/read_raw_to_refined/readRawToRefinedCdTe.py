@@ -16,6 +16,7 @@ from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
+from FoGSE.parsers.CdTerawdataframe2parser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
 
 
@@ -92,7 +93,7 @@ class CdTeReader(ReaderBase):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            flags, event_df, all_hkdicts = CdTerawalldata2parser(raw_data)
+            flags, event_df, all_hkdicts = CdTerawalldataframe2parser(raw_data)
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")

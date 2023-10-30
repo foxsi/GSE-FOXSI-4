@@ -12,6 +12,7 @@ if __name__=="__main__":
     app = QApplication([])
     
     datafile = os.path.dirname(os.path.realpath(__file__))+"/../data/test_berk_20230728_det05_00007_001"
+    # datafile = "/Users/kris/Desktop/cdte_20231025.log"
     reader = CdTeFileReader(datafile)
 
     f0 = WindowCdTe(reader=reader, plotting_product="spectrogram")
