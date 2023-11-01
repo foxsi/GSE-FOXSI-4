@@ -178,14 +178,14 @@ def CdTerawalldata2parser(datalist):
                 if( not((framedata[framewordsize-1] == 0x2301FFFF))):
                     errorflag=True
                     print("************ERROR: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT************")
+
+                else:
+                    unixtime =  framedata[framewordsize-2]
+                    framedataok = True
             except IndexError:
                 # to test full files being artificially split-up  - kris
                 print("A non-full frame was encountered.")
                 break
-
-            else:
-                unixtime =  framedata[framewordsize-2]
-                framedataok = True
 
             if(framedataok):
                 j=0

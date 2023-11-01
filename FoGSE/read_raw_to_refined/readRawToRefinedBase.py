@@ -53,7 +53,7 @@ class ReaderBase(QWidget):
         """
         QWidget.__init__(self, parent)
 
-        self._collections = []
+        self._collection = []
 
         # stand-in log file
         self.data_file = datafile

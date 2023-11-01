@@ -101,7 +101,8 @@ class RTDReader(ReaderBase):
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = RTDCollection(parsed_data, self.old_data_time)
-        self.old_data_time = col.last_data_time
+        if col.last_data_time>self.old_data_time:
+            self.old_data_time = col.last_data_time
         if not hasattr(self,"data_start_time"):
             self.data_start_time = col.event['ti'][0]
         return col

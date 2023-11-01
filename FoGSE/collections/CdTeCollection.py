@@ -253,6 +253,13 @@ class CdTeCollection:
         else:
             pt_adc, al_adc = self.add_cmn(new)
         all_adc = np.concatenate((pt_adc, al_adc))
+
+        #**********************************************************************
+        # ******** remove default strip values for quickness just now *********
+        default_strip_inds = (all_strips==0) | (all_strips==64) | (all_strips==128) | (all_strips==192)
+        all_strips = all_strips[~default_strip_inds]
+        all_adc = all_adc[~default_strip_inds]
+        #**********************************************************************
         
         self.adc_counts_arr, _, _ = np.histogram2d(all_strips, all_adc, 
                                                    bins=[self.strip_bins,

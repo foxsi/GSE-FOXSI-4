@@ -182,17 +182,21 @@ def CdTerawdataframe2parser(datalist):
             nlist+=framewordsize
             #print(hex(framedata[0]),hex(framedata[framewordsize-1]),hex(framedata[framewordsize-2]),len(framedata))
             
-            #frameword size is fixed. 
-            #the last word of the event data frame should be 0x2301FFFF. If not, break.
-            if( not((framedata[framewordsize-1] == 0x2301FFFF))):
-                errorflag=True
-                print("************ERROR: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT************")
+            try:
+                #frameword size is fixed. 
+                #the last word of the event data frame should be 0x2301FFFF. If not, break.
+                if( not((framedata[framewordsize-1] == 0x2301FFFF))):
+                    errorflag=True
+                    print("************ERROR: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT************")
+                    break
+                else:
+                    #the Second word from the last of the event data frame should be UNIXTIME.
+                    unixtime =  framedata[framewordsize-2]
+                    framedataok = True
+            except IndexError:
+                # to test full files being artificially split-up  - kris
+                print("A non-full frame was encountered.")
                 break
-
-            else:
-                #the Second word from the last of the event data frame should be UNIXTIME.
-                unixtime =  framedata[framewordsize-2]
-                framedataok = True
 
             if(framedataok):
                 j=0
@@ -426,8 +430,9 @@ def CdTerawdataframe2parser(datalist):
     df['hitnum_al'] = np.array(Lhitnum_al,dtype=np.uint8)
     df['hitnum_pt'] = np.array(Lhitnum_pt,dtype=np.uint8)
     df['flag_pseudo'] = np.array(Lflag_pseudo,dtype=np.uint8)
+
     Flags=[hkflag,eventflag, errorflag]
     
     #All process is finished.
 
-    return Flags,df
+    return Flags,df,0

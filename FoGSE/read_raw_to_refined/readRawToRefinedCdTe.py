@@ -33,7 +33,7 @@ class CdTeReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
 
-        self.define_buffer_size(size=25_000)
+        self.define_buffer_size(size=100_000)
         self.call_interval(1000)
 
     def extract_raw_data(self):
@@ -92,8 +92,9 @@ class CdTeReader(ReaderBase):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
+        print(raw_data)
         try:
-            flags, event_df, all_hkdicts = CdTerawalldataframe2parser(raw_data)
+            flags, event_df, all_hkdicts = CdTerawdataframe2parser(raw_data)
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
@@ -117,5 +118,6 @@ class CdTeReader(ReaderBase):
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = CdTeCollection(parsed_data, self.old_data_time)
-        self.old_data_time = col.last_data_time
+        if col.last_data_time>self.old_data_time:
+            self.old_data_time = col.last_data_time
         return col

@@ -52,7 +52,7 @@ class WindowCdTe(DetectorPlotView):
         else:
             print("Nothing else is set-up yet.")
 
-        self.reader.value_changed_collections.connect(self.update_plot)
+        self.reader.value_changed_collection.connect(self.update_plot)
 
         # Disable interactivity
         self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
@@ -119,12 +119,13 @@ class WindowCdTe(DetectorPlotView):
         
         # get the new frame
         if self.image_product=="image":
-            new_frame = self.reader.collections.image_array(area_correction=False)
+            new_frame = self.reader.collection.image_array(area_correction=False)
             self.update_method = "fade"
         elif self.image_product=="spectrogram":
-            new_frame = self.reader.collections.spectrogram_array(remap=True, 
+            new_frame = self.reader.collection.spectrogram_array(remap=True, 
                                                                   nan_zeros=False, 
                                                                   cmn_sub=False).T
+
             new_frame[new_frame>0.01*np.max(new_frame)] = 0.01*np.max(new_frame)
             self.update_method = "replace"
 
@@ -287,13 +288,23 @@ if __name__=="__main__":
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
     datafile = "/Users/kris/Desktop/test_230306_00001_001_nohk"
     datafile="/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/calibration/j-sideRootData/usingDAQ/raw2root/backgrounds-20230331-newGrounding/20230331_bkg_00001_001"
+    # datafile = "/Users/kris/Desktop/cdte_20231030.log"
+    # datafile = "/Users/kris/Desktop/cdte_20231030_postsend.log"
+    # datafile = "/Users/kris/Desktop/cdte_20231030_presend.log"
+    datafile = "/Users/kris/Desktop/cdte_20231030_fullread.log"
+    datafile = "/Users/kris/Desktop/cdte_src_mod.log"
+    datafile = "/Users/kris/Desktop/gse_mod.log"
+    datafile = "/Users/kris/Desktop/from_de.log"
+    # datafile = "/Users/kris/Desktop/from_gse.log"
+    # datafile = ""
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
     reader = CdTeFileReader(datafile)#CdTeReader(data_file)
+    reader = CdTeReader(datafile)
 
     f0 = WindowCdTe(reader=reader, plotting_product="spectrogram")
-    f1 = WindowCdTe(reader=reader, plotting_product="image")
+    # f1 = WindowCdTe(reader=reader, plotting_product="image")
     # print(R.collections)
     f0.show()
-    f1.show()
+    # f1.show()
     app.exec()

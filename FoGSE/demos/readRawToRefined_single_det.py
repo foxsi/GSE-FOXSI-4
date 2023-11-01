@@ -46,7 +46,7 @@ class Reader(QWidget):
     """
 
     # need to be class variable to connect
-    value_changed_collections = QtCore.pyqtSignal()
+    value_changed_collection = QtCore.pyqtSignal()
 
     def __init__(self, datafile, parent=None):
         """
@@ -56,7 +56,7 @@ class Reader(QWidget):
         """
         QWidget.__init__(self, parent)
 
-        self._collections = []
+        self._collection = []
 
         # stand-in log file
         self.data_file = datafile
@@ -111,7 +111,7 @@ class Reader(QWidget):
         self.timer.start()
 
     @property
-    def collections(self):
+    def collection(self):
         """ 
         Property
         --------
@@ -119,10 +119,10 @@ class Reader(QWidget):
         Property to return the data instrument collections created 
         by the reader. 
         """
-        return self._collections
+        return self._collection
 
-    @collections.setter
-    def collections(self, new_collections):
+    @collection.setter
+    def collection(self, new_collection):
         """ 
         Setter
         ------
@@ -133,8 +133,8 @@ class Reader(QWidget):
         ** This only handles one collection right now. Will be converted 
         to list.
         """
-        self._collections = new_collections
-        self.value_changed_collections.emit()
+        self._collection = new_collection
+        self.value_changed_collection.emit()
 
     def check_enough_data(self, lines):
         """
