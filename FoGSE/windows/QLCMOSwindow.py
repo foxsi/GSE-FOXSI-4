@@ -8,18 +8,18 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
 import pyqtgraph as pg
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSReader
+from FoGSE.read_raw_to_refined.readRawToRefinedQLCMOS import QLCMOSReader
 from FoGSE.visualization import DetectorPlotView
 
 
-class CMOSWindow(DetectorPlotView):
+class QLCMOSWindow(DetectorPlotView):
     """
     An individual window to display CMOS data read from a file.
 
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOS.CMOSReader()`.
+        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOS.QLCMOSReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
@@ -38,7 +38,7 @@ class CMOSWindow(DetectorPlotView):
         # decide how to read the data
         if data_file is not None:
             # probably the main way to use it
-            self.reader = CMOSReader(data_file)
+            self.reader = QLCMOSReader(data_file)
         elif reader is not None:
             # useful for testing and if multiple windows need to share the same file
             self.reader = reader
@@ -70,7 +70,7 @@ class CMOSWindow(DetectorPlotView):
 
         # create QImage from numpy array 
         if self.image_product=="image":
-            self.detw, self.deth = 768, 384
+            self.detw, self.deth = 512, 480
             # set title and labels
             self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
 
@@ -267,13 +267,13 @@ if __name__=="__main__":
     import os
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/cmos.log"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log"
     # datafile = ""
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
-    reader = CMOSReader(datafile)
+    reader = QLCMOSReader(datafile)
 
-    f0 = CMOSWindow(reader=reader, plotting_product="image")
+    f0 = QLCMOSWindow(reader=reader, plotting_product="image")
     # f1 = CMOSWindow(reader=reader, plotting_product="image")
     # print(R.collections)
     f0.show()

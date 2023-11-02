@@ -18,7 +18,7 @@ class RTDCollection:
     parsed_data : `tuple`, length 2
             Contains `df_values, `df_errors` as returned from the parser.
 
-    parsed_data : `int`, `float`
+   old_data_time : `int`, `float`
             The last time of the last data point previously extracted and 
             used. Default is `0` and so should take all data.
             Default: 0

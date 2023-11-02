@@ -71,20 +71,21 @@ class CdTeWindow(DetectorPlotView):
 
         # create QImage from numpy array 
         if self.image_product=="image":
-            self.deth, self.detw = 128, 128
+            self.detw, self.deth = 128, 128
+            # set title and labels
+            self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
         elif self.image_product=="spectrogram":
-            self.deth, self.detw = 256, 1024
+            self.detw, self.deth = 256, 1024
+            # set title and labels
+            self.set_labels(self.graphPane, xlabel="Strips [Pt:0-127, Al:127-255]", ylabel="ADC/Energy", title="Spectrogram")
 
         self.numpy_format = np.uint8
         self.set_image_ndarray()
-        q_image = pg.QtGui.QImage(self.my_array, self.deth, self.detw, self.cformat)
+        q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
 
         # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
-
-        # set title and labels
-        self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
 
         self.set_image_colour("green")
 
@@ -155,10 +156,10 @@ class CdTeWindow(DetectorPlotView):
         ----------
         existing_frame : `numpy.ndarray`
             This is the RGB (`self.colour_mode='rgb'`) or RGBA (`self.colour_mode='rgba'`) array of shape 
-            (`self.detw`,`self.deth`,3) or (`self.detw`,`self.deth`,4), respectively.
+            (`self.deth`,`self.detw`,3) or (`self.deth`,`self.detw`,4), respectively.
 
         new_frame : `numpy.ndarray`
-            This is a 2D array of the new image frame created from the latest data of shape (`self.detw`,`self.deth`).
+            This is a 2D array of the new image frame created from the latest data of shape (`self.deth`,`self.detw`).
         """
 
         # if new_frame is a list then it's empty and so no new frame, make all 0s
@@ -185,7 +186,7 @@ class CdTeWindow(DetectorPlotView):
         Parameters
         ----------
         new_frame : `numpy.ndarray`, `bool`
-            This is a 2D boolean array of shape (`self.detw`,`self.deth`) which shows True if the pixel has just detected 
+            This is a 2D boolean array of shape (`self.deth`,`self.detw`) which shows True if the pixel has just detected 
             a new count and False if it hasn't.
         """
 
@@ -228,7 +229,7 @@ class CdTeWindow(DetectorPlotView):
         uf = self.max_val*self.my_array//norm
 
         # allow this all to be looked at if need be
-        self.qImageDetails = [uf.astype(self.numpy_format), self.deth, self.detw, self.cformat]
+        self.qImageDetails = [uf.astype(self.numpy_format), self.detw, self.deth, self.cformat]
 
     def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
         """
@@ -259,16 +260,16 @@ class CdTeWindow(DetectorPlotView):
         # colours range from 0->255 in RGBA8888 and RGB888
         # do we want alpha channel or not
         if self.colour_mode == "rgba":
-            self.my_array = np.zeros((self.detw, self.deth, 4))
+            self.my_array = np.zeros((self.deth, self.detw, 4))
             self.cformat = pg.QtGui.QImage.Format.Format_RGBA8888
             # for all x and y, turn alpha to max
             self.my_array[:,:,3] = self.max_val 
         if self.colour_mode == "rgb":
-            self.my_array = np.zeros((self.detw, self.deth, 3))
+            self.my_array = np.zeros((self.deth, self.detw, 3))
             self.cformat = pg.QtGui.QImage.Format.Format_RGB888
 
         # define array to keep track of the last hit to each pixel
-        self.no_new_hits_counter_array = (np.zeros((self.detw, self.deth))).astype(self.numpy_format)
+        self.no_new_hits_counter_array = (np.zeros((self.deth, self.detw))).astype(self.numpy_format)
 
 
 if __name__=="__main__":
@@ -296,11 +297,12 @@ if __name__=="__main__":
     datafile = "/Users/kris/Desktop/gse_mod.log"
     datafile = "/Users/kris/Desktop/from_de.log"
     # datafile = "/Users/kris/Desktop/from_gse.log"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
     # datafile = ""
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
     reader = CdTeFileReader(datafile)#CdTeReader(data_file)
-    reader = CdTeReader(datafile)
+    # reader = CdTeReader(datafile)
 
     f0 = CdTeWindow(reader=reader, plotting_product="spectrogram")
     # f1 = CdTeWindow(reader=reader, plotting_product="image")

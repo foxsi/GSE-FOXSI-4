@@ -140,6 +140,23 @@ def sortRegions(list):
         array[[192+j, 288+j, 384+j]] = array[[384+j, 192+j, 288+j]]
     return np.ravel(array)
 
+# def QLimageData(data481kB):
+#     linetime = int.from_bytes(data481kB[4:8], byteorder='little')
+#     gain = int.from_bytes(data481kB[8:12], byteorder='little')
+#     exposureQL = int.from_bytes(data481kB[12:16], byteorder='little')
+
+#     decimal_list = makeDecimalList(data481kB[16:16+491520])
+#     value_array = sortRegions(decimal_list)
+#     # Make QL image
+#     width, height = 512, 480
+#     min_value, max_value = 0, 4095
+#     QLimage = Image.new("L", (width, height))
+#     # Set pixel values
+#     pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in value_array]
+#     QLimage.putdata(pixels)
+
+#     return linetime, gain, exposureQL, QLimage
+
 def QLimageData(data481kB):
     linetime = int.from_bytes(data481kB[4:8], byteorder='little')
     gain = int.from_bytes(data481kB[8:12], byteorder='little')
@@ -150,12 +167,20 @@ def QLimageData(data481kB):
     # Make QL image
     width, height = 512, 480
     min_value, max_value = 0, 4095
-    QLimage = Image.new("L", (width, height))
+    # QLimage = Image.new("L", (width, height))
     # Set pixel values
     pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in value_array]
-    QLimage.putdata(pixels)
+    # QLimage.putdata(pixels)
 
-    return linetime, gain, exposureQL, QLimage
+    #**********************************************************************
+    #******************************** Kris ********************************
+    pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in value_array])
+    pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
+    pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
+    pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
+    #**********************************************************************
+
+    return linetime, gain, exposureQL, np.reshape(pixels, (height,width))
 
 
 # for check ---------------
@@ -171,21 +196,61 @@ def QLimageData(data481kB):
 
 ##### PC data 577kB #####
 
-def PCimageData(data577kB):
-    linetime = int.from_bytes(data577kB[4:8], byteorder='little')
-    gain = int.from_bytes(data577kB[8:12], byteorder='little')
-    exposurePC = int.from_bytes(data577kB[12:16], byteorder='little')
+# def PCimageData(data577kB,frame_no=0):
+    
+    # frame_start = frame_no*590848
 
-    decimal_list = makeDecimalList(data577kB[16:16+589824])
+    # linetime = int.from_bytes(data577kB[frame_start+4:frame_start+8], byteorder='little')
+    # gain = int.from_bytes(data577kB[frame_start+8:frame_start+12], byteorder='little')
+    # exposurePC = int.from_bytes(data577kB[frame_start+12:frame_start+16], byteorder='little')
+
+    # decimal_list = makeDecimalList(data577kB[frame_start+16:frame_start+16+589824])
+    # # Make PC image
+    # width, height = 768, 384
+    # min_value, max_value = 0, 4095
+    # PCimage = Image.new("L", (width, height))
+    # # Set pixel values
+    # pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
+
+    # #**********************************************************************
+    # #******************************** Kris ********************************
+    # pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in decimal_list])
+    # pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
+    # pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
+    # pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
+    # #**********************************************************************
+
+    # PCimage.putdata(pixels)
+
+    # return linetime, gain, exposurePC, PCimage
+
+def PCimageData(data577kB,frame_no=0):
+    
+    frame_start = frame_no*590848
+
+    linetime = int.from_bytes(data577kB[frame_start+4:frame_start+8], byteorder='little')
+    gain = int.from_bytes(data577kB[frame_start+8:frame_start+12], byteorder='little')
+    exposurePC = int.from_bytes(data577kB[frame_start+12:frame_start+16], byteorder='little')
+
+    decimal_list = makeDecimalList(data577kB[frame_start+16:frame_start+16+589824])
     # Make PC image
     width, height = 768, 384
     min_value, max_value = 0, 4095
-    PCimage = Image.new("L", (width, height))
+    # PCimage = Image.new("L", (width, height))
     # Set pixel values
     pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
-    PCimage.putdata(pixels)
 
-    return linetime, gain, exposurePC, PCimage
+    #**********************************************************************
+    #******************************** Kris ********************************
+    pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in decimal_list])
+    pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
+    pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
+    pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
+    #**********************************************************************
+
+    # PCimage.putdata(pixels)
+
+    return linetime, gain, exposurePC, np.reshape(pixels, (height,width))
 
 # for check ---------------
 # with open('data577kB_test.bin', 'rb') as file:
@@ -195,3 +260,36 @@ def PCimageData(data577kB):
 # PCimage.save("testPC.png")
 
 # ---------------------------
+
+if __name__=="__main__":
+    import matplotlib.pyplot as plt
+    from FoGSE.readBackwards import BackwardsReader
+    # cmos_file = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/cmos_frames.log"
+    # cmos_file = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/cmos.log"
+
+    # with open(cmos_file, 'rb') as file:
+    #     print(type(file))
+    #     PCdata = file.read()
+    # for i in range(4):
+    #     linetime, gain, exposurePC, PCimage = PCimageData(PCdata,frame_no=i)
+    #     print(linetime, gain, exposurePC, PCimage)
+    #     print(type(linetime), type(gain), type(exposurePC), type(PCimage))
+    #     # PCimage.save(f"/Users/kris/Desktop/testPC{i}.png")
+    #     plt.figure()
+    #     plt.imshow(PCimage)
+    #     plt.show()
+    
+    # with BackwardsReader(file=cmos_file, blksize=590848, forward=True) as f:
+    #     print(type(f))
+    #     PCdata = f.read_block()
+    # for i in range(4):
+    #     linetime, gain, exposurePC, PCimage = PCimageData(PCdata,frame_no=i)
+    #     print(linetime, gain, exposurePC, PCimage)
+    #     print(type(linetime), type(gain), type(exposurePC), type(PCimage))
+    #     PCimage.save(f"/Users/kris/Desktop/testPC_bkwrdsrdr{i}.png")
+
+    with open('/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log', 'rb') as file:
+        QLdata = file.read()
+
+    linetime, gain, exposureQL, QLimage = QLimageData(QLdata)
+    QLimage.save("/Users/kris/Desktop/testQL.png")

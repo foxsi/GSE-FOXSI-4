@@ -20,7 +20,7 @@ class CdTeCollection:
             Contains `Flags`, `event_df`, `all_hkdicts` as returned from 
             the parser.
 
-    parsed_data : `int`, `float`
+    old_data_time : `int`, `float`
             The last time of the last data point previously extracted and 
             used. Default is `0` and so should take all data.
             Default: 0

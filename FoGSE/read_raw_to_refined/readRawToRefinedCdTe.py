@@ -88,7 +88,6 @@ class CdTeReader(ReaderBase):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        print(raw_data)
         try:
             flags, event_df, all_hkdicts = CdTerawdataframe2parser(raw_data)
         except ValueError:
