@@ -1287,7 +1287,7 @@ class DetectorPopout(QWidget):
         # allow the window to close
         event.accept()
 
-import FoGSE.windows.windowCdTe as wcdte
+import FoGSE.windows.CdTewindow as wcdte
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 import os
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -1337,7 +1337,7 @@ class DetectorArrayDisplay(QWidget):
             DetectorPlotViewIM(self, name=detectorNames[0]),
             DetectorPlotViewTP(self, name=detectorNames[1]),
             DetectorPlotViewSP(self, name=detectorNames[2]),
-            wcdte.WindowCdTe(reader=CdTeFileReader(_datafile),name=detectorNames[3]),
+            wcdte.CdTeWindow(reader=CdTeFileReader(_datafile),name=detectorNames[3]),
             DetectorPlotView(self, name=detectorNames[4]),
             DetectorPlotView(self, name=detectorNames[5]),
             DetectorPlotView(self, name=detectorNames[6]),
@@ -1479,8 +1479,8 @@ class DetectorGridDisplay(QWidget):
             DetectorPlotViewIM(self, name=detector_names[0]),
             DetectorPlotViewTP(self, name=detector_names[1]),
             DetectorPlotViewSP(self, name=detector_names[2]),
-            wcdte.WindowCdTe(reader=CdTeFileReader(_datafile),name=detector_names[3]),
-            wcdte.WindowCdTe(reader=CdTeFileReader(_datafile),plotting_product="spectrogram",name=detector_names[4]),
+            wcdte.CdTeWindow(reader=CdTeFileReader(_datafile),name=detector_names[3]),
+            wcdte.CdTeWindow(reader=CdTeFileReader(_datafile),plotting_product="spectrogram",name=detector_names[4]),
             DetectorPlotViewTP(self, name=detector_names[5]),
             DetectorPlotViewSP(self, name=detector_names[6]),
         ]

@@ -26,7 +26,7 @@ from PyQt6.QtWidgets import QWidget
 
 # import parser for `extract_raw_data` and `extract_raw_data_<det>`
 # import collection for `parsed_2_collections`
-# for example `from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser`
+# for example `from FoGSE.parsers.CdTeparser import CdTerawalldata2parser`
 # for example from `FoGSE.collections.CdTeCollection import CdTeCollection`
 
 

@@ -6,7 +6,7 @@ import os
 from PyQt6.QtWidgets import QApplication
 
 from FoGSE.demos.readRawToRefined_fake_rtd import RTDFileReader
-from FoGSE.windows.windowRTD import WindowRTD
+from FoGSE.windows.RTDwindow import RTDWindow
 
     
 # package top-level
@@ -17,7 +17,7 @@ def initiate_gui():
 
     R = RTDFileReader(DATAFILE)
 
-    f0 = WindowRTD(reader=R)
+    f0 = RTDWindow(reader=R)
 
     f0.show()
     app.exec()

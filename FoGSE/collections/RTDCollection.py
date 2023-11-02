@@ -4,7 +4,7 @@ RTD collection to handle the read-in RTD data.
 
 import numpy as np
 
-from FoGSE.parsers.rtdparser import numpy_struct
+from FoGSE.parsers.RTDparser import numpy_struct
 
 
 class RTDCollection:

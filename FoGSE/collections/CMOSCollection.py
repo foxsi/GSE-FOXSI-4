@@ -1,5 +1,5 @@
 """
-CdTe collection to handle the read-in CdTe data.
+CMOS collection to handle the read-in CMOS data.
 """
 
 from copy import copy 
@@ -8,9 +8,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class CdTeCollection:
+class CMOSCollection:
     """
-    A container for CdTe data after being parsed.
+    *****************************************************************************
+    ********************************** Notice! **********************************
+    * Still methods relating to CdTe in here. ONce specific on the data being   * 
+    * parsed are optained then can replace, e.g.,  the spectrogram methods with *
+    * ones that are actual data products from CMOS.                             *
+    *****************************************************************************
+
+    A container for CMOS data after being parsed.
     
     Can be used to generate spectrograms or images.
     
@@ -32,16 +39,16 @@ class CdTeCollection:
         datalist=[]
         for ndata,data in enumerate(iterative_unpack):
             datalist.append(data[0])
-        Flags, event_df, all_hkdicts = CdTeparser.CdTerawalldata2parser(datalist)
+        Flags, event_df, all_hkdicts = CMOSparser.CMOSparser(datalist)
         
-    cdte_data = CdTeCollection((Flags, event_df, all_hkdicts))
+    cmos_data = CMOSCollection((Flags, event_df, all_hkdicts))
     
     plt.figure(figsize=(12,8))
-    cdte_data.plot_spectrogram(v=210, remap=True, cmn_sub=True)
+    cmos_data.plot_spectrogram(v=210, remap=True, cmn_sub=True)
     plt.show()
     
     plt.figure(figsize=(8,8))
-    cdte_data.plot_image(remap=True, area_correction=True, true_pixel_size=True)
+    cmos_data.plot_image(remap=True, area_correction=True, true_pixel_size=True)
     plt.show()
     """
     
@@ -49,7 +56,7 @@ class CdTeCollection:
         # bring in the parsed data
         _, self.event_dataframe, _ = parsed_data
         
-        # define all the strip sizes in CdTe detectors
+        # define all the strip sizes in CMOS detectors
         self.strip_bins, self.side_strip_bins, self.adc_bins = self.channel_bins()
         
         # for easy remapping of channels
@@ -120,7 +127,7 @@ class CdTeCollection:
         ---------
         event_dataframe : numpy structured array
                 The numpy structured array returned from the parser 
-                containing the CdTe data.
+                containing the CMOS data.
 
         Returns
         -------
@@ -267,7 +274,7 @@ class CdTeCollection:
         
     def spectrogram_array(self, remap:bool=False, nan_zeros:bool=False, cmn_sub:bool=False):
         """
-        Method to get the spectrogram array of the CdTe file.
+        Method to get the spectrogram array of the CMOS file.
 
         Parameters
         ----------
@@ -300,7 +307,7 @@ class CdTeCollection:
         
     def plot_spectrogram(self, v:(float,int)=None, remap:bool=False, nan_zeros:bool=False, cmn_sub:bool=False):
         """
-        Method to plot the spectrogram of the CdTe file.
+        Method to plot the spectrogram of the CMOS file.
 
         Parameters
         ----------
@@ -398,7 +405,7 @@ class CdTeCollection:
     
     def plot_image(self, remap:bool=True, area_correction:bool=True, true_pixel_size:bool=True):
         """
-        Method to plot the image of the CdTe file.
+        Method to plot the image of the CMOS file.
 
         Parameters
         ----------

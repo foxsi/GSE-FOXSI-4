@@ -1,20 +1,21 @@
 """
 Create a class that will read the LOG file containing raw binary data received from 
-the RTDs
-"""
+FOXSI and parse the data to be readyfor the GUI plotting windows. 
 
-# `from PyQt6 import QtCore`
+Can read:
+    * CMOS
+"""
 
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.RTDparser import rtdparser
-from FoGSE.collections.RTDCollection import RTDCollection
+from FoGSE.parsers.CMOSparser import CMOSparser
+from FoGSE.collections.CMOSCollection import CMOSCollection
 
 
-class RTDReader(ReaderBase):
+class CMOSReader(ReaderBase):
     """
-    Reader for the RTD readout.
+    Reader for the FOXSI CMOS instrument.
     """
 
     def __init__(self, datafile, parent=None):
@@ -25,7 +26,7 @@ class RTDReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
 
-        self.define_buffer_size(size=2_000)
+        self.define_buffer_size(size=100_000)
         self.call_interval(1000)
 
     def extract_raw_data(self):
@@ -35,34 +36,33 @@ class RTDReader(ReaderBase):
 
         Returns
         -------
-        `tuple` :
-            (x, y) The new x and y coordinates read from `self.data_file`.
+        `list` :
+            Data read from `self.data_file`.
         """
-        return self.extract_raw_data_rtd()
+        return self.extract_raw_data_cmos()
     
-    def extract_raw_data_rtd(self):
+    def extract_raw_data_cmos(self):
         """
-        Method to extract the CdTe data from `self.data_file` and return the 
+        Method to extract the CMOS data from `self.data_file` and return the 
         desired data.
 
         Returns
         -------
-        `tuple` :
-            (x, y) The new x and y coordinates read from `self.data_file`.
+        `list` :
+            Data read from `self.data_file`.
         """
         # read the file `self.bufferSize` bytes from the end and extract the lines
         # forward=True: reads buffer from the back but doesn't reverse the data 
         try:
             with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
-                datalist = f.read_block()
-
-            if self._old_data==datalist:
+                data = f.read()
+            if self._old_data==data:
                 return self.return_empty() 
         except FileNotFoundError:
             return self.return_empty() 
         
-        self._old_data = datalist
-        return datalist
+        self._old_data = data
+        return data
 
     def raw_2_parsed(self, raw_data):
         """
@@ -77,12 +77,18 @@ class RTDReader(ReaderBase):
         Returns
         -------
         `tuple` :
-            Output from the CdTe parser.
+            Output from the CMOS parser.
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        data, errors = rtdparser(file_raw=raw_data)
-        return data, errors
+        print(raw_data)
+        try:
+            output = CMOSparser(raw_data)
+        except ValueError:
+            # no data from parser so pass nothing on with a time of -1
+            print("No data from parser.")
+            output = (None,{'ti':-1},None)
+        return output
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -91,18 +97,16 @@ class RTDReader(ReaderBase):
         Parameters
         ----------
         parsed_data : `tuple`
-            Output from the CdTe parser.
+            Output from the CMOS parser.
 
         Returns
         -------
-        `FoGSE.detector_collections.CdTeCollection.CdTeCollection` :
-            The CdTe collection.
+        `FoGSE.detector_collections.CMOSCollection.CMOSCollection` :
+            The CMOS collection.
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = RTDCollection(parsed_data, self.old_data_time)
+        col = CMOSCollection(parsed_data, self.old_data_time)
         if col.last_data_time>self.old_data_time:
             self.old_data_time = col.last_data_time
-        if not hasattr(self,"data_start_time"):
-            self.data_start_time = col.event['ti'][0]
         return col

@@ -12,7 +12,7 @@ manager. I have also fixed the ...split('\n') lines."""
 import os
 import struct
 
-from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
+from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 
 class BackwardsReader:
 

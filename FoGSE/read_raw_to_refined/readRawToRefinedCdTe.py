@@ -6,17 +6,13 @@ Can read:
     * CdTe
 """
 
-# `import time`
 import struct
-
-# `from PyQt6 import QtCore`
-# `from PyQt6.QtWidgets import QWidget`
 
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
-from FoGSE.parsers.CdTerawdataframe2parser import CdTerawdataframe2parser
+from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
+from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
 
 
@@ -43,8 +39,8 @@ class CdTeReader(ReaderBase):
 
         Returns
         -------
-        `tuple` :
-            (x, y) The new x and y coordinates read from `self.data_file`.
+        `list` :
+            Data read from `self.data_file`.
         """
         return self.extract_raw_data_cdte()
     
@@ -55,8 +51,8 @@ class CdTeReader(ReaderBase):
 
         Returns
         -------
-        `tuple` :
-            (x, y) The new x and y coordinates read from `self.data_file`.
+        `list` :
+            Data read from `self.data_file`.
         """
         # read the file `self.bufferSize` bytes from the end and extract the lines
         # forward=True: reads buffer from the back but doesn't reverse the data 

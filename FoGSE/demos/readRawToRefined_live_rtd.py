@@ -6,7 +6,7 @@ the RTDs
 from PyQt6 import QtCore
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.rtdparser import rtdparser
+from FoGSE.parsers.RTDparser import rtdparser
 from FoGSE.collections.RTDCollection import RTDCollection
 from FoGSE.demos.readRawToRefined_single_det import Reader
 

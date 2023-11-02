@@ -4,6 +4,19 @@ import struct
 import statistics
 
 def CdTerawdataframe2parser(datalist):
+    """
+    Function to <description>.
+
+    Parameters
+    ----------
+    data : `??`
+        <description>.
+
+    Returns
+    -------
+    `??`
+        <description>.
+    """
     framesize = 32776#;  #static const int // 32780-4 //16396-4
     framewordsize = 8194#;static const int
 

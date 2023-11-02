@@ -13,7 +13,7 @@ from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 from FoGSE.visualization import DetectorPlotView
 
 
-class WindowCdTe(DetectorPlotView):
+class CdTeWindow(DetectorPlotView):
     """
     An individual window to display CdTe data read from a file.
 
@@ -302,8 +302,8 @@ if __name__=="__main__":
     reader = CdTeFileReader(datafile)#CdTeReader(data_file)
     reader = CdTeReader(datafile)
 
-    f0 = WindowCdTe(reader=reader, plotting_product="spectrogram")
-    # f1 = WindowCdTe(reader=reader, plotting_product="image")
+    f0 = CdTeWindow(reader=reader, plotting_product="spectrogram")
+    # f1 = CdTeWindow(reader=reader, plotting_product="image")
     # print(R.collections)
     f0.show()
     # f1.show()

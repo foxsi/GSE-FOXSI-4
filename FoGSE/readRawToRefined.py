@@ -34,7 +34,7 @@ from PyQt6 import QtCore
 from PyQt6.QtWidgets import QWidget
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
+from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
 
 

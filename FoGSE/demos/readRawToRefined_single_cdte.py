@@ -5,8 +5,8 @@ Reader for an existing raw CdTe data file.
 import struct
 
 from FoGSE.demos.CdTerawalldata2parser_existingFile import CdTerawalldata2parser_existingFile
-from FoGSE.parsers.CdTerawdataframe2parser import CdTerawdataframe2parser
-from FoGSE.parsers.CdTerawalldata2parser import CdTerawalldata2parser
+from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
+from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.demos.readRawToRefined_single_det import Reader
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 from FoGSE.collections.CdTeCollection import CdTeCollection

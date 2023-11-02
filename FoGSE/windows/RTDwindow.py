@@ -13,7 +13,7 @@ from FoGSE.demos.readRawToRefined_fake_rtd import RTDFileReader
 from FoGSE.visualization import DetectorPlotView
 
     
-class WindowRTD(DetectorPlotView):
+class RTDWindow(DetectorPlotView):
     """
     An individual window to display RTD data read from a file.
 
@@ -153,7 +153,7 @@ if __name__=="__main__":
 
         R = RTDFileReader(DATAFILE)
 
-        f0 = WindowRTD(reader=R)
+        f0 = RTDWindow(reader=R)
 
         f0.show()
         app.exec()
