@@ -135,7 +135,8 @@ class IndividualWindowRTD(QWidget):
 if __name__=="__main__":
     import os
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-    datafile = FILE_DIR+"/../data/housekeeping.log"
+    # datafile = FILE_DIR+"/../data/housekeeping.log"
+    datafile = "/Users/kris/Desktop/housekeeping.log"
 
     app = QApplication([])
 

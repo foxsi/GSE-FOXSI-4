@@ -50,17 +50,21 @@ class RTDWindow(DetectorPlotView):
 
         # should match the data, big problems if not
         self.temp_sensors = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 'ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
-        self.colors       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple','k', 'gray', 'r',    'c',    'y',    'm',    'brown','pink', 'purple']
+        self.temp_sensor_names = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 
+                                  'Formatter Pi CPU', 'Formatter SPMU-001 FPGA', 'DE Pi CPU', 'DE Pi SPMU-001 FPGA', 'Housekeeping microcontroller', 'Power 12 V regulator', 'Power 5 V regulator', 'Power 5.5 V regulator', 'CdTe canister 1 FPGA']
+        self.colors       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple',
+                             'k', 'gray', 'darkRed',    'darkCyan',    'lightGray',    'darkMagenta',    'darkGreen','darkGray', 'darkBlue']
+        # self.colors       = ['b',   'b',   'b',   'b',   'b',   'b',   'b',   'b', 'b','k', 'k','k',    'k','k',    'k','k','k','k']
 
         self.sensor_plot_data = dict(zip(['ti', *self.temp_sensors], [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]))
         self.sensor_plots = dict()
-        for c,t in enumerate(self.temp_sensors):
-            self.sensor_plots[t] = self.plot([0,0], [0,0], color=self.colors[c], plotname=t)
+        for c,(t,n) in enumerate(zip(self.temp_sensors, self.temp_sensor_names)):
+            self.sensor_plots[t] = self.plot([0,0], [0,0], color=self.colors[c], plotname=n)
 
         # set title and labels
         self.set_labels(self.graphPane, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="RTD Temperatures")
 
-        self.reader.value_changed_collections.connect(self.update_plot)
+        self.reader.value_changed_collection.connect(self.update_plot)
 
         # Disable interactivity
         self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
@@ -76,7 +80,7 @@ class RTDWindow(DetectorPlotView):
         *`process_data` to perform any last steps before updating the plot.
         """
         
-        new_data = self.reader.collections.new_data
+        new_data = self.reader.collection.new_data
 
         if len(new_data['ti'])==0:
             return
@@ -147,29 +151,33 @@ if __name__=="__main__":
     # package top-level
     import os
     DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
+    DATAFILE = "/Users/kris/Desktop/housekeeping.log"
 
     def initiate_gui():
         app = QApplication([])
 
-        R = RTDFileReader(DATAFILE)
+        # R = RTDFileReader(DATAFILE)
+        R = RTDReader(DATAFILE)
 
         f0 = RTDWindow(reader=R)
 
         f0.show()
         app.exec()
 
-    def initiate_fake_rtds():
-        from FoGSE.fake_foxsi.fake_rtds import fake_rtds
+    # def initiate_fake_rtds():
+    #     from FoGSE.fake_foxsi.fake_rtds import fake_rtds
 
-        # generate fake data and save to `datafile`
-        fake_rtds(DATAFILE, loops=1_000_000)
+    #     # generate fake data and save to `datafile`
+    #     fake_rtds(DATAFILE, loops=1_000_000)
 
     from multiprocessing import Process
 
     # fake temps
-    p1 = Process(target = initiate_fake_rtds)
-    p1.start()
+    # p1 = Process(target = initiate_fake_rtds)
+    # p1.start()
     # live plot
-    p2 = Process(target = initiate_gui)
-    p2.start()
-    p2.join()
+    # p2 = Process(target = initiate_gui)
+    # p2.start()
+    # p2.join()
+
+    initiate_gui()

@@ -59,6 +59,7 @@ def rtdparser(file_raw):
     # run through each frame and reverse internally then externally to 
     # get in the correct written order
     frames = [f[::-1] for f in frames_r][::-1]
+
     if len(frames)<1:
         print("No data from parser.")
         return polar_struct([[0]]*19, dttype=pl.Float32), polar_struct([['0']]*19, dttype=pl.Utf8)
