@@ -9,15 +9,17 @@ from PyQt6.QtWidgets import QApplication
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSReader
 from FoGSE.read_raw_to_refined.readRawToRefinedQLCMOS import QLCMOSReader
+from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
 from FoGSE.windows.CdTewindow import CdTeWindow
 from FoGSE.windows.CMOSwindow import CMOSWindow
 from FoGSE.windows.QLCMOSwindow import QLCMOSWindow
+from FoGSE.windows.RTDwindow import RTDWindow
 
 if __name__=="__main__":
     app = QApplication([])
     
     # `datafile = os.path.dirname(os.path.realpath(__file__))+"/../data/test_berk_20230728_det05_00007_001"`
-    det_list = ["cdte_ped", "cdte_im", "cmos_pc", "cmos_ql"]
+    det_list = ["cdte_ped", "cdte_im", "cmos_pc", "cmos_ql", "rtd"]
 
     det_args = sys.argv[1:]
     if len(det_args)%2!=0:
@@ -42,6 +44,8 @@ if __name__=="__main__":
             window = CMOSWindow(reader=CMOSReader(f), plotting_product="image")
         elif d=="cmos_ql":
             window = QLCMOSWindow(reader=QLCMOSReader(f), plotting_product="image")
+        elif d=="rtd":
+            window = RTDWindow(reader=RTDReader(f))
 
         windows.append(window)
 

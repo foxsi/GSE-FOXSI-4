@@ -1,6 +1,13 @@
 # GSE Demo Folder
 
-This folder contains demos for the FOXSI-4 GSE:
+For live plotting of general FOXSI detectors run:
+* `python ./live_demos/demo_foxsi_dets.py <det> <file> <det> <file>`
+* E.g.,
+`python FoGSE/demos/live_demos/demo_foxsi_dets.py cdte_ped cdte.log cmos_pc cmos.log` will display two windows, one for the CdTe pedestal and one on the CMOS photon counting data.
+
+* The `<det>`s supported are: `cdte_ped`, `cdte_im`, `cmos_pc`, `cmos_ql`, `rtd`
+
+This specific folder contains demos for the FOXSI-4 GSE:
 
 * Run `python demo_single_existing_cdte.py` to step through an existing CdTe detector data file and display images and spectrograms.
 * Run `python demo_single_live_cdte.py` to read from a currently writing CdTe detector data file and display images and spectrograms.
