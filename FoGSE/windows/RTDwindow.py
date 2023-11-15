@@ -105,7 +105,7 @@ class RTDWindow(DetectorPlotView):
         """
         
         new_data = self.reader.collection.new_data
-
+        print(new_data)
         if len(new_data['ti'])==0:
             return
         

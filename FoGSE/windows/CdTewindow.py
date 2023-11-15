@@ -126,8 +126,9 @@ class CdTeWindow(DetectorPlotView):
             new_frame = self.reader.collection.spectrogram_array(remap=True, 
                                                                   nan_zeros=False, 
                                                                   cmn_sub=False).T
-
+            print("Min/max CdTe frame1",np.min(new_frame),np.max(new_frame))
             new_frame[new_frame>0.01*np.max(new_frame)] = 0.01*np.max(new_frame)
+            print("Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
             self.update_method = "replace"
 
         # update current plotted data with new frame

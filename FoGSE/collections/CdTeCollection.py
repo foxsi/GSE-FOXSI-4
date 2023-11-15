@@ -56,8 +56,9 @@ class CdTeCollection:
         self.channel_map = self.remap_strip_dict()
 
         # used in the filter to only consider data with times > than this
-        self.last_data_time = old_data_time
-        self.new_entries = self.event_dataframe['ti']>self.last_data_time
+        # self.last_data_time = old_data_time
+        self.new_entries = self.event_dataframe['ti']>old_data_time
+        self.last_data_time = self.event_dataframe['ti'][-1]
 
         # filter the counts somehow, go for crude single strip right now
         self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
@@ -159,7 +160,7 @@ class CdTeCollection:
         pt_value = pt_adc[pt_selection & single]
         al_value = al_adc[al_selection & single]
         
-        self.last_data_time = event_dataframe['ti'][-1]
+        # self.last_data_time = event_dataframe['ti'][-1]
         return {'times':single_trig_times, 
                 'pt_strip_adc':pt_value, 
                 'al_strip_adc':al_value, 
