@@ -5,7 +5,7 @@ A demo to walk through an existing CdTe raw file.
 import numpy as np
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout
 import pyqtgraph as pg
 
 from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
@@ -42,27 +42,51 @@ class RTDWindow(DetectorPlotView):
         else:
             print("How do I read the RTD data?")
 
-        self.graphPane.setBackground('w')
-        self.graphPane.showGrid(x=True, y=True)
+        self.graphPane_chip1 = self.graphPane
+        self.graphPane_chip1.setMinimumSize(QtCore.QSize(800,350))
+        self.graphPane_chip1.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
+        self.graphPane_chip2 = pg.PlotWidget(self)
+        self.graphPane_chip2.setMinimumSize(QtCore.QSize(800,350))
+        self.graphPane_chip2.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
+
+        self.chip2_layout = QVBoxLayout()
+        self.chip2_layout.addWidget(
+            self.graphPane_chip2
+        )
+        self.layoutCenter.addLayout(self.chip2_layout)
+
+        self.graphPane_chip1.setBackground('w')
+        self.graphPane_chip1.showGrid(x=True, y=True)
+        self.graphPane_chip2.setBackground('w')
+        self.graphPane_chip2.showGrid(x=True, y=True)
 
         #https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/legenditem.html
-        self.graphPane.addLegend(offset=-0.5, labelTextSize='15pt',labelTextColor='k', **{'background-color':'w'}) 
+        self.graphPane_chip1.addLegend(offset=-0.5, labelTextSize='15pt',labelTextColor='k', **{'background-color':'w'}) 
+        self.graphPane_chip2.addLegend(offset=-0.5, labelTextSize='15pt',labelTextColor='k', **{'background-color':'w'}) 
 
         # should match the data, big problems if not
-        self.temp_sensors = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 'ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
-        self.temp_sensor_names = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 
-                                  'Formatter Pi CPU', 'Formatter SPMU-001 FPGA', 'DE Pi CPU', 'DE Pi SPMU-001 FPGA', 'Housekeeping microcontroller', 'Power 12 V regulator', 'Power 5 V regulator', 'Power 5.5 V regulator', 'CdTe canister 1 FPGA']
-        self.colors       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple',
-                             'k', 'gray', 'darkRed',    'darkCyan',    'lightGray',    'darkMagenta',    'darkGreen','darkGray', 'darkBlue']
-        # self.colors       = ['b',   'b',   'b',   'b',   'b',   'b',   'b',   'b', 'b','k', 'k','k',    'k','k',    'k','k','k','k']
+        self.temp_sensors_chip1 = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8']
+        self.temp_sensors_chip2 = ['ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
 
-        self.sensor_plot_data = dict(zip(['ti', *self.temp_sensors], [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]))
-        self.sensor_plots = dict()
-        for c,(t,n) in enumerate(zip(self.temp_sensors, self.temp_sensor_names)):
-            self.sensor_plots[t] = self.plot([0,0], [0,0], color=self.colors[c], plotname=n)
+        self.temp_sensor_names_chip1 = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8']
+        self.temp_sensor_names_chip2 = ['Formatter Pi CPU', 'Formatter SPMU-001 FPGA', 'DE Pi CPU', 'DE Pi SPMU-001 FPGA', 'Housekeeping microcontroller', 'Power 12 V regulator', 'Power 5 V regulator', 'Power 5.5 V regulator', 'CdTe canister 1 FPGA']
+        self.colors_chip1       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple']
+        self.colors_chip2       = ['k', 'g', 'r',    'darkCyan',    'b',    'pink',    'darkGreen','darkGray', 'purple']
+
+        self.sensor_plot_data_chip1 = dict(zip(['ti', *self.temp_sensors_chip1], [[],[],[],[],[],[],[],[],[],[]]))
+        self.sensor_plot_data_chip2 = dict(zip(['ti', *self.temp_sensors_chip2], [[],[],[],[],[],[],[],[],[],[]]))
+
+        self.sensor_plots_chip1 = dict()
+        for c,(t,n) in enumerate(zip(self.temp_sensors_chip1, self.temp_sensor_names_chip1)):
+            self.sensor_plots_chip1[t] = self.plot(self.graphPane_chip1, [0,0], [0,0], color=self.colors_chip1[c], plotname=n)
+        
+        self.sensor_plots_chip2 = dict()
+        for c,(t,n) in enumerate(zip(self.temp_sensors_chip2, self.temp_sensor_names_chip2)):
+            self.sensor_plots_chip2[t] = self.plot(self.graphPane_chip2, [0,0], [0,0], color=self.colors_chip2[c], plotname=n)
 
         # set title and labels
-        self.set_labels(self.graphPane, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="RTD Temperatures")
+        self.set_labels(self.graphPane_chip1, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="Chip 1: RTD Temperatures")
+        self.set_labels(self.graphPane_chip2, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="Chip 2: RTD Temperatures")
 
         self.reader.value_changed_collection.connect(self.update_plot)
 
@@ -86,37 +110,67 @@ class RTDWindow(DetectorPlotView):
             return
         
         # defined how to add/append onto the new data arrays
-        self.add_plot_data(new_data)
+        self.add_plot_data_chip1(new_data)
+        self.add_plot_data_chip2(new_data)
 
         # plot the newly updated x and ys
-        for c,t in enumerate(self.temp_sensors):
-            _no_nans = ~np.isnan(self.sensor_plot_data[t]) #avoid plotting nans
-            if len(self.sensor_plot_data[t][_no_nans])>1:
+        for c,t in enumerate(self.temp_sensors_chip1):
+            _no_nans = ~np.isnan(self.sensor_plot_data_chip1[t]) #avoid plotting nans
+            if len(self.sensor_plot_data_chip1[t][_no_nans])>1:
                 #pyqtgraph won't plot 1 data-point and throws an error instead :|
-                self.sensor_plots[t].clear()
-                self.sensor_plots[t].setData(self.sensor_plot_data['ti'][_no_nans], self.sensor_plot_data[t][_no_nans])
+                self.sensor_plots_chip1[t].clear()
+                self.sensor_plots_chip1[t].setData(self.sensor_plot_data_chip1['ti'][_no_nans], self.sensor_plot_data_chip1[t][_no_nans])
 
-    def add_plot_data(self, separated_data):
+        for c,t in enumerate(self.temp_sensors_chip2):
+            _no_nans = ~np.isnan(self.sensor_plot_data_chip2[t]) #avoid plotting nans
+            if len(self.sensor_plot_data_chip2[t][_no_nans])>1:
+                #pyqtgraph won't plot 1 data-point and throws an error instead :|
+                self.sensor_plots_chip2[t].clear()
+                self.sensor_plots_chip2[t].setData(self.sensor_plot_data_chip2['ti'][_no_nans], self.sensor_plot_data_chip2[t][_no_nans])
+
+    def add_plot_data_chip1(self, separated_data):
         """ Adds the new data to the array to be plotted. """
 
-        _keep_s = 20 # secs
+        _keep_s = 120 # secs
 
-        self.sensor_plot_data['ti'] = np.array(list(self.sensor_plot_data['ti']) + list(separated_data['ti']))
-        _keep_i = np.nonzero(self.sensor_plot_data['ti']>=(self.sensor_plot_data['ti'][-1]-_keep_s))
-        self.sensor_plot_data['ti'] = self.sensor_plot_data['ti'][_keep_i]
+        self.sensor_plot_data_chip1['ti'] = np.array(list(self.sensor_plot_data_chip1['ti']) + list(separated_data['ti']))
+        _keep_i = np.nonzero(self.sensor_plot_data_chip1['ti']>=(self.sensor_plot_data_chip1['ti'][-1]-_keep_s))
+        self.sensor_plot_data_chip1['ti'] = self.sensor_plot_data_chip1['ti'][_keep_i]
 
         minmax = []
-        for t in self.temp_sensors:
-            self.sensor_plot_data[t] = np.array(list(self.sensor_plot_data[t]) + list(separated_data[t]))[_keep_i]
-            minmax.append([np.min(self.sensor_plot_data[t]), np.max(self.sensor_plot_data[t])])
+        for t in self.temp_sensors_chip1:
+            self.sensor_plot_data_chip1[t] = np.array(list(self.sensor_plot_data_chip1[t]) + list(separated_data[t]))[_keep_i]
+            minmax.append([np.min(self.sensor_plot_data_chip1[t]), np.max(self.sensor_plot_data_chip1[t])])
         minmax = np.array(minmax)
         
         if (not np.all(np.isnan(minmax[:,0]))):
-            self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(minmax[:,0]))
+            self.graphPane_chip1.plotItem.vb.setLimits(yMin=np.nanmin(minmax[:,0]))
         if (not np.all(np.isnan(minmax[:,1]))):
-            self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(minmax[:,1]))
-        self.graphPane.plotItem.vb.setLimits(xMin=self.sensor_plot_data['ti'][0], 
-                                             xMax=self.sensor_plot_data['ti'][-1]+1)#2.5 to make space for legend
+            self.graphPane_chip1.plotItem.vb.setLimits(yMax=np.nanmax(minmax[:,1]))
+        self.graphPane_chip1.plotItem.vb.setLimits(xMin=self.sensor_plot_data_chip1['ti'][0], 
+                                                   xMax=self.sensor_plot_data_chip1['ti'][-1]+1)#2.5 to make space for legend
+        
+    def add_plot_data_chip2(self, separated_data):
+        """ Adds the new data to the array to be plotted. """
+
+        _keep_s = 120 # secs
+
+        self.sensor_plot_data_chip2['ti'] = np.array(list(self.sensor_plot_data_chip2['ti']) + list(separated_data['ti']))
+        _keep_i = np.nonzero(self.sensor_plot_data_chip2['ti']>=(self.sensor_plot_data_chip2['ti'][-1]-_keep_s))
+        self.sensor_plot_data_chip2['ti'] = self.sensor_plot_data_chip2['ti'][_keep_i]
+
+        minmax = []
+        for t in self.temp_sensors_chip2:
+            self.sensor_plot_data_chip2[t] = np.array(list(self.sensor_plot_data_chip2[t]) + list(separated_data[t]))[_keep_i]
+            minmax.append([np.min(self.sensor_plot_data_chip2[t]), np.max(self.sensor_plot_data_chip2[t])])
+        minmax = np.array(minmax)
+        
+        if (not np.all(np.isnan(minmax[:,0]))):
+            self.graphPane_chip2.plotItem.vb.setLimits(yMin=np.nanmin(minmax[:,0]))
+        if (not np.all(np.isnan(minmax[:,1]))):
+            self.graphPane_chip2.plotItem.vb.setLimits(yMax=np.nanmax(minmax[:,1]))
+        self.graphPane_chip2.plotItem.vb.setLimits(xMin=self.sensor_plot_data_chip2['ti'][0], 
+                                                   xMax=self.sensor_plot_data_chip2['ti'][-1]+1)#2.5 to make space for legend
         
 
     def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
@@ -141,9 +195,9 @@ class RTDWindow(DetectorPlotView):
         graph_widget.setLabel('bottom', xlabel, **styles)
         graph_widget.setLabel('left', ylabel, **styles)
 
-    def plot(self, x, y, color, plotname=''):
+    def plot(self, graph_widget, x, y, color, plotname=''):
         pen = pg.mkPen(color=color, width=5)
-        return self.graphPane.plot(x, y, name=plotname, pen=pen)
+        return graph_widget.plot(x, y, name=plotname, pen=pen)
 
     
 
