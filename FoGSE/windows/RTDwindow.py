@@ -46,7 +46,7 @@ class RTDWindow(DetectorPlotView):
         self.graphPane.showGrid(x=True, y=True)
 
         #https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/legenditem.html
-        self.graphPane.addLegend(offset=-0.5, labelTextSize='15pt',labelTextColor='k', **{'background-color':'w'}) 
+        self.graphPane.addLegend(offset=-0.5, labelTextSize='10pt',labelTextColor='k', verSpacing=-2, **{'background-color':'w'}) 
 
         # should match the data, big problems if not
         self.temp_sensors = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8', 'ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
@@ -99,7 +99,7 @@ class RTDWindow(DetectorPlotView):
     def add_plot_data(self, separated_data):
         """ Adds the new data to the array to be plotted. """
 
-        _keep_s = 20 # secs
+        _keep_s = 120 # secs
 
         self.sensor_plot_data['ti'] = np.array(list(self.sensor_plot_data['ti']) + list(separated_data['ti']))
         _keep_i = np.nonzero(self.sensor_plot_data['ti']>=(self.sensor_plot_data['ti'][-1]-_keep_s))

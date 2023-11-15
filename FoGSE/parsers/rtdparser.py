@@ -174,9 +174,12 @@ def temp_frame_parser(frame):
     temp_info, temp_error_info = [np.nan]*18, [np.nan]*18
     for t in range(len(_sensors_sep)):
         _err, _msrmt = temp_sensor_parser(_sensors_sep[t])
-        if (_err==b'01') or (_err=='01'):
+        if ((_err==b'01') or (_err=='01')) and s_no == 9:
             # if error is '01' then good data 
-            temp_info[s_no+t] = (get_temp(_msrmt))
+            # temp_info[s_no+t] = (get_temp(_msrmt))
+            temperature = (get_temp(_msrmt))
+            temperature_gt10 = temperature if temperature>10 else np.nan
+            temp_info[s_no+t] = temperature_gt10
         else:
             # else just record the sensors raw byte string
             temp_error_info[s_no+t] = f"{_sensors_sep[t]:8}"
@@ -221,12 +224,14 @@ def get_temp(measurment_bytes):
     # first byte is whether value is -ve or +ve
     _sign_byte = int(measurment_bytes[:2],16)
     # define the mapping (-ve for 1 and +ve for 0)
-    _sign = 1 if _sign_byte==0 else -1
+    _sign = -1 if _sign_byte>=128 else 1
+
+    _a = hex(_sign_byte-128) if _sign_byte>=128 else hex(_sign_byte)
 
     # return the temperature in Celsius:
     #   convert measurement to base 10 then first 10 bits represent the right 
     #   of the decimal place so times by 2**-10 (think scientific notation).
-    return _sign*int(measurment_bytes[2:],16)*2**-10
+    return _sign*int(_a+measurment_bytes[2:],16)*2**-10
     
 
 if __name__=="__main__":
