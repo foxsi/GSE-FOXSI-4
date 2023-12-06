@@ -36,16 +36,20 @@ if __name__=="__main__":
             print(f"{d} not in list. Dets are {det_list}")
             continue
 
+        # ensure we get a pure path+file, no Windows nonesense
+        drive, path_and_file = os.path.splitdrive(f) 
+        path, file = os.path.split(path_and_file)
+
         if d=="cdte_ped":
-            window = CdTeWindow(reader=CdTeReader(f), plotting_product="spectrogram")
+            window = CdTeWindow(reader=CdTeReader(f), plotting_product="spectrogram", name=file)
         elif d=="cdte_im":
-            window = CdTeWindow(reader=CdTeReader(f), plotting_product="image")
+            window = CdTeWindow(reader=CdTeReader(f), plotting_product="image", name=file)
         elif d=="cmos_pc":
-            window = CMOSWindow(reader=CMOSReader(f), plotting_product="image")
+            window = CMOSWindow(reader=CMOSReader(f), plotting_product="image", name=file)
         elif d=="cmos_ql":
-            window = QLCMOSWindow(reader=QLCMOSReader(f), plotting_product="image")
+            window = QLCMOSWindow(reader=QLCMOSReader(f), plotting_product="image", name=file)
         elif d=="rtd":
-            window = RTDWindow(reader=RTDReader(f))
+            window = RTDWindow(reader=RTDReader(f), name=file)
 
         windows.append(window)
 
