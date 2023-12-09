@@ -1,14 +1,13 @@
-import sys, typing, logging, math, json
+import sys, typing, logging, math
 import numpy as np
 from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog, QSlider
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
 
 from FoGSE import communication as comm
-from FoGSE import configuration as config
 import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -48,16 +47,14 @@ class GlobalCommandPanel(QWidget):
     :type fmtrif: communication.FormatterUDPInterface
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
 
         self.name = name
         self.label = "Global command uplink"
 
         # build and validate list of allowable uplink commands
-        # self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
-        # self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/all_systems.json", "foxsi4-commands/commands.json")
-        self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/systems.json")
+        self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
 
         # open UDP socket to remote
         # self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
@@ -83,10 +80,10 @@ class GlobalCommandPanel(QWidget):
 
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
-            self.system_combo_box.addItem(sys.name.lower())
+            self.system_combo_box.addItem(sys.name)
 
-        # for cmd in self.cmddeck[].commands:
-        #     self.command_combo_box.addItem(cmd.name)
+        for cmd in self.cmddeck.commands:
+            self.command_combo_box.addItem(cmd.name)
 
         # populate layout:
         self.grid_layout.addWidget(
@@ -173,10 +170,10 @@ class GlobalCommandPanel(QWidget):
     def commandComboBoxClicked(self, events):
         self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        cmd = self.cmddeck.get_command_by_system_by_name(self.system_combo_box.currentText(), self.command_combo_box.currentText())
+        cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
 
-        # add cmd bitstring to working command
-        self._working_command.append(cmd.hex)
+        # add cmd bytestring to working command
+        self._working_command.append(cmd.bytestring)
 
         if cmd.arg_len > 0:
             self.command_args_text.setEnabled(True)
@@ -196,12 +193,12 @@ class GlobalCommandPanel(QWidget):
 
         print("\tvalidating command...")
         # todo: validate
+        print("\tsending command (placeholder)...")
         if len(self._working_command) == 3:
             self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
         elif len(self._working_command) == 2:
             self.fmtrif.send(self._working_command[0], self._working_command[1])
         else:
-            print(self._working_command)
             raise Exception("wrong length working command")
 
         print("\tlogging command (placeholder)...")
@@ -218,7 +215,7 @@ class DetectorTableView(QWidget):
     `DetectorTableView` is a PLACEHOLDER view for a strip/pixel data table. Will be used to view and edit strip/pixel data.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -234,7 +231,7 @@ class DetectorTableView(QWidget):
 
 class DetectorParametersView(QWidget):
     # PLACEHOLDER
-    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -250,7 +247,7 @@ class DetectorParametersView(QWidget):
 
 class DetectorCommandView(QWidget):
     # PLACEHOLDER
-    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -265,7 +262,7 @@ class DetectorCommandView(QWidget):
 
 
 class DetectorPlotView(QWidget):
-    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
         """
         Initialize a DetectorPlotView (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
@@ -314,7 +311,7 @@ class DetectorPlotView(QWidget):
         self.currentLabel = QLabel("Current (mA):", self)
 
         self.groupBox = QGroupBox(self.name)
-        self.groupBox.setStyleSheet("QGroupBox {border-width: 2px; border-style: outset; border-radius: 10px; border-color: black;}")
+        self.groupBox.setStyleSheet("QGroupBox {border-width: 1px; border-style: outset; border-radius: 10px; border-color: black;}")
         self.globalLayout = QHBoxLayout()
 
         # organize layout
@@ -383,8 +380,7 @@ class DetectorPlotView(QWidget):
         self.layoutCenter.addWidget(self.graphPane)
         self.layoutCenter.addSpacing(self.spacing)
 
-        # self.graphPane.setMinimumSize(QtCore.QSize(150,100))
-        self.graphPane.setMinimumSize(QtCore.QSize(550,500))
+        self.graphPane.setMinimumSize(QtCore.QSize(150,100))
         self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
@@ -547,8 +543,8 @@ class DetectorPlotView1D(DetectorPlotView):
     """
     Detector plot class specifically for 1D data products (e.g., time profiles and spectra).
     """
-    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
-        DetectorPlotView.__init__(self, parent, name, configuration=kwargs["configuration"])
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPlotView.__init__(self, parent, name)
 
         # initial time profile data
         self.x, self.y = [], []
@@ -831,8 +827,8 @@ class DetectorPlotView2D(DetectorPlotView):
     [3] https://doc.qt.io/qtforpython/PySide6/QtGui/QImage.html
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
-        DetectorPlotView.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["formatter_if"])
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPlotView.__init__(self, parent, name)
 
         # set height and width of image in pixels
         self.deth, self.detw = 100, 100
@@ -977,8 +973,8 @@ class DetectorPlotViewIM(DetectorPlotView2D):
     Detector panel class specifically for images.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
-        DetectorPlotView2D.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["configuration"])
+    def __init__(self, parent=None, name="PLACEHOLDER"):
+        DetectorPlotView2D.__init__(self, parent, name)
 
         # set title and labels
         self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -1159,7 +1155,7 @@ class DetectorContainer(QWidget):
     """
     def __init__(
         self, parent=None, 
-        name="PLACEHOLDER", label="Placeholder", configuration=None, formatter_if=None,
+        name="PLACEHOLDER", label="Placeholder", formatter_if=None,
         plot_view=None, table_view=None, parameters_view=None, command_view=None
     ):
         QWidget.__init__(self, parent)
@@ -1291,11 +1287,7 @@ class DetectorPopout(QWidget):
         # allow the window to close
         event.accept()
 
-import FoGSE.windows.CdTewindow as wcdte
-from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-import os
-FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-_datafile = FILE_DIR+"/data/test_berk_20230728_det05_00007_001"
+
 
 class DetectorArrayDisplay(QWidget):
     """
@@ -1341,7 +1333,7 @@ class DetectorArrayDisplay(QWidget):
             DetectorPlotViewIM(self, name=detectorNames[0]),
             DetectorPlotViewTP(self, name=detectorNames[1]),
             DetectorPlotViewSP(self, name=detectorNames[2]),
-            wcdte.CdTeWindow(reader=CdTeFileReader(_datafile),name=detectorNames[3]),
+            DetectorPlotView(self, name=detectorNames[3]),
             DetectorPlotView(self, name=detectorNames[4]),
             DetectorPlotView(self, name=detectorNames[5]),
             DetectorPlotView(self, name=detectorNames[6]),
@@ -1465,7 +1457,7 @@ class DetectorGridDisplay(QWidget):
     A gridded tiling of DetectorPlotViews, maybe more legible that `DetectorArrayDisplay`.
     """
 
-    def __init__(self, parent=None, configuration=None, formatter_if=None):
+    def __init__(self, parent=None, formatter_if=None):
         QWidget.__init__(self, parent)
 
         # self.H = 800
@@ -1478,15 +1470,13 @@ class DetectorGridDisplay(QWidget):
 
         self.setGeometry(10,10,self.W,self.H)
 
-        self.settings_panel = config.SettingsPanel(self, name="Settings", settings_file="./config/settings.json", system_configuration=configuration)
-
         # explicitly populate all default DetectorPlotView types. NOTE: these are different than in DetectorArrayDisplay.
         self.detector_panels = [
             DetectorPlotViewIM(self, name=detector_names[0]),
             DetectorPlotViewTP(self, name=detector_names[1]),
             DetectorPlotViewSP(self, name=detector_names[2]),
-            wcdte.CdTeWindow(reader=CdTeFileReader(_datafile),name=detector_names[3]),
-            wcdte.CdTeWindow(reader=CdTeFileReader(_datafile),plotting_product="spectrogram",name=detector_names[4]),
+            DetectorPlotViewIM(self, name=detector_names[3]),
+            DetectorPlotViewIM(self, name=detector_names[4]),
             DetectorPlotViewTP(self, name=detector_names[5]),
             DetectorPlotViewSP(self, name=detector_names[6]),
         ]
@@ -1495,10 +1485,11 @@ class DetectorGridDisplay(QWidget):
         self.detector_panels[1].data_file = DATA_FILE
         self.detector_panels[2].data_file = DATA_FILE
 
-        self.detector_panels[3].set_fade_out(5)
-        self.detector_panels[3].set_image_colour("red")
-        # self.detector_panels[4].update_image_dimensions(height=10, width=50)
-        # self.detector_panels[4].image_colour = "red"
+        self.detector_panels[3].data_file = DATA_FILE
+        self.detector_panels[3].fade_out, self.detector_panels[3].image_colour = 5, "green"
+        self.detector_panels[4].data_file = DATA_FILE
+        self.detector_panels[4].update_image_dimensions(height=10, width=50)
+        self.detector_panels[4].image_colour = "red"
         self.detector_panels[5].data_file = DATA_FILE
         self.detector_panels[5].average_every = 100
         self.detector_panels[6].data_file = DATA_FILE
@@ -1507,7 +1498,7 @@ class DetectorGridDisplay(QWidget):
         self.detector_containers = []
         for panel in self.detector_panels:
             self.detector_containers.append(DetectorContainer(
-                self, name=panel.name, label=panel.label, configuration=configuration, formatter_if=formatter_if, 
+                self, name=panel.name, label=panel.label, formatter_if=formatter_if, 
                 plot_view=panel, 
                 table_view=DetectorTableView(self, "table"), 
                 parameters_view=DetectorParametersView(self, "parameters"), 
@@ -1515,7 +1506,7 @@ class DetectorGridDisplay(QWidget):
             ))
 
         # add commanding panel
-        self.command_panel = GlobalCommandPanel(self, name="Command", configuration=configuration, formatter_if=formatter_if)
+        self.command_panel = GlobalCommandPanel(self, name="Command", formatter_if=formatter_if)
 
         self.grid_layout = QGridLayout()
 
@@ -1524,7 +1515,6 @@ class DetectorGridDisplay(QWidget):
             self._add_to_layout(container)
         
         self._add_to_layout(self.command_panel)
-        self._add_to_layout(self.settings_panel)
 
         for container in self.detector_containers:
             container.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -1537,39 +1527,35 @@ class DetectorGridDisplay(QWidget):
     def _add_to_layout(self, widget):
         if widget.name == "Timepix":
             self.grid_layout.addWidget(
-                widget, 3,3,1,1
+                widget, 1,1,1,2
             )
         elif widget.name == "CMOS1":
             self.grid_layout.addWidget(
-                widget, 3,1,1,1
+                widget, 2,1,1,2
             )
         elif widget.name == "CMOS2":
             self.grid_layout.addWidget(
-                widget, 3,2,1,1
+                widget, 2,3,1,2
             )
         elif widget.name == "CdTe1":
             self.grid_layout.addWidget(
-                widget, 1,1,1,1
+                widget, 3,1,1,1
             )
         elif widget.name == "CdTe2":
             self.grid_layout.addWidget(
-                widget, 1,2,1,1
+                widget, 3,2,1,1
             )
         elif widget.name == "CdTe3":
             self.grid_layout.addWidget(
-                widget, 2,1,1,1
+                widget, 3,3,1,1
             )
         elif widget.name == "CdTe4":
             self.grid_layout.addWidget(
-                widget, 2,2,1,1
+                widget, 3,4,1,1
             )
         elif widget.name == "Command":
             self.grid_layout.addWidget(
-                widget, 1,3,1,1
-            )
-        elif widget.name == "Settings":
-            self.grid_layout.addWidget(
-                widget, 2,3,1,1
+                widget, 1,4,1,1
             )
         else:
             raise Warning("widget name not found!")

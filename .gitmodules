@@ -1,3 +1,7 @@
 [submodule "foxsi4-commands"]
 	path = foxsi4-commands
 	url = https://github.com/foxsi/foxsi4-commands.git
+	branch = sub
+[submodule "foxsi4-commands"]
+	path = foxsi4-commands
+	url = https://github.com/foxsi/foxsi4-commands.git
