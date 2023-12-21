@@ -381,7 +381,7 @@ class DetectorPlotView(QWidget):
         self.layoutCenter.addSpacing(self.spacing)
 
         # self.graphPane.setMinimumSize(QtCore.QSize(150,100))
-        self.graphPane.setMinimumSize(QtCore.QSize(550,500))
+        self.graphPane.setMinimumSize(QtCore.QSize(300,200))
         self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
