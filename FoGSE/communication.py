@@ -347,6 +347,7 @@ class FormatterUDPInterface:
         # address (IP and port) of remote server
         self.remote_addr = (self.formatter_ip, self.formatter_port)
         params.DEBUG_PRINT("remote address: " + self.formatter_ip + ":" + str(self.formatter_port))
+        self.local_socket.bind(self.remote_addr)
 
         # expected reply length
         self.recv_len = 0
@@ -359,11 +360,17 @@ class FormatterUDPInterface:
         # if self.do_logging:
         #     self.logfile.close()
 
+    def restart(self):
+        self.local_socket.close()
+        self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.local_socket.bind(self.remote_addr)
+
     def change_endpoint(self, addr, port):
         params.DEBUG_PRINT("modifying UDP endpoint")
         self.formatter_ip = addr
         self.formatter_port = port
         self.remote_addr = (self.formatter_ip, self.formatter_port)
+        self.restart()
 
     # send message to Formatter.
     def send(self, message):

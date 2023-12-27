@@ -45,9 +45,11 @@ class SystemConfiguration():
 
     def set_downlink_addr(self, addr: str):
         self.downlink_addr = addr
+        self._formatter_if.restart()
 
     def set_downlink_port(self, port: int):
         self.downlink_port = port
+        self._formatter_if.restart()
 
     def set_logger_addr(self, addr: str):
         self.logger_addr = addr

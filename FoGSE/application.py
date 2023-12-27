@@ -5,7 +5,7 @@ from PyQt6.QtGui import QIcon
 
 from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPlotView, GlobalCommandPanel
 from FoGSE.communication import FormatterUDPInterface
-from FoGSE.configuration import SystemConfiguration
+from FoGSE.configuration import SystemConfiguration, SettingsPanel
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -32,6 +32,7 @@ class GSEMain(QMainWindow):
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
         self.setCentralWidget(DetectorGridDisplay(self, configuration=self.config, formatter_if=self.fmtrif))
+        # self.setCentralWidget(SettingsPanel(self))
         # self.setCentralWidget(DetectorPlotView(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
