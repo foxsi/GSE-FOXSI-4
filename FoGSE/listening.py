@@ -1,0 +1,497 @@
+import socket
+import os
+import sys
+import json
+import queue
+import math
+import time
+from datetime import datetime
+
+# todo: migrate this inside systems.json
+
+DOWNLINK_TYPE_ENUM = {
+    "pc":   0x00,
+    "ql":   0x01,
+    "hk":   0x10,
+    "pow":  0x11,
+    "temp": 0x12,
+    "stat": 0x13,
+    "err":  0x14,
+    "none": 0xff
+}
+
+
+class LogFileManager:
+    """
+    `LogFileManager` is an interface between a raw data stream and its log 
+    file. 
+
+    This object assumes an 8-byte header on all data in this format: 
+        <sending system>
+        <number of expected packets MSB>
+        <number of expected packets LSB>
+        <this packet's index MSB>
+        <this packet's index LSB>
+        <data type in this frame> (see `DOWNLINK_TYPE_ENUM` for options)
+        <reserved>
+        <reserved>
+
+    Packets have their headers removed and are buffered into a full frame 
+    before frames are written to disk.
+
+    Because this is a raw binary file, each data frame is assumed to be fixed 
+    width. 
+    """
+
+    def __init__(self, filepath: str, system: int, data: int, queue_len: int,
+                 payload_len: int):
+        """
+        Construct a new instance of `LogFileManager`.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to the log file to be used for storage. Provided file WILL BE 
+            OVERWRITTEN.
+
+        system : int
+            The system ID code (one byte) this `LogFileManager` will expect in 
+            the raw packet header.
+
+        data : int
+            The data ID code (one byte) this `LogFileManager` will expect in 
+            the raw packet header. See `DOWNLINK_TYPE_ENUM` for a list of 
+            detected raw data types.
+
+        queue_len : int
+            The number off received packets per complete frame. Should be 
+            `math.ceil(frame_size/packet_size). Cannot be more than 65535 (in 
+            raw packet, stored as a 2-byte value.
+
+        payload_len : int
+            The length of the payload portion of the packet, i.e. the total 
+            packet length minus header length (8 bytes).
+
+        Raises
+        ------
+        RuntimeError : if arguments are out-of-bounds, or if provided path to 
+            log file cannot be opened.
+        """
+        self.filepath = filepath
+        try:
+            self.file = open(filepath, "wb")
+        except:
+            print("can't open log file at ", self.filepath)
+            raise RuntimeError
+
+        if system > 255:
+            print("system ID must be 1 byte wide")
+            raise RuntimeError
+        if data > 255:
+            print("data ID must be 1 byte wide")
+            raise RuntimeError
+        if queue_len > 65535:
+            print("queue length must be 2 bytes wide")
+            raise RuntimeError
+
+        self.system = system
+        self.data = data
+        self.queue_len = queue_len
+        self.payload_len = payload_len
+        self.queue = bytearray(self.queue_len)
+        self.queued = [0]*math.ceil(self.queue_len/self.payload_len)
+
+    def enqueue(self, raw_data: bytearray):
+        """
+        Adds raw data to queue for file write.
+
+        Removes headers and queues raw data from packets until a whole 
+        frame has been completed. Once a frame is completed it is written 
+        to the disk.
+
+        Parameters
+        ----------
+        raw_data : bytearray
+            Raw packet (e.g. received on socket) to add to queue. Should 
+            include valid 8-byte header.
+
+        Raises
+        ------
+        KeyError : if header cannot be parsed.
+        """
+        if raw_data[0] != self.system:
+            print("Log queue got bad system code!")
+            raise KeyError
+        if raw_data[5] != self.data:
+            print("Log queue got bad data code!")
+            raise KeyError
+
+        npackets = int.from_bytes(raw_data[1:3], byteorder='big')
+        ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
+        if ipacket <= npackets:
+            # add this packet to the queue, mark it as queued
+            this_index = (ipacket - 1)*self.payload_len
+            distance = len(raw_data[8:])
+            self.queue[this_index:(this_index + distance)] = raw_data[8:]
+            self.queued[ipacket - 1] = 1
+            if all(entry == 1 for entry in self.queued):
+                self.write()
+                return True
+            else:
+                return False
+        else:
+            print("Logging got bad packet number!")
+            raise KeyError
+
+    def write(self):
+        """
+        Writes data in `self.queue` to `self.file`, then refreshes queue.
+        """
+        self.file.write(self.queue)
+        print("wrote " + str(len(self.queue)) + " bytes to " + self.filepath)
+        self.queue = bytearray(self.queue_len)
+        self.queued = [0]*len(self.queued)
+
+
+
+class Listener():
+    """
+    `Listener` provides an interface between the local machine and a 
+    remote (e.g. Formatter) computer.
+     
+    This object supports local logging of received raw data to file, 
+    and can forward commands to the remote computer.
+
+    .. mermaid::
+        flowchart LR
+            formatter["Formatter"]
+            listener["Listener"]
+            logs["Log files"]
+            gse["GSE"]
+            formatter--raw data-->listener
+            listener--raw frames-->logs
+            listener--commands-->formatter
+            gse--commands-->listener
+            logs--raw frames-->gse
+            
+    """
+    def __init__(self, json_config_file="foxsi4-commands/systems.json",
+                 local_system="gse", remote_system="formatter"):
+        """
+        Creates a `Listener` instance.
+
+        Parameters
+        ----------
+        
+         json_config_file : str
+            Path to valid configuration JSON file. See 
+            `foxsi4-commands/systems.json` for reference. Local socket,
+            file naming, and log file indexing information will be 
+            derived from this file. JSON content should be an array of
+            fields, each field containing at least a `name` and `hex`
+            attribute.
+        
+        local_system : str
+            The `name` key to search for in `json_config_file` to define
+            and set up sockets and path names in the local system.
+        
+        remote_system : str
+            The `name` key to search for in `json_config_file` to define
+            and set up the remote system.
+
+        Raises
+        ------
+        RuntimeError : if required JSON fields cannot be found, or log files
+        or folders cannot be created.
+        """
+
+        with open(json_config_file, "r") as json_config:
+            json_dict = json.load(json_config)
+            self.local_system_config = self.get_system_dict(local_system,
+                                                            json_dict)
+            self.remote_system_config = self.get_system_dict(remote_system,
+                                                             json_dict)
+
+            if self.local_system_config is None or \
+                    self.remote_system_config is None:
+                print("can't access system in provided JSON!")
+                raise RuntimeError
+
+            if self.local_system_config["ethernet_interface"]["protocol"] != "udp":
+                print("can't handle non-UDP remote interface!")
+                raise RuntimeError
+
+            # constant header size for packets.
+            self.header_size = 8
+            self.max_receive_size = (self.local_system_config
+                                     ["ethernet_interface"]
+                                     ["max_payload_bytes"] - self.header_size)
+            try:
+                now = datetime.now()
+                now_str = str(now.day) + "-" + str(now.month) + "-" + str(now.year) + \
+                    "_" + str(now.hour) + ":" + str(now.minute) + \
+                    ":" + str(now.second)
+                self.start = now
+                self.log_in_folder = os.path.join(
+                    self.local_system_config["logger_interface"]["log_received_folder"], now_str)
+                self.log_out_folder = os.path.join(
+                    self.local_system_config["logger_interface"]["log_sent_folder"], now_str)
+                if not os.path.exists(self.log_in_folder):
+                    os.makedirs(self.log_in_folder)
+                    print("created downlink log folder:\t", self.log_in_folder)
+                if not os.path.exists(self.log_out_folder):
+                    os.makedirs(self.log_out_folder)
+                    print("created uplink log folder:\t", self.log_out_folder)
+
+                self.log_out_file = os.path.join(
+                    self.log_out_folder, "uplink.log")
+                self.log_out = open(self.log_out_file, "wb")
+                self.downlink_catch_file = os.path.join(
+                    self.log_in_folder, "catch.log")
+                self.downlink_catch = open(self.downlink_catch_file, "w")
+                self.downlink_lookup = self.make_log_dict(json_dict)
+
+            except KeyError:
+                print("can't create log files!")
+                raise RuntimeError
+
+            self.unix_socket_path = self.local_system_config["logger_interface"]["unix_listen_socket"]
+            try:
+                os.unlink(self.unix_socket_path)
+            except OSError:
+                if os.path.exists(self.unix_socket_path):
+                    raise RuntimeError
+
+            self.local_address = self.local_system_config["ethernet_interface"]["address"]
+            self.local_port = self.local_system_config["ethernet_interface"]["port"]
+            self.local_endpoint = (self.local_address, self.local_port)
+
+            self.remote_address = self.remote_system_config["ethernet_interface"]["address"]
+            self.remote_port = self.local_port
+            self.remote_endpoint = (self.remote_address, self.remote_port)
+
+            self.unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+            self.unix_socket.bind(self.unix_socket_path)
+            self.unix_socket.settimeout(0.01)
+            print("listening for command (to forward) on Unix datagram socket at:\t",
+                  self.unix_socket_path)
+
+            self.local_socket = socket.socket(
+                socket.AF_INET, socket.SOCK_DGRAM)
+            self.local_socket.bind(self.local_endpoint)
+            self.local_socket.connect(self.remote_endpoint)
+            self.local_socket.settimeout(0.01)
+            print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                  self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
+
+            self._uplink_message_queue = queue.Queue()
+
+            try:
+                self._run_log()
+            except KeyboardInterrupt:
+                self.__del__()
+
+    def __del__(self):
+        # close sockets
+        self.unix_socket.close()
+        self.local_socket.close()
+        # remove the unix socket file
+        # os.remove(self.unix_socket_path)
+
+        # close all log files
+        self.log_out.close()
+        self.downlink_catch.close()
+        for system in self.downlink_lookup.keys():
+            for data in self.downlink_lookup[system].keys():
+                self.downlink_lookup[system][data].file.close()
+
+    def read_unix_socket_to_queue(self):
+        """
+        Checks for available commands in local Unix socket.
+
+        If data (of length 2) is available, it is added to the
+        uplink queue for later transmission.
+        """
+        # do not validate, just check length
+        try:
+            data, sender = self.unix_socket.recvfrom(4096)
+            print("queueing", len(data), "bytes")
+            if len(data) == 2:
+                self._uplink_message_queue.put([data[0], data[1]])
+            else:
+                print("ignored bad-length uplink command: ", data)
+        except socket.timeout:
+            return
+
+    def read_local_socket_to_log(self):
+        """
+        Checks for data present in the local Ethernet socket.
+
+        If data is available, try to log it by looking up a `LogFileManager`
+        to use. If no appropriate log file can be found, it is time-tagged
+        and added (fully in raw form, including header) to a catch-all log
+        file.
+        """
+        try:
+            data, sender = self.local_socket.recvfrom(4096)
+            # print("logging", len(data), "bytes")
+            if len(data) < 8:
+                return
+            try:
+                self.downlink_lookup[data[0x00]][data[0x05]].enqueue(data)
+            except KeyError:
+                print("got unloggable packet with header: ", data[:8].hex())
+                self.write_to_catch(data)
+                return
+                # todo: dump this in a aggregate log
+        except socket.timeout:
+            return
+
+    def _run_log(self):
+        """
+        Main loop that checks for data from both Unix and Ethernet sockets.
+
+        Delegates logging of Ethernet raw data to `self.read_local_socket_to_log()`
+        and queueing of Unix socket commands to `self.read_unix_socket_to_queue()`.
+        """
+        with self.local_socket:
+            while True:
+                self.read_unix_socket_to_queue()
+                # handle any queued requests to uplink commands:
+                while self._uplink_message_queue.qsize() > 0:
+                    # apparently queues are thread safe.
+
+                    # pop command from the front of the list (FIFO):
+                    message = []
+                    try:
+                        message = self._uplink_message_queue.get(block=False)
+                    except queue.Empty:
+                        print("uplink queue already empty!")
+
+                    # expect all `command` to be <system> <command> `int` pairs
+                    try:
+                        if len(message) == 2:
+                            print(message)
+                            self.local_socket.sendall(bytes(message))
+                            print("transmitted " +
+                                  str(message) + " to Formatter.")
+                        else:
+                            print("found bad uplink command in queue! discarding.")
+                    except:
+                        print("couldn't send uplink command! ignoring.")
+                        continue
+
+                self.read_local_socket_to_log()
+                time.sleep(0.01)
+
+    def get_system_dict(self, name: str, json_dict: dict):
+        """
+        Looks up the JSON `dict` in provided `json_dict`.
+
+        Parameters
+        ----------
+        json_dict : dict
+            A JSON dictionary (hopefully) containing fields with attribute `name`.
+
+        Returns
+        -------
+        None or dict : The JSON field containing the `name` key, if one exists.
+        """
+        for element in json_dict:
+            try:
+                if element["name"] == name:
+                    return element
+            except:
+                continue
+        return None
+
+    def make_log_dict(self, json_dict):
+        """
+        Creates `dict` of `dict` mapping `int`s to `LogFileManager`.
+
+        First key is the unique hex code for a system; second key is
+        the unique hex code for a raw data type generated by that system
+        (see `DOWNLINK_TYPE_ENUM`).
+
+        Parameters
+        ----------
+        json_dict : dict
+            JSON à la foxsi4-commands/systems.json, containing fields
+            which contain attributes `name` and `hex`.  
+        """
+        lookup = {}
+        for element in json_dict:
+            name = element["name"]
+            addr = int(element["hex"], 16)
+            rbif = self.get_ring_buffer_interface(element)
+            if type(rbif) is dict:
+                lookup[addr] = {}
+                for key in rbif.keys():
+                    try:
+                        filename = name + "_" + key + ".log"
+                        pathname = os.path.join(self.log_in_folder, filename)
+
+                        log_info = LogFileManager(
+                            pathname,
+                            addr,
+                            DOWNLINK_TYPE_ENUM[key],
+                            int(rbif[key]["ring_frame_size_bytes"], 16),
+                            self.max_receive_size
+                        )
+                        lookup[addr][DOWNLINK_TYPE_ENUM[key]] = log_info
+                        print("opened downlink log: ", log_info.filepath)
+                    except Exception as e:
+                        print(e)
+                        print("\tcouldn't create log dictionary for ", name, key)
+        return lookup
+
+    def get_ring_buffer_interface(self, json_dict):
+        try:
+            return json_dict["ring_buffer_interface"]
+        except KeyError:
+            for key in json_dict.keys():
+                try:
+                    if type(json_dict[key]) is dict:
+                        return json_dict[key]["ring_buffer_interface"]
+                except KeyError:
+                    continue
+            return None
+
+    def write_to_catch(self, data: bytes):
+        """
+        Writes raw data to catch-all log file.
+
+        To be used if a dedicated log file cannot be found.
+        Raw data bytes will be time-tagged at the start of the line and encoded
+        as UTF-8 for storage. Packets are newline-delimited.
+
+        Parameters
+        ----------
+        data : bytes
+            The raw data stream to write to the file.
+
+        """
+        delta = datetime.now() - self.start
+        header = "[" + str(delta) + "]" + " "
+        content = str(data.hex()) + "\n"
+        self.downlink_catch.write(header + content)
+        self.downlink_catch.flush()
+        print("wrote " + str(len(data)) +
+              " bytes to " + self.downlink_catch_file)
+
+    def print(self):
+        for system in self.downlink_lookup.keys():
+            for data in self.downlink_lookup[system].keys():
+                print(self.downlink_lookup[system][data].system,
+                      self.downlink_lookup[system][data].data)
+
+
+if __name__ == "__main__":
+    print("starting listener...")
+    pass_arg = ""
+    if len(sys.argv) == 2:
+        print(sys.argv[1])
+        pass_arg = sys.argv[1]
+        log = Listener(pass_arg)
+    else:
+        Listener()
