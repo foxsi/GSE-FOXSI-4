@@ -1,16 +1,17 @@
 import logging, json, sys
 import FoGSE.parameters as params
 import FoGSE.communication as comm
+import FoGSE.singleton as singleton
 
 from PyQt6 import QtWidgets, QtGui, QtCore
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
-class SystemConfiguration():
+class SystemConfiguration(metaclass=singleton.Singleton):
     """
     SystemConfiguration is a container for storing and safely modifying software-wide properties, like log file paths, Formatter address, and flight mode.
     """
-    def __init__(self, settings_file: str="./config/settings.json", formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, settings_file: str="./config/foxsimile_settings.json", formatter_if=comm.FormatterUDPInterface()):
         settings_dict = {}
         self._formatter_if = formatter_if
 
@@ -37,19 +38,23 @@ class SystemConfiguration():
     
     def set_uplink_addr(self, addr: str):
         self.uplink_addr = addr
-        self._formatter_if.change_endpoint(addr, self._formatter_if.formatter_port)
+        # self._formatter_if.change_local_socket(addr, self._formatter_if.local_port)
+        print("doesn't do anything!")
 
     def set_uplink_port(self, port: int):
         self.uplink_port = port
-        self._formatter_if.change_endpoint(self._formatter_if.formatter_ip, port)
+        # self._formatter_if.change_local_socket(self._formatter_if.local_ip, port)
+        print("doesn't do anything!")
 
     def set_downlink_addr(self, addr: str):
         self.downlink_addr = addr
-        self._formatter_if.restart()
+        # self._formatter_if.change_remote_endpoint(addr, self._formatter_if.remote_port)
+        print("doesn't do anything!")
 
     def set_downlink_port(self, port: int):
         self.downlink_port = port
-        self._formatter_if.restart()
+        # self._formatter_if.change_remote_endpoint(self._formatter_if.remote_ip, port)
+        print("doesn't do anything!")
 
     def set_logger_addr(self, addr: str):
         self.logger_addr = addr
@@ -94,7 +99,7 @@ class SystemConfiguration():
 
 
 class SettingsPanel(QtWidgets.QWidget):
-    def __init__(self, parent, name="PLACEHOLDER", settings_file="./config/settings.json", system_configuration=SystemConfiguration()):
+    def __init__(self, parent, name="PLACEHOLDER", settings_file="./config/foxsimile_settings.json", system_configuration=SystemConfiguration()):
         QtWidgets.QWidget.__init__(self, parent)
         self.name = name
         self.label = "Settings"
@@ -205,6 +210,8 @@ class FilePathLoad(QtWidgets.QWidget):
             # there ought to be some way to construct a QtCore.QDir.Filter from a str, so then could use .setFilter for both cases (when 
             # QFileDialog is constructed below in handleBrowsePush)
             # self._accept_types = QtCore.QDir.Filter.Executable | QtCore.QDir.Filter.Files
+        elif accept_types == "folder":
+            self._validator.setRegularExpression(QtCore.QRegularExpression("^[^\/].*$"))
         else:
             self._validator.setRegularExpression(QtCore.QRegularExpression("^(\/|\~\/|[A-Za-z])*([A-Za-z0-9-_]+\/)*([A-Za-z0-9-_]+\.(" + accept_types + "))$"))
             self._accept_types = "files (" + " ".join(["*." + substr for substr in accept_types.split("|")]) + ")"
@@ -270,11 +277,11 @@ class SettingsDialog(QtWidgets.QDialog):
         self.socket_file_field.text_field.setText(self.system_configuration.logger_addr)
         self.systems_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select systems list file", accept_types="json")
         self.systems_path_field.text_field.setText(self.system_configuration.systems_path)
-        self.commands_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select commands list file", accept_types="json")
+        self.commands_path_field = FilePathLoad(self, width=basewidth, dialog_name="Select commands folder", accept_types="folder")
         self.commands_path_field.text_field.setText(self.system_configuration.command_path)
         self.logger_executable_path_field = FilePathLoad(self, width=basewidth, dialog_name="Logger executable file", accept_types="none")
         self.logger_executable_path_field.text_field.setText(self.system_configuration.logger_executable_path)
-        self.logger_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Downlink log file path", accept_types="any")
+        self.logger_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Downlink log folder", accept_types="folder")
         self.logger_log_path_field.text_field.setText(self.system_configuration.logger_log_path)
         self.uplink_log_path_field = FilePathLoad(self, width=basewidth, dialog_name="Uplink log file path", accept_types="any")
         self.uplink_log_path_field.text_field.setText(self.system_configuration.uplink_log_path)
@@ -297,11 +304,11 @@ class SettingsDialog(QtWidgets.QDialog):
 
         self.software_configuration_layout.addWidget(QtWidgets.QLabel("Systems list file path"),    0,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
         self.software_configuration_layout.addWidget(self.systems_path_field,             0,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QtWidgets.QLabel("Commands list file path"),   1,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(QtWidgets.QLabel("Commands folder"),           1,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
         self.software_configuration_layout.addWidget(self.commands_path_field,            1,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
         self.software_configuration_layout.addWidget(QtWidgets.QLabel("Logger executable path"),    2,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
         self.software_configuration_layout.addWidget(self.logger_executable_path_field,   2,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.software_configuration_layout.addWidget(QtWidgets.QLabel("Downlink log file path"),    3,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.software_configuration_layout.addWidget(QtWidgets.QLabel("Downlink log folder"),       3,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
         self.software_configuration_layout.addWidget(self.logger_log_path_field,          3,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)
         self.software_configuration_layout.addWidget(QtWidgets.QLabel("Uplink log file path"),      4,0,1,1, QtCore.Qt.AlignmentFlag.AlignRight)
         self.software_configuration_layout.addWidget(self.uplink_log_path_field,          4,1,1,1, QtCore.Qt.AlignmentFlag.AlignLeft)

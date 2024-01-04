@@ -3,7 +3,7 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStyleFactory, QTabWidget, QWidget, QHBoxLayout
 from PyQt6.QtGui import QIcon
 
-from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPlotView, GlobalCommandPanel
+from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPlotView, GlobalCommandPanel, PowerMonitorView
 from FoGSE.communication import FormatterUDPInterface
 from FoGSE.configuration import SystemConfiguration, SettingsPanel
 
@@ -25,14 +25,16 @@ class GSEMain(QMainWindow):
 
         # self.settings = self._restoreSettings()         # restore old settings
 
-        self.fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
-        self.config = SystemConfiguration(settings_file="config/settings.json", formatter_if=self.fmtrif)
+        # SystemConfiguration should instantiate FormatterUDPInterface?
+
+        self.fmtrif = FormatterUDPInterface(logging=True, logfilename=None)
+        self.config = SystemConfiguration(formatter_if=self.fmtrif)
         
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
         # self.setCentralWidget(DetectorArrayDisplay(self))
-        self.setCentralWidget(DetectorGridDisplay(self, configuration=self.config, formatter_if=self.fmtrif))
-        # self.setCentralWidget(SettingsPanel(self))
+        # self.setCentralWidget(DetectorGridDisplay(self, configuration=self.config, formatter_if=self.fmtrif))
+        self.setCentralWidget(SettingsPanel(self))
         # self.setCentralWidget(DetectorPlotView(self))
         
         # logging.debug(str(self.width()) + str(self.height()))
@@ -40,6 +42,7 @@ class GSEMain(QMainWindow):
         # setup app-wide attributes: --------------------------------------------
         self.uplinkCommandCount = 0
         
+        # self.fmtrif.listen_thread.start()
 
     def _restoreSettings(self):
         settings = QSettings(ORG_NAME,APP_NAME)
@@ -74,6 +77,8 @@ class GSECommand(QMainWindow):
         self.setGeometry(100,100,1280,800)
         self.setWindowTitle(APP_NAME)
 
-        fmtrif = FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+        self.fmtrif = FormatterUDPInterface(logging=True, logfilename=None)
+        self.config = SystemConfiguration(formatter_if=self.fmtrif)
 
-        self.setCentralWidget(GlobalCommandPanel(self, name="Command", formatter_if=fmtrif))
+        # self.setCentralWidget(GlobalCommandPanel(self, name="Command", configuration=self.config, formatter_if=self.fmtrif))
+        self.setCentralWidget(PowerMonitorView(self, configuration=self.config, formatter_if=self.fmtrif))
