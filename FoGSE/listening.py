@@ -12,6 +12,7 @@ from datetime import datetime
 DOWNLINK_TYPE_ENUM = {
     "pc":   0x00,
     "ql":   0x01,
+    "tpx":  0x02,
     "hk":   0x10,
     "pow":  0x11,
     "temp": 0x12,
@@ -64,9 +65,7 @@ class LogFileManager:
             detected raw data types.
 
         queue_len : int
-            The number off received packets per complete frame. Should be 
-            `math.ceil(frame_size/packet_size). Cannot be more than 65535 (in 
-            raw packet, stored as a 2-byte value.
+            The number off received bytes per complete frame.
 
         payload_len : int
             The length of the payload portion of the packet, i.e. the total 
@@ -89,9 +88,6 @@ class LogFileManager:
             raise RuntimeError
         if data > 255:
             print("data ID must be 1 byte wide")
-            raise RuntimeError
-        if queue_len > 65535:
-            print("queue length must be 2 bytes wide")
             raise RuntimeError
 
         self.system = system
