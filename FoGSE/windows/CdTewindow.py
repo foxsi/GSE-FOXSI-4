@@ -131,8 +131,9 @@ class CdTeWindow(DetectorPlotView):
         
         # get the new frame
         if self.image_product=="image":
-            new_frame_orig = self.reader.collection.image_array(area_correction=False)
-            new_frame = rotatation.rotate_matrix(matrix=new_frame_orig, angle=self.image_angle)
+            new_frame = self.reader.collection.image_array(area_correction=False)
+            new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
+            new_frame[new_frame<1e-1] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "fade"
         elif self.image_product=="spectrogram":
             new_frame = self.reader.collection.spectrogram_array(remap=True, 
