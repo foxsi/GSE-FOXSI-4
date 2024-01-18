@@ -12,7 +12,8 @@ def rotate_matrix(matrix, angle):
             The matrix representing an image.
 
     angle : `int`, `float`
-            In degrees, the angle to rotate anti-clockwise.
+            In degrees, the angle to rotate clockwise (+ve is clockwise, 
+            and -ve is anti-clockwise).
 
     Returns
     -------

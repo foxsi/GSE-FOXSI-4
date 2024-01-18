@@ -47,7 +47,7 @@ class CdTeWindow(DetectorPlotView):
         else:
             print("How do I read the CdTe data?")
 
-        #make this available everywhere, incase a rotation is specified for the image
+        # make this available everywhere, incase a rotation is specified for the image
         self.image_angle = image_angle
             
         self.image_product = plotting_product

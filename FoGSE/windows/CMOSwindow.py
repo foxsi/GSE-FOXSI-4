@@ -5,11 +5,12 @@ A demo to walk through an existing CMOS raw file.
 import numpy as np
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 import pyqtgraph as pg
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSReader
 from FoGSE.visualization import DetectorPlotView
+from FoGSE.windows.images import rotatation
 
 
 class CMOSWindow(DetectorPlotView):
@@ -31,7 +32,7 @@ class CMOSWindow(DetectorPlotView):
         String to determine whether an "image" and or <something else> should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="image", parent=None, name="CMOS"):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, parent=None, name="CMOS"):
 
         DetectorPlotView.__init__(self, parent, name)
 
@@ -44,6 +45,9 @@ class CMOSWindow(DetectorPlotView):
             self.reader = reader
         else:
             print("How do I read the CMOS data?")
+
+        # make this available everywhere, incase a rotation is specified for the image
+        self.image_angle = image_angle
             
         self.image_product = plotting_product
         if self.image_product in ["image"]:
@@ -70,7 +74,9 @@ class CMOSWindow(DetectorPlotView):
 
         # create QImage from numpy array 
         if self.image_product=="image":
-            self.detw, self.deth = 768, 384
+            # could do some maths to figure out but this WILL give the result need even if something is changed elsewhere
+            _rm = rotatation.rotate_matrix(matrix=np.zeros((768, 384)), angle=self.image_angle)
+            self.detw, self.deth = np.shape(_rm)
             # set title and labels
             self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
 
@@ -78,10 +84,17 @@ class CMOSWindow(DetectorPlotView):
         self.set_image_ndarray()
         q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
 
+        if hasattr(self,"img"):
+            self.graphPane.removeItem(self.img)
         # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
         self.set_image_colour("red")
+
+    def update_rotation(self, image_angle):
+        """ Allow the image rotation to be updated whenever. """
+        self.image_angle = image_angle
+        self.setup_2d()
 
     def set_fade_out(self, no_of_frames):
         """ Define how many frames to fade a count out over. """
@@ -115,6 +128,8 @@ class CMOSWindow(DetectorPlotView):
         # get the new frame
         if self.image_product=="image":
             new_frame = self.reader.collection.image_array()
+            new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
+            new_frame[new_frame<1e-1] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "replace"
 
         # update current plotted data with new frame
@@ -267,15 +282,19 @@ if __name__=="__main__":
     import os
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/cmos.log"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
     # datafile = ""
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
     reader = CMOSReader(datafile)
 
     f0 = CMOSWindow(reader=reader, plotting_product="image")
-    # f1 = CMOSWindow(reader=reader, plotting_product="image")
-    # print(R.collections)
-    f0.show()
-    # f1.show()
+    f1 = CMOSWindow(reader=reader, plotting_product="image", image_angle=-1)
+
+    w = QWidget()
+    lay = QGridLayout(w)
+    lay.addWidget(f0, 0, 0)
+    lay.addWidget(f1, 0, 1)
+    w.resize(1200,500)
+    w.show()
     app.exec()
