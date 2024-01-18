@@ -193,7 +193,7 @@ class QValueWidget(QWidget):
 
     def unexpected(self, **kwargs):
         """ Run if unexpected value is caught. """
-        print("Unexpected entry.")
+        print(f"Unexpected entry for {self.name}.")
         for key, val in kwargs.items():
             print(f"{key}: {val}")
 
