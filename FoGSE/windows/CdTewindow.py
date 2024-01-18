@@ -89,6 +89,8 @@ class CdTeWindow(DetectorPlotView):
         self.set_image_ndarray()
         q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
 
+        if hasattr(self,"img"):
+            self.graphPane.removeItem(self.img)
         # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)

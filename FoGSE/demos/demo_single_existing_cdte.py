@@ -30,5 +30,6 @@ if __name__=="__main__":
     lay.addWidget(f0, 1, 0)
     lay.addWidget(f1, 0, 0)
     lay.addWidget(f2, 0, 1)
+    w.resize(1600,1000)
     w.show()
     app.exec()
