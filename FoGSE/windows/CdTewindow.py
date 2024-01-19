@@ -11,6 +11,7 @@ import pyqtgraph as pg
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 from FoGSE.visualization import DetectorPlotView
+from FoGSE.windows.images import rotatation
 
 
 class CdTeWindow(DetectorPlotView):
@@ -32,7 +33,7 @@ class CdTeWindow(DetectorPlotView):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="image", parent=None, name="CdTe"):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, parent=None, name="CdTe"):
 
         DetectorPlotView.__init__(self, parent, name)
 
@@ -45,6 +46,9 @@ class CdTeWindow(DetectorPlotView):
             self.reader = reader
         else:
             print("How do I read the CdTe data?")
+
+        # make this available everywhere, incase a rotation is specified for the image
+        self.image_angle = image_angle
             
         self.image_product = plotting_product
         if self.image_product in ["image", "spectrogram"]:
@@ -71,7 +75,9 @@ class CdTeWindow(DetectorPlotView):
 
         # create QImage from numpy array 
         if self.image_product=="image":
-            self.detw, self.deth = 128, 128
+            # could do some maths to figure out but this WILL give the result need even if something is changed elsewhere
+            _rm = rotatation.rotate_matrix(matrix=np.zeros((128, 128)), angle=self.image_angle)
+            self.detw, self.deth = np.shape(_rm)
             # set title and labels
             self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
         elif self.image_product=="spectrogram":
@@ -83,11 +89,18 @@ class CdTeWindow(DetectorPlotView):
         self.set_image_ndarray()
         q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
 
+        if hasattr(self,"img"):
+            self.graphPane.removeItem(self.img)
         # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
 
         self.set_image_colour("green")
+
+    def update_rotation(self, image_angle):
+        """ Allow the image rotation to be updated whenever. """
+        self.image_angle = image_angle
+        self.setup_2d()
 
     def set_fade_out(self, no_of_frames):
         """ Define how many frames to fade a count out over. """
@@ -121,6 +134,8 @@ class CdTeWindow(DetectorPlotView):
         # get the new frame
         if self.image_product=="image":
             new_frame = self.reader.collection.image_array(area_correction=False)
+            new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
+            new_frame[new_frame<1e-1] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "fade"
         elif self.image_product=="spectrogram":
             new_frame = self.reader.collection.spectrogram_array(remap=True, 

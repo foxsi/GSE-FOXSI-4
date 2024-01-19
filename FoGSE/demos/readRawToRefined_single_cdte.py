@@ -3,6 +3,7 @@ Reader for an existing raw CdTe data file.
 """
 
 import struct
+import numpy as np
 
 from FoGSE.demos.CdTerawalldata2parser_existingFile import CdTerawalldata2parser_existingFile
 from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
@@ -89,7 +90,7 @@ class CdTeFileReader(ReaderBase):
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            flags, event_df, all_hkdicts = (None,{'ti':-1},None)
+            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1])},None)
         return flags, event_df, all_hkdicts
     
     def parsed_2_collection(self, parsed_data):

@@ -3,7 +3,7 @@ A demo to walk through an existing CdTe raw file.
 """
 import os
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 from FoGSE.windows.CdTewindow import CdTeWindow
@@ -22,6 +22,14 @@ if __name__=="__main__":
     f1.set_fade_out(5)
     f1.set_image_colour("red")
 
-    f0.show()
-    f1.show()
+    f2 = CdTeWindow(reader=reader, plotting_product="image", image_angle=30)
+    f2.set_image_colour("red")
+
+    w = QWidget()
+    lay = QGridLayout(w)
+    lay.addWidget(f0, 1, 0)
+    lay.addWidget(f1, 0, 0)
+    lay.addWidget(f2, 0, 1)
+    w.resize(1600,1000)
+    w.show()
     app.exec()
