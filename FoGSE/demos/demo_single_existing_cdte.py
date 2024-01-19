@@ -17,19 +17,21 @@ if __name__=="__main__":
 
     f0 = CdTeWindow(reader=reader, plotting_product="spectrogram")
     f0.set_image_colour("green")
+    f0.update_background(colour=(80,40,10,100))
 
     f1 = CdTeWindow(reader=reader, plotting_product="image")
     f1.set_fade_out(5)
     f1.set_image_colour("red")
 
     f2 = CdTeWindow(reader=reader, plotting_product="image", image_angle=30)
-    f2.set_image_colour("red")
+    f2.set_image_colour("blue")
 
     w = QWidget()
     lay = QGridLayout(w)
     lay.addWidget(f0, 1, 0)
     lay.addWidget(f1, 0, 0)
     lay.addWidget(f2, 0, 1)
+    
     w.resize(1600,1000)
     w.show()
     app.exec()
