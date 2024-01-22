@@ -38,7 +38,7 @@ class CdTeWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        self.graphPane.setMinimumSize(QtCore.QSize(250,250))
+        self.graphPane.setMinimumSize(QtCore.QSize(4,1)) # was 250,250
         self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
@@ -382,8 +382,8 @@ if __name__=="__main__":
     # reader = CdTeReader(datafile)
 
     f0 = CdTeWindow(reader=reader, plotting_product="spectrogram")
-    # f1 = CdTeWindow(reader=reader, plotting_product="image")
+    f1 = CdTeWindow(reader=reader, plotting_product="image")
     # print(R.collections)
     f0.show()
-    # f1.show()
+    f1.show()
     app.exec()

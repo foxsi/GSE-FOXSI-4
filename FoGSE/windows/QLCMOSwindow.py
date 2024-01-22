@@ -37,7 +37,7 @@ class QLCMOSWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        self.graphPane.setMinimumSize(QtCore.QSize(250,250))
+        self.graphPane.setMinimumSize(QtCore.QSize(2,1)) # was 250,250
         self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
