@@ -33,10 +33,12 @@ if __name__=="__main__":
     windows_and_files = []
     for inst in instruments:
         if inst.startswith("cdte"):
-            windows_and_files.append(f"cdte_ped {newest_folder}/{inst}")
-            windows_and_files.append(f"cdte_im {newest_folder}/{inst}")
+            for w in ["cdte_ped", "cdte_im"]:
+                windows_and_files.append(w)
+                windows_and_files.append(f"{newest_folder}/{inst}")
         elif inst.startswith("cmos"):
-            windows_and_files.append(f"cdte_pc {newest_folder}/{inst}")
-            windows_and_files.append(f"cdte_ql {newest_folder}/{inst}")
+            for w in ["cmos_pc", "cmos_ql"]:
+                windows_and_files.append(w)
+                windows_and_files.append(f"{newest_folder}/{inst}")
 
     run_windows(*windows_and_files)
