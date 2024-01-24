@@ -5,7 +5,7 @@ A demo to walk through an existing CdTe raw file.
 import numpy as np
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 import pyqtgraph as pg
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
@@ -38,10 +38,10 @@ class CdTeWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        self.graphPane.setMinimumSize(QtCore.QSize(4,1)) # was 250,250
-        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        # self.graphPane.setMinimumSize(QtCore.QSize(4,1)) # was 250,250
+        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
-        self.layoutMain = QHBoxLayout()
+        self.layoutMain = QGridLayout()
         self.layoutMain.addWidget(self.graphPane)
         self.setLayout(self.layoutMain)
 
@@ -339,7 +339,7 @@ class CdTeWindow(QWidget):
         super().resizeEvent(event)
         # Create a square base size of 10x10 and scale it to the new size
         # maintaining aspect ratio.
-        
+        print("ere", event.size().width(), event.size().height())
         if event is None:
             return 
         

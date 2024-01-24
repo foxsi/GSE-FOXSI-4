@@ -181,7 +181,7 @@ class QValueWidget(QWidget):
 
     def sizeHint(self):
         """ Helps define the size of the widget. """
-        return QSize(40,120)
+        return QSize(10,10)
 
     def smallest_dim(self, painter_obj):
         """ Might be useful to help define the size of the widget. """
