@@ -176,6 +176,7 @@ class UplinkCommandDeck:
             cmd_ids = [cmd.hex for cmd in these_commands]
 
             if len(cmd_names) != len(set(cmd_names)):
+                print(set([name for name in cmd_names if cmd_names.count(name) > 1]))
                 raise Exception("command names are not unique.")
             if len(cmd_ids) != len(set(cmd_ids)):
                 raise Exception("command ids are not unique.")
@@ -294,7 +295,7 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
     """
 
     # def __init__(self, addr=params.GSE_IP, port=params.GSE_PORT, logging=True, logfilename=None):
-    def __init__(self, configfile="foxsi4-commands/foxsimile_systems.json", logging=True, logfilename=None, end_background_process_on_close=True):
+    def __init__(self, configfile="foxsi4-commands/systems.json", logging=True, logfilename=None, end_background_process_on_close=True):
         
         # configure sockets and endpoints
         try:

@@ -11,7 +11,7 @@ class SystemConfiguration(metaclass=singleton.Singleton):
     """
     SystemConfiguration is a container for storing and safely modifying software-wide properties, like log file paths, Formatter address, and flight mode.
     """
-    def __init__(self, settings_file: str="./config/foxsimile_settings.json", formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, settings_file: str="./config/settings.json", formatter_if=comm.FormatterUDPInterface()):
         settings_dict = {}
         self._formatter_if = formatter_if
 
