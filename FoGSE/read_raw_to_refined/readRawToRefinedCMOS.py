@@ -27,7 +27,7 @@ class CMOSReader(ReaderBase):
         ReaderBase.__init__(self, datafile, parent)
         # The magic number for CMOS PC data is 590,848. The magic number for CMOS QL data is 492,544.
         self.define_buffer_size(size=590_848)
-        self.call_interval(1000)
+        self.call_interval(100)
 
     def extract_raw_data(self):
         """

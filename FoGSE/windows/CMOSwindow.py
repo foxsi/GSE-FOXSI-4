@@ -37,8 +37,8 @@ class CMOSWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        self.graphPane.setMinimumSize(QtCore.QSize(2,1)) # was 300,250
-        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 300,250, # was 2,1
+        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addWidget(self.graphPane)

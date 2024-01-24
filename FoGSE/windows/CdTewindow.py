@@ -38,7 +38,7 @@ class CdTeWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        # self.graphPane.setMinimumSize(QtCore.QSize(4,1)) # was 250,250
+        # self.graphPane.setMinimumSize(QtCore.QSize(850,400)) # was 250,250
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QGridLayout()
@@ -339,7 +339,7 @@ class CdTeWindow(QWidget):
         super().resizeEvent(event)
         # Create a square base size of 10x10 and scale it to the new size
         # maintaining aspect ratio.
-        print("ere", event.size().width(), event.size().height())
+        # print("ere", event.size().width(), event.size().height())
         if event is None:
             return 
         
