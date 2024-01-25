@@ -37,7 +37,7 @@ class CdTeWindow(QWidget):
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
-        self.graphPane = pg.PlotWidget(self)
+        self.graphPane = pg.PlotWidget()
         # self.graphPane.setMinimumSize(QtCore.QSize(850,400)) # was 250,250
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
@@ -69,7 +69,7 @@ class CdTeWindow(QWidget):
         self.reader.value_changed_collection.connect(self.update_plot)
 
         # Disable interactivity
-        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
+        # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
 
         self.update_background(colour=(10,40,80,100))#colour="white"
         
@@ -339,7 +339,8 @@ class CdTeWindow(QWidget):
         super().resizeEvent(event)
         # Create a square base size of 10x10 and scale it to the new size
         # maintaining aspect ratio.
-        # print("ere", event.size().width(), event.size().height())
+        # if self.image_product=="spectrogram":
+        #     print("ere", event.size().width(), event.size().height())
         if event is None:
             return 
         

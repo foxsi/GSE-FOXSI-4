@@ -3,7 +3,7 @@ A demo to walk through an existing CdTe raw file.
 """
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QGridLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.windows.CdTewindow import CdTeWindow
@@ -31,69 +31,81 @@ class CdTeWidget(QWidget):
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 500, 500
+        self.detw, self.deth = 650, 680
+        self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
         # define main layouts for the status window, LED, buttons, times, and plot
         image_layout = QtWidgets.QGridLayout()
         ped_layout = QtWidgets.QGridLayout()
-        value_layout = QtWidgets.QGridLayout()
+        value_layout = QtWidgets.QVBoxLayout()
 
         self.panels = dict() # for all the background panels
         
         ## for CdTe image
         # widget for displaying the automated recommendation
-        # self._image_layout = self.layout_bkg(main_layout=image_layout, 
-        #                                      panel_name="image_panel", 
-        #                                      style_sheet_string=self._layout_style("grey", "white"))
+        self._image_layout = self.layout_bkg(main_layout=image_layout, 
+                                             panel_name="image_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"), grid=True)
         self.image = CdTeWindow(reader=reader, plotting_product="image")
-        # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
-        # self.image.setStyleSheet("border-width: 0px;")
-        # self._image_layout.addWidget(self.image)
+        self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
+        self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.image.setStyleSheet("border-width: 0px;")
+        self._image_layout.addWidget(self.image)
         # image_layout.addWidget(self.image)
 
         ## for CdTe pedestal
         # widget for displaying the automated recommendation
-        # self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
-        #                                      panel_name="ped_panel", 
-        #                                      style_sheet_string=self._layout_style("grey", "white"))
+        self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
+                                             panel_name="ped_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"), grid=True)
         self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram")
-        # self.image.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
-        # self.ped.setStyleSheet("border-width: 0px;")
-        # self._ped_layout.addWidget(self.ped) 
+        self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
+        self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.ped.setStyleSheet("border-width: 0px;")
+        self._ped_layout.addWidget(self.ped) 
 
         # status values
-        # self._value_layout = self.layout_bkg(main_layout=value_layout, 
-        #                                      panel_name="value_panel", 
-        #                                      style_sheet_string=self._layout_style("grey", "white"))
+        self._value_layout = self.layout_bkg(main_layout=value_layout, 
+                                             panel_name="value_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
         self.somevalue0 = QValueRangeWidget(name="This", value=6, condition={"low":2,"high":15})
         self.somevalue1 = QValueRangeWidget(name="That", value=8, condition={"low":2,"high":15})
         self.somevalue2 = QValueRangeWidget(name="Other", value=60, condition={"low":2,"high":15})
         self.somevalue3 = QValueRangeWidget(name="Another", value="8", condition={"low":2,"high":15})
         self.somevalue4 = QValueRangeWidget(name="Again", value=2, condition={"low":2,"high":15})
         self.somevalue5 = QValueRangeWidget(name="This2", value=14, condition={"low":2,"high":15})
-        # self._value_layout.addWidget(self.somevalue0) 
-        # self._value_layout.addWidget(self.somevalue1) 
-        # self._value_layout.addWidget(self.somevalue2) 
-        # self._value_layout.addWidget(self.somevalue3) 
-        # self._value_layout.addWidget(self.somevalue4) 
-        # self._value_layout.addWidget(self.somevalue5) 
+        self._value_layout.addWidget(self.somevalue0) 
+        self._value_layout.addWidget(self.somevalue1) 
+        self._value_layout.addWidget(self.somevalue2) 
+        self._value_layout.addWidget(self.somevalue3) 
+        self._value_layout.addWidget(self.somevalue4) 
+        self._value_layout.addWidget(self.somevalue5) 
+        # self.somevalue0.setMinimumSize(QtCore.QSize(200,100))
+        # self.somevalue1.setMinimumSize(QtCore.QSize(200,100))
+        # self.somevalue2.setMinimumSize(QtCore.QSize(200,100))
+        # self.somevalue3.setMinimumSize(QtCore.QSize(200,100))
+        # self.somevalue4.setMinimumSize(QtCore.QSize(200,100))
+        # self.somevalue5.setMinimumSize(QtCore.QSize(200,100))
 
         ## all widgets together
         # image
         global_layout = QGridLayout()
-        global_layout.addWidget(self.image, 0, 0, 40, 40)
+        # global_layout.addWidget(self.image, 0, 0, 4, 4)
+        global_layout.addLayout(image_layout, 0, 0, 4, 4) # y,x,h,w
         # pedestal
-        global_layout.addWidget(self.ped, 35, 0, 20, 40)
+        # global_layout.addWidget(self.ped, 4, 0, 4, 3)
+        global_layout.addLayout(ped_layout, 4, 0, 2, 4)# y,x,h,w
         # status values
-        global_layout.addWidget(self.somevalue0, 0, 38, 10, 15)
-        global_layout.addWidget(self.somevalue1, 8, 38, 10, 15)
-        global_layout.addWidget(self.somevalue2, 16, 38, 10, 15)
-        global_layout.addWidget(self.somevalue3, 24, 38, 10, 15)
-        global_layout.addWidget(self.somevalue4, 32, 38, 10, 15)
-        global_layout.addWidget(self.somevalue5, 40, 38, 10, 15)
-        # global_layout.addLayout(value_layout, 0, 4, 6, 1)
+        # global_layout.addWidget(self.somevalue0, 0, 4, 1, 1)
+        # global_layout.addWidget(self.somevalue1, 1, 4, 1, 1)
+        # global_layout.addWidget(self.somevalue2, 2, 4, 1, 1)
+        # global_layout.addWidget(self.somevalue3, 3, 4, 1, 1)
+        # global_layout.addWidget(self.somevalue4, 4, 4, 1, 1)
+        # global_layout.addWidget(self.somevalue5, 5, 4, 1, 1)
+        # global_layout.addWidget(self.somevalue5, 6, 4, 1, 1)
+        global_layout.addLayout(value_layout, 0, 4, 6, 6)
 
         # actually display the layout
         self.setLayout(global_layout)
@@ -123,20 +135,63 @@ class CdTeWidget(QWidget):
         """ Update the image aspect ratio (width/height). """
         self.aspect_ratio = aspect_ratio
 
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
+    # def resizeEvent(self,event):
+    #     """ Define how the widget can be resized and keep the same apsect ratio. """
+    #     super().resizeEvent(event)
+    #     # Create a square base size of 10x10 and scale it to the new size
+    #     # maintaining aspect ratio.
+    #     # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
+    #     # self.image.resize(image_resize)
+    #     # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
+    #     # self.ped.resize(ped_resize)
+    #     if event is None:
+    #         return 
         
-        if event is None:
-            return 
+    #     new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
+    #     new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+
+    #     self.resize(new_size)
+
+class CdTeView(QWidget):
+    def __init__(self):
+        super().__init__()     
         
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        self.setGeometry(100,100,2000,350)
+        self.setGeometry(100,100,600,600)
+        self.setWindowTitle("ack")
 
-        self.resize(new_size)
+        datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
+        datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
+        datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
+        datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
 
+        f0 = CdTeWidget(data_file=datafile0)
+        _f0 =QHBoxLayout()
+        _f0.addWidget(f0)
+
+        # f1 = CdTeWidget(data_file=datafile1)
+        # _f1 =QGridLayout()
+        # _f1.addWidget(f1, 0, 0)
+
+        # f2 = CdTeWidget(data_file=datafile2)
+        # _f2 =QGridLayout()
+        # _f2.addWidget(f2, 0, 0)
+
+        # f3 = CdTeWidget(data_file=datafile3)
+        # _f3 =QGridLayout()
+        # _f3.addWidget(f3, 0, 0)
+
+        lay = QGridLayout()
+        # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
+
+        # lay.addWidget(f0, 0, 0, 1, 1)
+        # lay.addWidget(f1, 0, 1, 1, 1)
+        lay.addLayout(_f0, 0, 0, 1, 1)
+        # lay.addLayout(_f1, 0, 1, 1, 1)
+        # lay.addLayout(_f2, 0, 2, 1, 1)
+        # lay.addLayout(_f3, 0, 3, 1, 1)
+
+        self.setLayout(lay)
 
 if __name__=="__main__":
     app = QApplication([])
@@ -170,33 +225,36 @@ if __name__=="__main__":
     # reader = CdTeFileReader(datafile)#CdTeReader(data_file)
     # # reader = CdTeReader(datafile)
     
-    f0 = CdTeWidget(data_file=datafile)
-    _f0 =QGridLayout()
-    _f0.addWidget(f0, 0, 0)
+    # f0 = CdTeWidget(data_file=datafile)
+    # _f0 =QGridLayout()
+    # _f0.addWidget(f0, 0, 0)
 
-    f1 = CdTeWidget(data_file=datafile)
-    _f1 =QGridLayout()
-    _f1.addWidget(f1, 0, 0)
+    # f1 = CdTeWidget(data_file=datafile)
+    # _f1 =QGridLayout()
+    # _f1.addWidget(f1, 0, 0)
 
-    f2 = CdTeWidget(data_file=datafile)
-    _f2 =QGridLayout()
-    _f2.addWidget(f2, 0, 0)
+    # f2 = CdTeWidget(data_file=datafile)
+    # _f2 =QGridLayout()
+    # _f2.addWidget(f2, 0, 0)
 
-    f3 = CdTeWidget(data_file=datafile)
-    _f3 =QGridLayout()
-    _f3.addWidget(f3, 0, 0)
+    # f3 = CdTeWidget(data_file=datafile)
+    # _f3 =QGridLayout()
+    # _f3.addWidget(f3, 0, 0)
     
-    w = QWidget()
-    lay = QGridLayout(w)
+    # w = QWidget()
+    # lay = QGridLayout(w)
+    # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
+
+    # # lay.addWidget(f0, 0, 0, 1, 1)
+    # # lay.addWidget(f1, 0, 1, 1, 1)
+    # lay.addLayout(_f0, 0, 0, 1, 1)
+    # lay.addLayout(_f1, 0, 1, 1, 1)
+    # lay.addLayout(_f2, 0, 2, 1, 1)
+    # lay.addLayout(_f3, 0, 3, 1, 1)
+    
+    # w.resize(1000,500)
+    # w = CdTeView()
+    w = CdTeWidget(data_file=datafile)
     w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-
-    # lay.addWidget(f0, 0, 0, 1, 1)
-    # lay.addWidget(f1, 0, 1, 1, 1)
-    lay.addLayout(_f0, 0, 0, 1, 1)
-    lay.addLayout(_f1, 0, 1, 1, 1)
-    lay.addLayout(_f2, 0, 2, 1, 1)
-    lay.addLayout(_f3, 0, 3, 1, 1)
-    
-    w.resize(1000,500)
     w.show()
     app.exec()
