@@ -32,6 +32,7 @@ class CdTeWindow(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
+
     def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, name="CdTe", parent=None):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
@@ -92,7 +93,7 @@ class CdTeWindow(QWidget):
             self.detw, self.deth = np.shape(_rm)
             self.update_aspect(aspect_ratio=self.detw/self.deth)
             # set title and labels
-            self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: Image")
+            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}: Image")
         elif self.image_product=="spectrogram":
             self.detw, self.deth = 256, 1024
             self.update_aspect(aspect_ratio=2)
@@ -189,6 +190,7 @@ class CdTeWindow(QWidget):
         self.graphPane.removeItem(self.img)
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
+
         self.update()
 
     def update_image(self, existing_frame, new_frame):
@@ -310,11 +312,18 @@ class CdTeWindow(QWidget):
             The strings relating to each label to be set.
         """
 
-        graph_widget.setTitle(title)
+        styles = {"size":"10pt", "font-size":"10pt", "color":"grey", "margin":"0"}
+
+        # graph_widget.setTitle(title, **styles)
 
         # Set label for both axes
-        graph_widget.setLabel('bottom', xlabel)
-        graph_widget.setLabel('left', ylabel)
+        graph_widget.setLabel('bottom', xlabel, **styles)
+        graph_widget.setLabel('left', ylabel, **styles)
+
+        graph_widget.getAxis("left").setWidth(0)
+        graph_widget.getAxis("right").setWidth(0)
+        graph_widget.getAxis("top").setHeight(0)
+        graph_widget.getAxis("bottom").setHeight(0)
 
     def set_image_ndarray(self):
         """

@@ -118,6 +118,8 @@ class QValueWidget(QWidget):
         # set the main layout for the widget
         self.setLayout(self.layout)
 
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
     def check_condition_input(self, condition):
         """ 
         Check that the condition given is workable. 

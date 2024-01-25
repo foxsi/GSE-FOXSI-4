@@ -518,3 +518,7 @@ class CdTeCollection:
         """ From the pitch widths, get the strip-pixel areas. """
         return np.diff(self.strip_width_edges)[:,None]@np.diff(self.strip_width_edges)[None,:]
     
+    def total_counts(self):
+        """ Just return the present total counts for the collection. """
+        return np.sum(self.new_entries)
+    

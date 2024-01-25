@@ -3,6 +3,7 @@ A demo to walk through an existing CdTe raw file.
 """
 import os
 
+import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
@@ -78,12 +79,14 @@ class CdTeWidget(QWidget):
         self._value_layout = self.layout_bkg(main_layout=value_layout, 
                                              panel_name="value_panel", 
                                              style_sheet_string=self._layout_style("grey", "white"))
-        self.somevalue0 = QValueRangeWidget(name="This", value=6, condition={"low":2,"high":15})
+        self.cts = QValueRangeWidget(name="Counts (cts)", value="N/A", condition={"low":0,"high":np.inf})
+        self.somevalue0 = QValueRangeWidget(name="This", value=9, condition={"low":2,"high":15})
         self.somevalue1 = QValueRangeWidget(name="That", value=8, condition={"low":2,"high":15})
         self.somevalue2 = QValueRangeWidget(name="Other", value=60, condition={"low":2,"high":15})
         self.somevalue3 = QValueRangeWidget(name="Another", value="N/A", condition={"low":2,"high":15})
         self.somevalue4 = QValueRangeWidget(name="Again", value=2, condition={"low":2,"high":15})
         self.somevalue5 = QValueRangeWidget(name="This2", value=14, condition={"low":2,"high":15})
+        self._value_layout.addWidget(self.cts) 
         self._value_layout.addWidget(self.somevalue0) 
         self._value_layout.addWidget(self.somevalue1) 
         self._value_layout.addWidget(self.somevalue2) 
@@ -96,6 +99,8 @@ class CdTeWidget(QWidget):
         # self.somevalue3.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue4.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue5.setMinimumSize(QtCore.QSize(200,100))
+
+        self.image.reader.value_changed_collection.connect(self.all_fields)
 
         ## all widgets together
         # image
@@ -135,7 +140,14 @@ class CdTeWidget(QWidget):
 
         # actually display the layout
         self.setLayout(global_layout)
-        
+
+    def all_fields(self):
+        """ 
+        Update the:
+        * count rate field, 
+        """
+        self.cts.update_label(self.image.reader.collection.total_counts())
+
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
         # create panel widget
@@ -155,7 +167,8 @@ class CdTeWidget(QWidget):
 
     def _layout_style(self, border_colour, background_colour):
         """ Define a global layout style. """
-        return f"border-width: 2px; border-style: outset; border-radius: 10px; border-color: {border_colour}; background-color: {background_colour};"
+        # return f"border-width: 2px; border-style: outset; border-radius: 10px; border-color: {border_colour}; background-color: {background_colour};"
+        return f"border-width: 2px; border-style: outset; border-radius: 0px; border-color: {border_colour}; background-color: {background_colour};"
     
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
@@ -183,9 +196,11 @@ class AllCdTeView(QWidget):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
-        self.setGeometry(100,100,2000,440)
+        self.detw, self.deth = 2000,498
+        self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(600,150)
         self.setWindowTitle("All CdTe View")
+        self.aspect_ratio = self.detw/self.deth
 
         datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
         datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
@@ -222,10 +237,28 @@ class AllCdTeView(QWidget):
         lay.addLayout(_f2, 0, 2, 1, 1)
         lay.addLayout(_f3, 0, 3, 1, 1)
 
-        lay.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
+        lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
         lay.setHorizontalSpacing(5)
+        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(83, 223, 221, 50);")
 
         self.setLayout(lay)
+
+    def resizeEvent(self,event):
+        """ Define how the widget can be resized and keep the same apsect ratio. """
+        super().resizeEvent(event)
+        # Create a square base size of 10x10 and scale it to the new size
+        # maintaining aspect ratio.
+        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
+        # self.image.resize(image_resize)
+        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
+        # self.ped.resize(ped_resize)
+        if event is None:
+            return 
+        
+        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
+        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.resize(new_size)
 
 if __name__=="__main__":
     app = QApplication([])
@@ -252,7 +285,7 @@ if __name__=="__main__":
     # datafile = "/Users/kris/Desktop/gse_mod.log"
     # datafile = "/Users/kris/Desktop/from_de.log"
     # # datafile = "/Users/kris/Desktop/from_gse.log"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
     # # datafile = ""
 
     # # `datafile = FILE_DIR+"/../data/cdte.log"`
@@ -289,6 +322,6 @@ if __name__=="__main__":
     # w.resize(1000,500)
     w = AllCdTeView()
     # w = CdTeWidget(data_file=datafile)
-    w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: blue;")
+    
     w.show()
     app.exec()
