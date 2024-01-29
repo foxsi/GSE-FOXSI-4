@@ -3,6 +3,9 @@ A widget to display a value and its status.
 """
 
 import numpy as np
+import re
+import collections
+
 from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel
 from PyQt6.QtCore import QSize, QTimer
 
@@ -215,8 +218,8 @@ class QValueRangeWidget(QValueWidget):
             l = QGridLayout()
 
             # create value widget and add it to the layout
-            self.value1 = QValueRangeWidget(name="That", value=6, condition={"low":2,"high":15})
-            l.addWidget(self.value1, 0, 1) # widget, -y, x
+            self.value = QValueRangeWidget(name="That", value=6, condition={"low":2,"high":15})
+            l.addWidget(self.value, 0, 1) # widget, -y, x
 
             # actually display the layout
             self.setLayout(l)
@@ -230,7 +233,7 @@ class QValueRangeWidget(QValueWidget):
         def cycle_values(self):
             \""" Add new data, update widget.\"""
             r = np.random.randint(20, size=1)
-            self.value1.update_label(r[0])
+            self.value.update_label(r[0])
 
     # for testing
     app = QApplication([])
@@ -292,8 +295,8 @@ class QValueListWidget(QValueWidget):
             l = QGridLayout()
 
             # create value widget and add it to the layout
-            self.value2 = QValueListWidget(name="Other", value=9, condition={"acceptable":[1,2,3,4,5,6,7,8,9,10],"unacceptable":[0,11,12,13,14,15,16]})
-            l.addWidget(self.value2, 1, 0) # widget, -y, x
+            self.value = QValueListWidget(name="Other", value=9, condition={"acceptable":[1,2,3,4,5,6,7,8,9,10],"unacceptable":[0,11,12,13,14,15,16]})
+            l.addWidget(self.value, 0, 0) # widget, -y, x
 
             # actually display the layout
             self.setLayout(l)
@@ -307,7 +310,7 @@ class QValueListWidget(QValueWidget):
         def cycle_values(self):
             \""" Add new data, update widget.\"""
             r = np.random.randint(20, size=1)
-            self.value2.update_label(r[0])
+            self.value.update_label(r[0])
 
     # for testing
     app = QApplication([])
@@ -328,8 +331,7 @@ class QValueListWidget(QValueWidget):
                 The initial value to be displayed for the widget.
 
         condition : `dict`
-                The dictionary 
-                can instead contain information of two lists with the 
+                The dictionary contains information of two lists with the 
                 acceptable and unacceptable states of `value` 
                 (keys:`acceptable` and `unacceptable`)
         """
@@ -352,6 +354,111 @@ class QValueListWidget(QValueWidget):
         else:
             self.unexpected(value=value)
             return "orange"
+        
+class QValueMultiRangeWidget(QValueWidget):
+    """
+    A widget to be added to a GUI to display values and their status.
+
+    Example
+    -------
+    class test(QWidget):
+        \""" A test widget class to use QValueWidget. \"""
+        def __init__(self, parent=None):
+            \""" Initialise a grid on a widget and add different iterations of the QValueWidget widget. \"""
+            QWidget.__init__(self,parent)
+
+            # define layout
+            l = QGridLayout()
+
+            # create value widget and add it to the layout
+            self.value1 = QValueDoubleRangeWidget(name="That", 
+                                                  value=6, 
+                                                  self.value = QValueMultiRangeWidget(name="Another", value=50, condition={"range1":[100,3_000,"green"],"range2":[-100,100,"white"],"other":"orange"})
+            l.addWidget(self.value, 0, 0) # widget, -y, x
+
+            # order not important: {"range1":[100,3_000,"green"],"range2":[-100,100,"white"],"other":"orange"}
+            # equivalent to  {"range1":[100,3_000,"green"],"other":"orange","range2":[-100,100,"white"]}
+            # and  {"range2":[-100,100,"white"],"range1":[100,3_000,"green"],"other":"orange"}
+
+            # actually display the layout
+            self.setLayout(l)
+
+            # test the changing values
+            self.timer = QTimer()
+            self.timer.setInterval(1000) # fastest is every millisecond here
+            self.timer.timeout.connect(self.cycle_values) # call self.update_plot_data every cycle
+            self.timer.start()
+
+        def cycle_values(self):
+            \""" Add new data, update widget.\"""
+            r = np.random.randint(-150,4_000, size=1)
+            self.value1.update_label(r[0])
+
+    # for testing
+    app = QApplication([])
+    window = test()
+    window.show()
+    app.exec()
+    """
+    def __init__(self, name, value, condition=None, colour=None, parent=None, **kwargs):
+        """ 
+        Constructs the widget and adds the latest plotted data to the widget.
+        
+        Parameters
+        ----------
+        name : `str`
+                The name to display for `value`.
+
+        value : any
+                The initial value to be displayed for the widget.
+
+        condition : `dict`
+                Dictionary describing the bounds of `value` (keys:`rangeN`) 
+                describing the conditions for the nominal value and the 
+                colour associated to the range. The "other" key is used 
+                when `value` is no in any range (default: "white"). Ranges 
+                are inclusive and lower `N` values take priority. 
+                E.g., `{"range1":[`low1`, `high1`, `col1`], 
+                        ...,
+                        "other":"red"}`
+        """
+        QValueWidget.__init__(self, name, value, condition=condition, parent=parent, **kwargs)
+    
+    def check_condition_input(self, condition):
+        """ Check that the condition given is workable. """
+
+        _conds = {}
+
+        # deal with the colour outside the range first
+        other = condition.get("other", "white")
+        condition.pop("other", None)
+        
+        # get the ranges from the dictionary and put then in correct order
+        for key, value in condition.items():
+            _r = re.findall("^(range\d+)",key) # find the "rangeN"
+            if (len(_r)!=1) or len(value)!=3:
+                raise ValueError(f"Current key: {key}\nCurrent value: {value}\nPlease have `condition` be a `dict` with keys `rangeN` with list [low,high,colour]")
+            _conds[int(re.findall("(\d+)$",_r[0])[0])] = value # get the N in range N
+
+        _od_conds = collections.OrderedDict(sorted(_conds.items())) # order the ranges by N
+
+        # order list of [[lo1,hi1,col1],[lo2,hi2,col2],...]
+        _ordered_conds = list(_od_conds.values()) 
+            
+        # last is the default
+        _ordered_conds.append(other) 
+
+        # order list of [[lo1,hi1,col1],[lo2,hi2,col2],..,col_default]
+        return _ordered_conds
+        
+
+    def condition_colour(self, value):
+        """ Returns the widget colour for the value being displayed. """
+
+        for cond in self.condition[:-1]:
+            if cond[0]<=value<=cond[1]:
+                return cond[2]
+        return self.condition[-1]
 
 
 class test(QWidget):
@@ -370,6 +477,8 @@ class test(QWidget):
         l.addWidget(self.value1, 0, 1) # widget, -y, x
         self.value2 = QValueListWidget(name="Other", value=9, condition={"acceptable":[1,2,3,4,5,6,7,8,9,10],"unacceptable":[0,11,12,13,14,15,16]})
         l.addWidget(self.value2, 1, 0) # widget, -y, x
+        self.value3 = QValueMultiRangeWidget(name="Another", value=50, condition={"range1":[100,3_000,"green"],"range2":[-100,100,"white"],"other":"orange"})
+        l.addWidget(self.value3, 1, 1) # widget, -y, x
 
         # actually display the layout
         self.setLayout(l)
@@ -383,9 +492,11 @@ class test(QWidget):
     def cycle_values(self):
         """ Add new data, update widget."""
         r = np.random.randint(20, size=3)
+        rr = np.random.randint(-150,4_000, size=1)
         self.value0.update_label(r[0])
         self.value1.update_label(r[1])
         self.value2.update_label(r[2])
+        self.value3.update_label(rr[0])
 
 
 if __name__=="__main__":
