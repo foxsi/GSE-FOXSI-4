@@ -9,11 +9,11 @@ Can read:
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CMOSparser import PCimageData
-from FoGSE.collections.CMOSCollection import CMOSCollection
+from FoGSE.parsers.CMOSparser import QLimageData 
+from FoGSE.collections.CMOSQLCollection import CMOSQLCollection
 
 
-class CMOSReader(ReaderBase):
+class CMOSQLReader(ReaderBase):
     """
     Reader for the FOXSI CMOS instrument.
     """
@@ -26,7 +26,7 @@ class CMOSReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
         # The magic number for CMOS PC data is 590,848. The magic number for CMOS QL data is 492,544.
-        self.define_buffer_size(size=590_848)
+        self.define_buffer_size(size=492_544)
         self.call_interval(100)
 
     def extract_raw_data(self):
@@ -82,7 +82,7 @@ class CMOSReader(ReaderBase):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            linetime, gain, exposure_pc, pc_image = PCimageData(raw_data)
+            linetime, gain, exposure_pc, pc_image = QLimageData(raw_data)
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
@@ -100,12 +100,12 @@ class CMOSReader(ReaderBase):
 
         Returns
         -------
-        `FoGSE.detector_collections.CMOSCollection.CMOSCollection` :
+        `FoGSE.detector_collections.CMOSQLCollection.CMOSQLCollection` :
             The CMOS collection.
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = CMOSCollection(parsed_data, self.old_data_time)
+        col = CMOSQLCollection(parsed_data, self.old_data_time)
         if col.last_data_time>self.old_data_time:
             self.old_data_time = col.last_data_time
         return col

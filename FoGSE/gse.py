@@ -7,12 +7,12 @@ from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSReader
-from FoGSE.read_raw_to_refined.readRawToRefinedQLCMOS import QLCMOSReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSPCReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
 
-from FoGSE.windows.CdTewindow import CdTeWindow
-from FoGSE.windows.CMOSwindow import CMOSWindow
-from FoGSE.windows.QLCMOSwindow import QLCMOSWindow
+from FoGSE.windows.CdTeWindow import CdTeWindow
+from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
+from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 
 if __name__=="__main__":
     app = QApplication([])
@@ -29,9 +29,9 @@ if __name__=="__main__":
     reader1 = CdTeFileReader(datafile1)
     reader2 = CdTeFileReader(datafile2)
     reader3 = CdTeFileReader(datafile3)
-    reader4 = CMOSReader(datafile4)
-    reader5 = CMOSReader(datafile5)
-    reader6 = QLCMOSReader(datafile6)
+    reader4 = CMOSPCReader(datafile4)
+    reader5 = CMOSPCReader(datafile5)
+    reader6 = CMOSQLReader(datafile6)
 
     f0 = CdTeWindow(reader=reader0, plotting_product="image")
     f0.set_image_colour("green")
@@ -47,12 +47,12 @@ if __name__=="__main__":
     f3 = CdTeWindow(reader=reader3, plotting_product="image", image_angle=45)
     f3.set_image_colour("green")
 
-    f4 = CMOSWindow(reader=reader4, plotting_product="image")
+    f4 = CMOSPCWindow(reader=reader4, plotting_product="image")
 
-    f5 = CMOSWindow(reader=reader5, plotting_product="image", image_angle=-15)
+    f5 = CMOSPCWindow(reader=reader5, plotting_product="image", image_angle=-15)
     f5.set_image_colour("blue")
 
-    f6 = QLCMOSWindow(reader=reader6, plotting_product="image", image_angle=10)
+    f6 = CMOSQLWindow(reader=reader6, plotting_product="image", image_angle=10)
     f6.set_image_colour("red")# TIMEPIX
 
     w = QWidget()

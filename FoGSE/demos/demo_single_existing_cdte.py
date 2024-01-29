@@ -6,7 +6,7 @@ import os
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.windows.CdTewindow import CdTeWindow
+from FoGSE.windows.CdTeWindow import CdTeWindow
 
 if __name__=="__main__":
     app = QApplication([])

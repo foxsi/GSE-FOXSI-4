@@ -8,18 +8,18 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout
 import pyqtgraph as pg
 
-from FoGSE.read_raw_to_refined.readRawToRefinedQLCMOS import QLCMOSReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
 from FoGSE.windows.images import rotatation
 
 
-class QLCMOSWindow(QWidget):
+class CMOSPCWindow(QWidget):
     """
     An individual window to display CMOS data read from a file.
 
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOS.QLCMOSReader()`.
+        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOS.CMOSPCReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
@@ -37,7 +37,7 @@ class QLCMOSWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 250,250 # was 2,1
+        # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 300,250, # was 2,1
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
@@ -49,12 +49,12 @@ class QLCMOSWindow(QWidget):
         # decide how to read the data
         if data_file is not None:
             # probably the main way to use it
-            self.reader = QLCMOSReader(data_file)
+            self.reader = CMOSPCReader(data_file)
         elif reader is not None:
             # useful for testing and if multiple windows need to share the same file
             self.reader = reader
         else:
-            print("How do I read the CMOS data?")
+            print("How do I read the CMOS PC data?")
 
         # make this available everywhere, incase a rotation is specified for the image
         self.image_angle = image_angle
@@ -87,12 +87,11 @@ class QLCMOSWindow(QWidget):
         # create QImage from numpy array 
         if self.image_product=="image":
             # could do some maths to figure out but this WILL give the result need even if something is changed elsewhere
-            _rm = rotatation.rotate_matrix(matrix=np.zeros((512, 480)), angle=self.image_angle)
+            _rm = rotatation.rotate_matrix(matrix=np.zeros((768, 384)), angle=self.image_angle)
             self.detw, self.deth = np.shape(_rm)
             self.update_aspect(aspect_ratio=self.detw/self.deth)
-            # self.detw, self.deth = 512, 480
             # set title and labels
-            self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: QL Image")
+            self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: PC Image")
 
         self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
 
@@ -343,14 +342,14 @@ if __name__=="__main__":
     import os
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
     # datafile = ""
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
-    reader = QLCMOSReader(datafile)
+    reader = CMOSPCReader(datafile)
 
-    f0 = QLCMOSWindow(reader=reader, plotting_product="image")
-    f1 = QLCMOSWindow(reader=reader, plotting_product="image", image_angle=-10)
+    f0 = CMOSPCWindow(reader=reader, plotting_product="image")
+    f1 = CMOSPCWindow(reader=reader, plotting_product="image", image_angle=-1)
 
     w = QWidget()
     lay = QGridLayout(w)

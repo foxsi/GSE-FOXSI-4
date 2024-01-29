@@ -1287,7 +1287,7 @@ class DetectorPopout(QWidget):
         # allow the window to close
         event.accept()
 
-import FoGSE.windows.CdTewindow as wcdte
+import FoGSE.windows.CdTeWindow as wcdte
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 import os
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
