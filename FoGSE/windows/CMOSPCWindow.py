@@ -37,8 +37,8 @@ class CMOSPCWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget(self)
-        # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 300,250, # was 2,1
-        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.graphPane.setMinimumSize(QtCore.QSize(40,80)) # was 300,250, # was 2,1
+        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addWidget(self.graphPane)
@@ -91,7 +91,8 @@ class CMOSPCWindow(QWidget):
             self.detw, self.deth = np.shape(_rm)
             self.update_aspect(aspect_ratio=self.detw/self.deth)
             # set title and labels
-            self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: PC Image")
+            # self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: PC Image")
+            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}: PC Image")
 
         self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
 
@@ -295,11 +296,16 @@ class CMOSPCWindow(QWidget):
             The strings relating to each label to be set.
         """
 
-        graph_widget.setTitle(title)
+        # graph_widget.setTitle(title)
 
         # Set label for both axes
         graph_widget.setLabel('bottom', xlabel)
         graph_widget.setLabel('left', ylabel)
+
+        graph_widget.getAxis("left").setWidth(0)
+        graph_widget.getAxis("right").setWidth(0)
+        graph_widget.getAxis("top").setHeight(0)
+        graph_widget.getAxis("bottom").setHeight(0)
 
     def set_image_ndarray(self):
         """

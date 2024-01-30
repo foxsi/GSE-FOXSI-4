@@ -8,6 +8,7 @@ import collections
 
 from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel
 from PyQt6.QtCore import QSize, QTimer
+import pyqtgraph as pg
 
 
 class QValueWidget(QWidget):
@@ -122,6 +123,7 @@ class QValueWidget(QWidget):
         self.setLayout(self.layout)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setMinimumSize(2, 1)
 
     def check_condition_input(self, condition):
         """ 
@@ -160,6 +162,7 @@ class QValueWidget(QWidget):
     def make_label(self, value):
         """ Create the intial label. """
         self._value_label = QLabel(f"{self.name} : {value}")
+        self._value_label.setWordWrap(True)
 
         self.panel.setStyleSheet(self.layout_style("grey", 
                                                     self.condition_colour(value)))

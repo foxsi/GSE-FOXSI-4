@@ -1,5 +1,5 @@
 """
-A widget to show off CdTe data.
+A widget to show off CMOS data.
 """
 import os
 
@@ -7,40 +7,45 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.windows.CdTeWindow import CdTeWindow
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
+from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
+from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget
 
 
-class CdTeWidget(QWidget):
+class CMOSWidget(QWidget):
     """
-    An individual window to display CdTe data read from a file.
+    An individual window to display CMOS data read from a file.
 
     Parameters
     ----------
-    data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+    data_file_pc, data_file_ql : `str`, `str`
+        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC.CMOSPCReader()` 
+        and `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.CMOSQLReader()`,
+        respectively.
         Default: None
 
     plotting_product : `str`
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, name="CdTe", parent=None):
+    def __init__(self, data_file_pc=None, data_file_ql=None, name="CMOS", parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file)
+        reader_pc = CMOSPCReader(datafile=data_file_pc)
+        reader_ql = CMOSQLReader(datafile=data_file_ql)
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 50, 50
+        self.detw, self.deth = 100, 50
         # self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
         # define main layouts for the status window, LED, buttons, times, and plot
-        image_layout = QtWidgets.QGridLayout()
-        ped_layout = QtWidgets.QGridLayout()
+        ql_layout = QtWidgets.QGridLayout()
+        pc_layout = QtWidgets.QGridLayout()
         value_layout = QtWidgets.QVBoxLayout()
         # image_layout.setColumnStretch(0,1)
         # image_layout.setRowStretch(0,1)
@@ -49,14 +54,14 @@ class CdTeWidget(QWidget):
         
         ## for CdTe image
         # widget for displaying the automated recommendation
-        self._image_layout = self.layout_bkg(main_layout=image_layout, 
-                                             panel_name="image_panel", 
+        self._ql_layout = self.layout_bkg(main_layout=ql_layout, 
+                                             panel_name="ql_panel", 
                                              style_sheet_string=self._layout_style("grey", "white"), grid=True)
-        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name)
+        self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name)
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
-        self.image.setStyleSheet("border-width: 0px;")
-        self._image_layout.addWidget(self.image)
+        self.ql.setStyleSheet("border-width: 0px;")
+        self._ql_layout.addWidget(self.ql)
         
         # image_layout.addWidget(self.image)
         # self._image_layout.setColumnStretch(0, 1)
@@ -64,14 +69,14 @@ class CdTeWidget(QWidget):
 
         ## for CdTe pedestal
         # widget for displaying the automated recommendation
-        self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
-                                             panel_name="ped_panel", 
+        self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
+                                             panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("grey", "white"), grid=True)
-        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name=name)
+        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
-        self.ped.setStyleSheet("border-width: 0px;")
-        self._ped_layout.addWidget(self.ped) 
+        self.pc.setStyleSheet("border-width: 0px;")
+        self._pc_layout.addWidget(self.pc) 
         # self._ped_layout.setColumnStretch(0, 1)
         # self._ped_layout.setRowStretch(0, 1)
 
@@ -100,17 +105,48 @@ class CdTeWidget(QWidget):
         # self.somevalue4.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue5.setMinimumSize(QtCore.QSize(200,100))
 
-        self.image.reader.value_changed_collection.connect(self.all_fields)
+        temp_layout = QtWidgets.QVBoxLayout()
+        self._temp_layout = self.layout_bkg(main_layout=temp_layout, 
+                                             panel_name="temp_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
+        self.fpga_temp = QValueRangeWidget(name="FPGA T", value="N/A", condition={"low":0,"high":np.inf})
+        self.sensor_temp = QValueRangeWidget(name="Sensor T", value="N/A", condition={"low":0,"high":np.inf})
+        self._temp_layout.addWidget(self.fpga_temp) 
+        self._temp_layout.addWidget(self.sensor_temp) 
+        self.set_all_spacings(self._temp_layout)
+
+        phot_layout = QtWidgets.QVBoxLayout()
+        self._phot_layout = self.layout_bkg(main_layout=phot_layout, 
+                                             panel_name="phot_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
+        self.ph_w = QValueRangeWidget(name="Whole Ph. R.", value="N/A", condition={"low":0,"high":np.inf})
+        self.ph_p = QValueRangeWidget(name="Part Ph. R.", value="N/A", condition={"low":0,"high":np.inf})
+        self._phot_layout.addWidget(self.ph_w) 
+        self._phot_layout.addWidget(self.ph_p) 
+        self.set_all_spacings(self._phot_layout)
+
+        comp_layout = QtWidgets.QVBoxLayout()
+        self._comp_layout = self.layout_bkg(main_layout=comp_layout, 
+                                             panel_name="comp_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
+        self.cpu = QValueRangeWidget(name="CPU Load Ave.", value="N/A", condition={"low":0,"high":np.inf})
+        self.mem = QValueRangeWidget(name="R. Disk Size", value="N/A", condition={"low":0,"high":np.inf})
+        self._comp_layout.addWidget(self.cpu) 
+        self._comp_layout.addWidget(self.mem)
+
+        # self.ql.reader.value_changed_collection.connect(self.all_fields)
+        # -- or --
+        # self.pc.reader.value_changed_collection.connect(self.all_fields)
 
         ## all widgets together
         # image
         global_layout = QGridLayout()
         # global_layout.addWidget(self.image, 0, 0, 4, 4)
-        global_layout.addLayout(image_layout, 0, 0, 4, 4)#,
+        global_layout.addLayout(ql_layout, 0, 0, 40, 43)#,
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop) # y,x,h,w
         # pedestal
         # global_layout.addWidget(self.ped, 4, 0, 4, 3)
-        global_layout.addLayout(ped_layout, 4, 0, 2, 4)#,
+        global_layout.addLayout(pc_layout, 0, 43, 18, 36)#,
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignBottom)# y,x,h,w
         # status values
         # global_layout.addWidget(self.somevalue0, 0, 4, 1, 1)
@@ -120,7 +156,11 @@ class CdTeWidget(QWidget):
         # global_layout.addWidget(self.somevalue4, 4, 4, 1, 1)
         # global_layout.addWidget(self.somevalue5, 5, 4, 1, 1)
         # global_layout.addWidget(self.somevalue5, 6, 4, 1, 1)
-        global_layout.addLayout(value_layout, 0, 4, 6, 2)#,
+        
+        global_layout.addLayout(temp_layout, 40, 0, 10, 22)
+        global_layout.addLayout(phot_layout, 40, 22, 10, 21)
+        # global_layout.addLayout(comp_layout, 40, 29, 10, 14)
+        global_layout.addLayout(value_layout, 18, 43, 32, 57)#,
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignBottom)
         
         # make sure all cell sizes in the grid expand in proportion
@@ -130,9 +170,9 @@ class CdTeWidget(QWidget):
             global_layout.setRowStretch(row, 1)
 
         # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
-        self._image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
+        self._ql_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         # ped_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
-        self._ped_layout.setContentsMargins(0, 0, 0, 0)
+        self._pc_layout.setContentsMargins(0, 0, 0, 0)
         self._value_layout.setContentsMargins(0, 0, 0, 0)
         global_layout.setHorizontalSpacing(0)
         global_layout.setVerticalSpacing(0)
@@ -141,12 +181,21 @@ class CdTeWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
+    def set_all_spacings(self, layout, s=0, grid=False):
+        """ Default is to remove all margins"""
+        if grid:
+            layout.setHorizontalSpacing(s)
+            layout.setVerticalSpacing(s)
+        else:
+            layout.setSpacing(s)
+        layout.setContentsMargins(s, s, s, s)
+
     def all_fields(self):
         """ 
         Update the:
         * count rate field, 
         """
-        self.cts.update_label(self.image.reader.collection.total_counts())
+        self.cts.update_label(self.ql.reader.collection.total_counts())
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -191,7 +240,7 @@ class CdTeWidget(QWidget):
 
         self.resize(new_size)
 
-class AllCdTeView(QWidget):
+class AllCMOSView(QWidget):
     def __init__(self):
         super().__init__()     
         
@@ -202,30 +251,18 @@ class AllCdTeView(QWidget):
         self.setWindowTitle("All CdTe View")
         self.aspect_ratio = self.detw/self.deth
 
-        datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-        datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-        datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-        datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
+        data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
+        data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
 
-        f0 = CdTeWidget(data_file=datafile0, name=os.path.basename(datafile0))
+        f0 = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql, name=os.path.basename(data_file_pc))
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=datafile1, name=os.path.basename(datafile0))
+        f1 = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql, name=os.path.basename(data_file_pc))
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
-
-        f2 = CdTeWidget(data_file=datafile2, name=os.path.basename(datafile0))
-        # f2.resize(QtCore.QSize(150, 150))
-        _f2 =QGridLayout()
-        _f2.addWidget(f2, 0, 0)
-
-        f3 = CdTeWidget(data_file=datafile3, name=os.path.basename(datafile0))
-        # f3.resize(QtCore.QSize(150, 150))
-        _f3 =QGridLayout()
-        _f3.addWidget(f3, 0, 0)
 
         lay = QGridLayout(spacing=0)
         # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -234,8 +271,6 @@ class AllCdTeView(QWidget):
         # lay.addWidget(f1, 0, 1, 1, 1)
         lay.addLayout(_f0, 0, 0, 1, 1)
         lay.addLayout(_f1, 0, 1, 1, 1)
-        lay.addLayout(_f2, 0, 2, 1, 1)
-        lay.addLayout(_f3, 0, 3, 1, 1)
 
         lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
         lay.setHorizontalSpacing(5)
@@ -262,66 +297,13 @@ class AllCdTeView(QWidget):
 
 if __name__=="__main__":
     app = QApplication([])
-
-    # different data files to try
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2022_03/NiFoilAm241/10min/test_20230609a_det03_00012_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Am241/test_berk_20230803_proto_Am241_1min_postvibe2_00006_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/fromBerkeley_postVibeCheckFiles/Fe55/test_berk_20230803_proto_Fe55_1min__postvibe2_00008_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Am241/1min/test_berk_20230728_det05_00005_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Fe55/1min/test_berk_20230728_det05_00006_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeImages/no2021_05/Cr51/1min/test_berk_20230728_det05_00007_001"
-    # datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/berkeley/prototype_vibe_test/vibetest_presinez_berk_20230802_proto_00012_001"
     
-    # import os
-    # FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-    # datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
-    # datafile = "/Users/kris/Desktop/test_230306_00001_001_nohk"
-    # datafile="/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/calibration/j-sideRootData/usingDAQ/raw2root/backgrounds-20230331-newGrounding/20230331_bkg_00001_001"
-    # # datafile = "/Users/kris/Desktop/cdte_20231030.log"
-    # # datafile = "/Users/kris/Desktop/cdte_20231030_postsend.log"
-    # # datafile = "/Users/kris/Desktop/cdte_20231030_presend.log"
-    # datafile = "/Users/kris/Desktop/cdte_20231030_fullread.log"
-    # datafile = "/Users/kris/Desktop/cdte_src_mod.log"
-    # datafile = "/Users/kris/Desktop/gse_mod.log"
-    # datafile = "/Users/kris/Desktop/from_de.log"
-    # # datafile = "/Users/kris/Desktop/from_gse.log"
-    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-    # # datafile = ""
-
-    # # `datafile = FILE_DIR+"/../data/cdte.log"`
-    # reader = CdTeFileReader(datafile)#CdTeReader(data_file)
-    # # reader = CdTeReader(datafile)
-    
-    # f0 = CdTeWidget(data_file=datafile)
-    # _f0 =QGridLayout()
-    # _f0.addWidget(f0, 0, 0)
-
-    # f1 = CdTeWidget(data_file=datafile)
-    # _f1 =QGridLayout()
-    # _f1.addWidget(f1, 0, 0)
-
-    # f2 = CdTeWidget(data_file=datafile)
-    # _f2 =QGridLayout()
-    # _f2.addWidget(f2, 0, 0)
-
-    # f3 = CdTeWidget(data_file=datafile)
-    # _f3 =QGridLayout()
-    # _f3.addWidget(f3, 0, 0)
-    
-    # w = QWidget()
-    # lay = QGridLayout(w)
-    # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-
-    # # lay.addWidget(f0, 0, 0, 1, 1)
-    # # lay.addWidget(f1, 0, 1, 1, 1)
-    # lay.addLayout(_f0, 0, 0, 1, 1)
-    # lay.addLayout(_f1, 0, 1, 1, 1)
-    # lay.addLayout(_f2, 0, 2, 1, 1)
-    # lay.addLayout(_f3, 0, 3, 1, 1)
+    data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
+    data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
     
     # w.resize(1000,500)
-    w = AllCdTeView()
-    # w = CdTeWidget(data_file=datafile)
+    w = AllCMOSView()
+    # w = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql)
     
     w.show()
     app.exec()
