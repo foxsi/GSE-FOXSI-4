@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGr
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget
+from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
+from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
 
 class CdTeWidget(QWidget):
@@ -93,6 +95,7 @@ class CdTeWidget(QWidget):
         self._value_layout.addWidget(self.somevalue3) 
         self._value_layout.addWidget(self.somevalue4) 
         self._value_layout.addWidget(self.somevalue5) 
+        set_all_spacings(self._value_layout)
         # self.somevalue0.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue1.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue2.setMinimumSize(QtCore.QSize(200,100))
@@ -124,10 +127,11 @@ class CdTeWidget(QWidget):
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignBottom)
         
         # make sure all cell sizes in the grid expand in proportion
-        for col in range(global_layout.columnCount()):
-            global_layout.setColumnStretch(col, 1)
-        for row in range(global_layout.rowCount()):
-            global_layout.setRowStretch(row, 1)
+        # for col in range(global_layout.columnCount()):
+        #     global_layout.setColumnStretch(col, 1)
+        # for row in range(global_layout.rowCount()):
+        #     global_layout.setRowStretch(row, 1)
+        unifrom_layout_stretch(global_layout, grid=True)
 
         # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
@@ -196,7 +200,7 @@ class AllCdTeView(QWidget):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,498
+        self.detw, self.deth = 2000,500
         self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(600,150)
         self.setWindowTitle("All CdTe View")

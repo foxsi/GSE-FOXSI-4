@@ -36,9 +36,9 @@ class CMOSQLWindow(QWidget):
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
-        self.graphPane = pg.PlotWidget(self)
+        self.graphPane = pg.PlotWidget()
         # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 250,250 # was 2,1
-        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addWidget(self.graphPane)

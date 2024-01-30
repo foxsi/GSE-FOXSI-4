@@ -99,10 +99,10 @@ class QValueWidget(QWidget):
         * `condition_colour(self, value):`
         """
         QWidget.__init__(self,parent, **kwargs)
-        self.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding,
-            QSizePolicy.Policy.MinimumExpanding
-        )
+        # self.setSizePolicy(
+        #     QSizePolicy.Policy.MinimumExpanding,
+        #     QSizePolicy.Policy.MinimumExpanding
+        # )
 
         # make sure the name can be obtained anywhere
         self.name = name
@@ -162,7 +162,7 @@ class QValueWidget(QWidget):
     def make_label(self, value):
         """ Create the intial label. """
         self._value_label = QLabel(f"{self.name} : {value}")
-        self._value_label.setWordWrap(True)
+        # self._value_label.setWordWrap(True)
 
         self.panel.setStyleSheet(self.layout_style("grey", 
                                                     self.condition_colour(value)))

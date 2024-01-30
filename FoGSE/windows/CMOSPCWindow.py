@@ -36,9 +36,9 @@ class CMOSPCWindow(QWidget):
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
-        self.graphPane = pg.PlotWidget(self)
-        self.graphPane.setMinimumSize(QtCore.QSize(40,80)) # was 300,250, # was 2,1
-        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.graphPane = pg.PlotWidget()
+        # self.graphPane.setMinimumSize(QtCore.QSize(40,80)) # was 300,250, # was 2,1
+        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
         self.layoutMain.addWidget(self.graphPane)

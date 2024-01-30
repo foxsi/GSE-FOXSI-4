@@ -13,6 +13,7 @@ from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
+from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
 
 class CMOSWidget(QWidget):
@@ -40,14 +41,15 @@ class CMOSWidget(QWidget):
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
         self.detw, self.deth = 100, 50
-        # self.setGeometry(100,100,self.detw, self.deth)
+        self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
-        # define main layouts for the status window, LED, buttons, times, and plot
+        # define main layouts 
         ql_layout = QtWidgets.QGridLayout()
         pc_layout = QtWidgets.QGridLayout()
-        value_layout = QtWidgets.QVBoxLayout()
+        exp_layout = QtWidgets.QVBoxLayout()
+        operation_layout = QtWidgets.QVBoxLayout()
         # image_layout.setColumnStretch(0,1)
         # image_layout.setRowStretch(0,1)
 
@@ -64,6 +66,7 @@ class CMOSWidget(QWidget):
         self.ql.setStyleSheet("border-width: 0px;")
         self._ql_layout.addWidget(self.ql)
         
+        
         # image_layout.addWidget(self.image)
         # self._image_layout.setColumnStretch(0, 1)
         # self._image_layout.setRowStretch(0, 1)
@@ -79,26 +82,30 @@ class CMOSWidget(QWidget):
         self.pc.setStyleSheet("border-width: 0px;")
         self._pc_layout.addWidget(self.pc) 
         # self._ped_layout.setColumnStretch(0, 1)
+        set_all_spacings(pc_layout, grid=True)
         # self._ped_layout.setRowStretch(0, 1)
 
-        # status values
-        self._value_layout = self.layout_bkg(main_layout=value_layout, 
-                                             panel_name="value_panel", 
+        # exposure values
+        self._exp_layout = self.layout_bkg(main_layout=exp_layout, 
+                                             panel_name="exp_panel", 
                                              style_sheet_string=self._layout_style("grey", "white"))
-        self.cts = QValueRangeWidget(name="Counts (cts)", value="N/A", condition={"low":0,"high":np.inf})
-        self.somevalue0 = QValueRangeWidget(name="This", value=9, condition={"low":2,"high":15})
-        self.somevalue1 = QValueRangeWidget(name="That", value=8, condition={"low":2,"high":15})
-        self.somevalue2 = QValueRangeWidget(name="Other", value=60, condition={"low":2,"high":15})
-        self.somevalue3 = QValueRangeWidget(name="Another", value="N/A", condition={"low":2,"high":15})
-        self.somevalue4 = QValueRangeWidget(name="Again", value=2, condition={"low":2,"high":15})
-        self.somevalue5 = QValueRangeWidget(name="This2", value=14, condition={"low":2,"high":15})
-        self._value_layout.addWidget(self.cts) 
-        self._value_layout.addWidget(self.somevalue0) 
-        self._value_layout.addWidget(self.somevalue1) 
-        self._value_layout.addWidget(self.somevalue2) 
-        self._value_layout.addWidget(self.somevalue3) 
-        self._value_layout.addWidget(self.somevalue4) 
-        self._value_layout.addWidget(self.somevalue5) 
+        self.gain_m = QValueRangeWidget(name="Gain Mode", value="N/A", condition={"low":0,"high":np.inf})
+        self.exp_ql = QValueRangeWidget(name="QL Exp.", value=9, condition={"low":2,"high":15})
+        self.exp_pc = QValueRangeWidget(name="PC Exp.", value=8, condition={"low":2,"high":15})
+        self.rn = QValueRangeWidget(name="Repeat \"n\"", value=60, condition={"low":2,"high":15})
+        self.rN = QValueRangeWidget(name="Repeat \"N\"", value="N/A", condition={"low":2,"high":15})
+        self.gain_e = QValueRangeWidget(name="Gain Even", value=2, condition={"low":2,"high":15})
+        self.gain_o = QValueRangeWidget(name="Gain Odd", value=2, condition={"low":2,"high":15})
+        self.ncapture = QValueRangeWidget(name="NCapture", value=2, condition={"low":2,"high":15})
+        self._exp_layout.addWidget(self.gain_m) 
+        self._exp_layout.addWidget(self.exp_ql) 
+        self._exp_layout.addWidget(self.exp_pc) 
+        self._exp_layout.addWidget(self.rn) 
+        self._exp_layout.addWidget(self.rN) 
+        self._exp_layout.addWidget(self.gain_e) 
+        self._exp_layout.addWidget(self.gain_o) 
+        self._exp_layout.addWidget(self.ncapture) 
+        set_all_spacings(self._exp_layout)
         # self.somevalue0.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue1.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue2.setMinimumSize(QtCore.QSize(200,100))
@@ -106,6 +113,27 @@ class CMOSWidget(QWidget):
         # self.somevalue4.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue5.setMinimumSize(QtCore.QSize(200,100))
 
+        # operation values
+        self._operation_layout = self.layout_bkg(main_layout=operation_layout, 
+                                             panel_name="operation_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
+        self.init = QValueRangeWidget(name="Init", value="N/A", condition={"low":0,"high":np.inf})
+        self.train = QValueRangeWidget(name="Training", value=9, condition={"low":2,"high":15})
+        self.setting = QValueRangeWidget(name="Setting", value=8, condition={"low":2,"high":15})
+        self.start = QValueRangeWidget(name="Start", value=60, condition={"low":2,"high":15})
+        self.stop = QValueRangeWidget(name="Stop", value="N/A", condition={"low":2,"high":15})
+        self.stop2start = QValueRangeWidget(name="Start->Stop", value=2, condition={"low":2,"high":15})
+        self.software = QValueRangeWidget(name="Software", value=2, condition={"low":2,"high":15})
+        self._operation_layout.addWidget(self.init) 
+        self._operation_layout.addWidget(self.train) 
+        self._operation_layout.addWidget(self.setting) 
+        self._operation_layout.addWidget(self.start) 
+        self._operation_layout.addWidget(self.stop) 
+        self._operation_layout.addWidget(self.stop2start) 
+        self._operation_layout.addWidget(self.software) 
+        set_all_spacings(self._operation_layout)
+
+        # temperature values
         temp_layout = QtWidgets.QVBoxLayout()
         self._temp_layout = self.layout_bkg(main_layout=temp_layout, 
                                              panel_name="temp_panel", 
@@ -114,8 +142,9 @@ class CMOSWidget(QWidget):
         self.sensor_temp = QValueRangeWidget(name="Sensor T", value="N/A", condition={"low":0,"high":np.inf})
         self._temp_layout.addWidget(self.fpga_temp) 
         self._temp_layout.addWidget(self.sensor_temp) 
-        self.set_all_spacings(self._temp_layout)
+        set_all_spacings(self._temp_layout)
 
+        # photon 
         phot_layout = QtWidgets.QVBoxLayout()
         self._phot_layout = self.layout_bkg(main_layout=phot_layout, 
                                              panel_name="phot_panel", 
@@ -124,16 +153,38 @@ class CMOSWidget(QWidget):
         self.ph_p = QValueRangeWidget(name="Part Ph. R.", value="N/A", condition={"low":0,"high":np.inf})
         self._phot_layout.addWidget(self.ph_w) 
         self._phot_layout.addWidget(self.ph_p) 
-        self.set_all_spacings(self._phot_layout)
+        set_all_spacings(self._phot_layout)
 
+        # computer
         comp_layout = QtWidgets.QVBoxLayout()
         self._comp_layout = self.layout_bkg(main_layout=comp_layout, 
                                              panel_name="comp_panel", 
                                              style_sheet_string=self._layout_style("grey", "white"))
         self.cpu = QValueRangeWidget(name="CPU Load Ave.", value="N/A", condition={"low":0,"high":np.inf})
-        self.mem = QValueRangeWidget(name="R. Disk Size", value="N/A", condition={"low":0,"high":np.inf})
+        self.mem = QValueRangeWidget(name="Disk Space", value="N/A", condition={"low":0,"high":np.inf})
         self._comp_layout.addWidget(self.cpu) 
         self._comp_layout.addWidget(self.mem)
+        set_all_spacings(self._comp_layout)
+
+        # write status
+        write_layout = QtWidgets.QVBoxLayout()
+        self._write_layout = self.layout_bkg(main_layout=write_layout, 
+                                             panel_name="write_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
+        self.pointer = QValueRangeWidget(name="Write Pointer", value="N/A", condition={"low":0,"high":np.inf})
+        self._write_layout.addWidget(self.pointer) 
+        set_all_spacings(self._write_layout)
+
+        # more exposure
+        xexp_layout = QtWidgets.QVBoxLayout()
+        self._xexp_layout = self.layout_bkg(main_layout=xexp_layout, 
+                                             panel_name="xexp_panel", 
+                                             style_sheet_string=self._layout_style("grey", "white"))
+        self.expxx = QValueRangeWidget(name="Ch. Exp. XX", value="N/A", condition={"low":0,"high":np.inf})
+        self.exp192 = QValueRangeWidget(name="Ch. Exp. 192", value="N/A", condition={"low":0,"high":np.inf})
+        self._xexp_layout.addWidget(self.expxx) 
+        self._xexp_layout.addWidget(self.exp192)
+        set_all_spacings(self._xexp_layout)
 
         # self.ql.reader.value_changed_collection.connect(self.all_fields)
         # -- or --
@@ -143,7 +194,7 @@ class CMOSWidget(QWidget):
         # image
         global_layout = QGridLayout()
         # global_layout.addWidget(self.image, 0, 0, 4, 4)
-        global_layout.addLayout(ql_layout, 0, 0, 40, 43)#,
+        global_layout.addLayout(ql_layout, 0, 0, 40, 43)#,43
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop) # y,x,h,w
         # pedestal
         # global_layout.addWidget(self.ped, 4, 0, 4, 3)
@@ -161,36 +212,49 @@ class CMOSWidget(QWidget):
         global_layout.addLayout(temp_layout, 40, 0, 10, 22)
         global_layout.addLayout(phot_layout, 40, 22, 10, 21)
         # global_layout.addLayout(comp_layout, 40, 29, 10, 14)
-        global_layout.addLayout(value_layout, 18, 43, 32, 57)#,
+        global_layout.addLayout(exp_layout, 18, 43, 32, 19)#,
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignBottom)
+        global_layout.addLayout(write_layout, 39, 81, 11, 19)
+        global_layout.addLayout(operation_layout, 18, 62, 32, 19)
+        global_layout.addLayout(xexp_layout, 18, 81, 21, 19)
+        global_layout.addLayout(comp_layout, 0, 79, 18, 21)
+
+        # unifrom_layout_stretch(ql_layout, grid=True)
+        # unifrom_layout_stretch(pc_layout, grid=True)
+        # unifrom_layout_stretch(temp_layout)
+        # unifrom_layout_stretch(phot_layout)
+        # unifrom_layout_stretch(exp_layout)
+        # unifrom_layout_stretch(write_layout)
+        # unifrom_layout_stretch(operation_layout)
+        # unifrom_layout_stretch(xexp_layout)
+        # unifrom_layout_stretch(comp_layout)
+
+        unifrom_layout_stretch(global_layout, grid=True)
         
         # make sure all cell sizes in the grid expand in proportion
         # for col in range(global_layout.columnCount()):
         #     global_layout.setColumnStretch(col, 1)
         # for row in range(global_layout.rowCount()):
         #     global_layout.setRowStretch(row, 1)
-        unifrom_layout_stretch(global_layout)
 
         # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._ql_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         # ped_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._pc_layout.setContentsMargins(0, 0, 0, 0)
-        self._value_layout.setContentsMargins(0, 0, 0, 0)
+        self._temp_layout.setContentsMargins(0, 0, 0, 0)
+        self._phot_layout.setContentsMargins(0, 0, 0, 0)
+        self._exp_layout.setContentsMargins(0, 0, 0, 0)
+        self._write_layout.setContentsMargins(0, 0, 0, 0)
+        self._operation_layout.setContentsMargins(0, 0, 0, 0)
+        self._xexp_layout.setContentsMargins(0, 0, 0, 0)
+        self._comp_layout.setContentsMargins(0, 0, 0, 0)
+        # self._exp_layout.setContentsMargins(0, 0, 0, 0)
         global_layout.setHorizontalSpacing(0)
         global_layout.setVerticalSpacing(0)
         global_layout.setContentsMargins(0, 0, 0, 0)
 
         # actually display the layout
         self.setLayout(global_layout)
-
-    def set_all_spacings(self, layout, s=0, grid=False):
-        """ Default is to remove all margins"""
-        if grid:
-            layout.setHorizontalSpacing(s)
-            layout.setVerticalSpacing(s)
-        else:
-            layout.setSpacing(s)
-        layout.setContentsMargins(s, s, s, s)
 
     def all_fields(self):
         """ 
@@ -247,7 +311,7 @@ class AllCMOSView(QWidget):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,498
+        self.detw, self.deth = 2000,500
         self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(600,150)
         self.setWindowTitle("All CdTe View")
@@ -274,10 +338,11 @@ class AllCMOSView(QWidget):
         lay.addLayout(_f0, 0, 0, 1, 1)
         lay.addLayout(_f1, 0, 1, 1, 1)
 
-        unifrom_layout_stretch(lay)
+        unifrom_layout_stretch(lay, grid=True)
 
         lay.setContentsMargins(1, 1, 1, 1) # left, top, right, bottom
         lay.setHorizontalSpacing(0)
+        lay.setVerticalSpacing(0)
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(83, 223, 221, 50);")
 
         self.setLayout(lay)
