@@ -12,6 +12,7 @@ from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
 from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget
+from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 
 
 class CMOSWidget(QWidget):
@@ -164,10 +165,11 @@ class CMOSWidget(QWidget):
                                 #alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignBottom)
         
         # make sure all cell sizes in the grid expand in proportion
-        for col in range(global_layout.columnCount()):
-            global_layout.setColumnStretch(col, 1)
-        for row in range(global_layout.rowCount()):
-            global_layout.setRowStretch(row, 1)
+        # for col in range(global_layout.columnCount()):
+        #     global_layout.setColumnStretch(col, 1)
+        # for row in range(global_layout.rowCount()):
+        #     global_layout.setRowStretch(row, 1)
+        unifrom_layout_stretch(global_layout)
 
         # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._ql_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
@@ -272,8 +274,10 @@ class AllCMOSView(QWidget):
         lay.addLayout(_f0, 0, 0, 1, 1)
         lay.addLayout(_f1, 0, 1, 1, 1)
 
-        lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
-        lay.setHorizontalSpacing(5)
+        unifrom_layout_stretch(lay)
+
+        lay.setContentsMargins(1, 1, 1, 1) # left, top, right, bottom
+        lay.setHorizontalSpacing(0)
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(83, 223, 221, 50);")
 
         self.setLayout(lay)
