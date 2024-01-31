@@ -105,7 +105,7 @@ class CMOSPCWindow(QWidget):
         # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
-        self.set_image_colour("red")
+        self.set_image_colour("green")
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
@@ -159,7 +159,7 @@ class CMOSPCWindow(QWidget):
         if self.image_product=="image":
             new_frame = self.reader.collection.image_array()
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-1] = 0 # because interp 0s causes tiny artifacts
+            new_frame[new_frame<1e-10] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "replace"
 
         # update current plotted data with new frame

@@ -169,13 +169,13 @@ def QLimageData(data481kB):
     min_value, max_value = 0, 4095
     # QLimage = Image.new("L", (width, height))
     # Set pixel values
-    pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
+    # pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
     # QLimage.putdata(pixels)
 
     #**********************************************************************
     #******************************** Kris ********************************
     pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in decimal_list])
-    # pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
+    # pixels[pixels>np.quantile(pixels, 0.99)] = np.quantile(pixels, 0.99)
     # pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
     # pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
     #**********************************************************************
@@ -238,14 +238,11 @@ def PCimageData(data577kB,frame_no=0):
     min_value, max_value = 0, 4095
     # PCimage = Image.new("L", (width, height))
     # Set pixel values
-    pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
+    # pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
 
     #**********************************************************************
     #******************************** Kris ********************************
     pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in decimal_list])
-    pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
-    pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
-    pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
     #**********************************************************************
 
     # PCimage.putdata(pixels)

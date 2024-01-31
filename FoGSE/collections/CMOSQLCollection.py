@@ -39,6 +39,7 @@ class CMOSQLCollection:
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
         self.linetime, _, _, self._image = parsed_data
+        self._image[self._image>1] = 0
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time
