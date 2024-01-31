@@ -4,7 +4,7 @@ A demo to walk through an existing CMOS raw file.
 
 import numpy as np
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout
 import pyqtgraph as pg
 
@@ -94,7 +94,7 @@ class CMOSQLWindow(QWidget):
             # self.detw, self.deth = 512, 480
             # set title and labels
             # self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: QL Image")
-            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}: QL Image")
+            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}: QL")
 
         self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
 
@@ -299,6 +299,7 @@ class CMOSQLWindow(QWidget):
         """
 
         # graph_widget.setTitle(title)
+        self.add_label(title)
 
         # Set label for both axes
         graph_widget.setLabel('bottom', xlabel)
@@ -308,6 +309,14 @@ class CMOSQLWindow(QWidget):
         graph_widget.getAxis("right").setWidth(0)
         graph_widget.getAxis("top").setHeight(0)
         graph_widget.getAxis("bottom").setHeight(0)
+
+    def add_label(self, entry):
+        self.label_title = pg.TextItem("", **{'color': '#FFF', "anchor":(0,1)})
+        self.label_title.setFont(QtGui.QFont('Arial', 10))
+        self.label_title.setPos(QtCore.QPointF(0, 0))
+        self.label_title.setText(entry)
+        self.label_title.setZValue(1)
+        self.graphPane.addItem(self.label_title)
 
     def set_image_ndarray(self):
         """

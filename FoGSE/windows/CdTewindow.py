@@ -4,7 +4,7 @@ A demo to walk through an existing CdTe raw file.
 
 import numpy as np
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 import pyqtgraph as pg
 
@@ -94,12 +94,16 @@ class CdTeWindow(QWidget):
             self.detw, self.deth = np.shape(_rm)
             self.update_aspect(aspect_ratio=self.detw/self.deth)
             # set title and labels
-            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}: Image")
+            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}")
+            xlabel = " "
+            ylabel = " "
         elif self.image_product=="spectrogram":
             self.detw, self.deth = 256, 1024
             self.update_aspect(aspect_ratio=2)
-            # set title and labels
-            self.set_labels(self.graphPane, xlabel="Strips [Pt:0-127, Al:127-255]", ylabel="ADC/Energy", title=f"{self.name}: Spectrogram")
+            xlabel = "Strips [Pt:0-127, Al:127-255]"
+            ylabel = "ADC/Energy"
+        # set title and labels
+        self.set_labels(self.graphPane, xlabel=xlabel, ylabel=ylabel, title=f"{self.name}")
  
         self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
 
@@ -316,6 +320,7 @@ class CdTeWindow(QWidget):
         styles = {"size":"10pt", "font-size":"10pt", "color":"grey", "margin":"0"}
 
         # graph_widget.setTitle(title, **styles)
+        self.add_label(title)
 
         # Set label for both axes
         graph_widget.setLabel('bottom', xlabel, **styles)
@@ -325,6 +330,14 @@ class CdTeWindow(QWidget):
         graph_widget.getAxis("right").setWidth(0)
         graph_widget.getAxis("top").setHeight(0)
         graph_widget.getAxis("bottom").setHeight(0)
+
+    def add_label(self, entry):
+        self.label_title = pg.TextItem("", **{'color': '#FFF', "anchor":(0,1)})
+        self.label_title.setFont(QtGui.QFont('Arial', 10))
+        self.label_title.setPos(QtCore.QPointF(0, 0))
+        self.label_title.setText(entry)
+        self.label_title.setZValue(1)
+        self.graphPane.addItem(self.label_title)
 
     def set_image_ndarray(self):
         """

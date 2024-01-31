@@ -69,7 +69,7 @@ class CdTeWidget(QWidget):
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name=name)
+        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="")
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ped.setStyleSheet("border-width: 0px;")
@@ -288,17 +288,17 @@ class AllCdTeView(QWidget):
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=datafile1, name=os.path.basename(datafile0))
+        f1 = CdTeWidget(data_file=datafile1, name=os.path.basename(datafile1))
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file=datafile2, name=os.path.basename(datafile0))
+        f2 = CdTeWidget(data_file=datafile2, name=os.path.basename(datafile2))
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file=datafile3, name=os.path.basename(datafile0))
+        f3 = CdTeWidget(data_file=datafile3, name=os.path.basename(datafile3))
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)
