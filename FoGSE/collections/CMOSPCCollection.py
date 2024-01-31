@@ -38,11 +38,7 @@ class CMOSPCCollection:
     
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
-        self.linetime, _, _, self._image = parsed_data
-
-        self._image[self._image>1] = 0
-        # print(np.max(self._image), np.min(self._image), self._image)
-        # self._image = (self._image-np.min(self._image))/(np.max(self._image-np.min(self._image)))*256
+        self.linetime, self.gain_pc, self.exposure_pc, self._image = parsed_data
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time
@@ -69,7 +65,9 @@ class CMOSPCCollection:
         `np.ndarray` :
             The image array.
         """
-        return self._image
+        im = self._image
+        im[im>1] = 0 #images are normalsed so remove values of artificially large value
+        return im
     
     def plot_image(self):
         """
@@ -89,3 +87,11 @@ class CMOSPCCollection:
         plt.title("CMOS Image")
         
         return i
+    
+    def get_exposure(self):
+        """ Return the exposure time of PC image. """
+        return self.exposure_pc
+    
+    def get_gain(self):
+        """ Return the exposure time of PC image. """
+        return self.gain_pc

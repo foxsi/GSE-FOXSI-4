@@ -38,8 +38,7 @@ class CMOSQLCollection:
     
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
-        self.linetime, _, _, self._image = parsed_data
-        self._image[self._image>1] = 0
+        self.linetime, self.gain_ql, self.exposure_ql, self._image = parsed_data
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time
@@ -66,7 +65,9 @@ class CMOSQLCollection:
         `np.ndarray` :
             The image array.
         """
-        return self._image
+        im = self._image
+        im[im>1] = 0 #images are normalsed so remove values of artificially large value
+        return im
     
     def plot_image(self):
         """
@@ -86,3 +87,11 @@ class CMOSQLCollection:
         plt.title("CMOS Image")
         
         return i
+    
+    def get_exposure(self):
+        """ Return the exposure time of QL image. """
+        return self.exposure_ql
+    
+    def get_gain(self):
+        """ Return the exposure time of QL image. """
+        return self.gain_ql

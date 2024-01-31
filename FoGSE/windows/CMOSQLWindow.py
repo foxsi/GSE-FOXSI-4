@@ -277,7 +277,7 @@ class CMOSQLWindow(QWidget):
         norm = np.max(self.my_array, axis=(0,1))
         norm[norm==0] = 1 # can't divide by 0
         uf = self.max_val*self.my_array//norm
-        print(uf)
+        
         # allow this all to be looked at if need be
         self.qImageDetails = [uf.astype(self.numpy_format), self.detw, self.deth, self.cformat]
 

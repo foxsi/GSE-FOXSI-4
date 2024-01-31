@@ -27,7 +27,7 @@ class QValueWidget(QWidget):
             l = QGridLayout()
 
             # create value widget and add it to the layout
-            self.value0 = QValueWidget(name="This", value=5, condition={"low":2,"high":15})
+            self.value0 = QValueWidget(name="This", value=5)
             l.addWidget(self.value0, 0, 0) # widget, -y, x
 
             # actually display the layout
@@ -50,7 +50,7 @@ class QValueWidget(QWidget):
     window.show()
     app.exec()
     """
-    def __init__(self, name, value, condition=None, parent=None, **kwargs):
+    def __init__(self, name, value, condition=None, parent=None, border_colour="grey", **kwargs):
         """ 
         Constructs the widget and adds the latest plotted data to the widget.
 
@@ -74,6 +74,11 @@ class QValueWidget(QWidget):
                 can instead contain information of two lists with the 
                 acceptable and unacceptable states of `value` 
                 (keys:`acceptable` and `unacceptable`)
+
+        border_colour : `str`
+                The border colour of the label. E.g., "blue", "rgba(255,255,9,100)",
+                and "rgb(255,255,9)"
+                Default: "grey"
 
         Methods
         -------
@@ -114,6 +119,7 @@ class QValueWidget(QWidget):
         self.bkg_layout = self.layout_bkg(main_layout=self.layout)
 
         # make the label for the value
+        self._border_colour = border_colour
         self.make_label(value)
         
         # style the label widgets
@@ -135,7 +141,7 @@ class QValueWidget(QWidget):
         
     def layout_style(self, border_colour, background_colour):
         """ Define a global layout style. """
-        return f"border-width: 2px; border-style: outset; border-radius: 10px; border-color: {border_colour}; background-color: {background_colour};"
+        return f"border-width: 2px; border-style: outset; border-radius: 0px; border-color: {border_colour}; background-color: {background_colour};"
 
     def layout_bkg(self, main_layout, grid=False):
             """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -159,12 +165,16 @@ class QValueWidget(QWidget):
         """ Assign the style for the label widget. """
         self._value_label.setStyleSheet(self._data_style())
 
+    def update_border_colour(self, colour):
+        """ Set the widget border colour. """
+        self._border_colour = colour
+
     def make_label(self, value):
         """ Create the intial label. """
         self._value_label = QLabel(f"{self.name} : {value}")
         # self._value_label.setWordWrap(True)
 
-        self.panel.setStyleSheet(self.layout_style("grey", 
+        self.panel.setStyleSheet(self.layout_style(self._border_colour, 
                                                     self.condition_colour(value)))
 
         self.bkg_layout.addWidget(self._value_label)
@@ -182,7 +192,7 @@ class QValueWidget(QWidget):
         
         self._value_label.setText(f"{self.name} : {new_value}")
         
-        self.panel.setStyleSheet(self.layout_style("grey", 
+        self.panel.setStyleSheet(self.layout_style(self._border_colour, 
                                                     self.condition_colour(new_value)))
 
         self._trigger_label_update()
@@ -474,7 +484,7 @@ class test(QWidget):
         l = QGridLayout()
 
         # create value widget and add it to the layout
-        self.value0 = QValueWidget(name="This", value=5, condition={"low":2,"high":15})
+        self.value0 = QValueWidget(name="This", value=5)
         l.addWidget(self.value0, 0, 0) # widget, -y, x
         self.value1 = QValueRangeWidget(name="That", value=6, condition={"low":2,"high":15})
         l.addWidget(self.value1, 0, 1) # widget, -y, x
