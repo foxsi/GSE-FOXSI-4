@@ -50,7 +50,7 @@ class QValueWidget(QWidget):
     window.show()
     app.exec()
     """
-    def __init__(self, name, value, condition=None, parent=None, border_colour="grey", **kwargs):
+    def __init__(self, name, value, condition=None, parent=None, border_colour="grey", separator=" : ", **kwargs):
         """ 
         Constructs the widget and adds the latest plotted data to the widget.
 
@@ -79,6 +79,11 @@ class QValueWidget(QWidget):
                 The border colour of the label. E.g., "blue", "rgba(255,255,9,100)",
                 and "rgb(255,255,9)"
                 Default: "grey"
+
+        separator : `str`
+                The character used to separate the value name and the 
+                value in the label, this includes spaces between them.
+                Default: " : "
 
         Methods
         -------
@@ -120,6 +125,7 @@ class QValueWidget(QWidget):
 
         # make the label for the value
         self._border_colour = border_colour
+        self.separator = separator
         self.make_label(value)
         
         # style the label widgets
@@ -171,7 +177,7 @@ class QValueWidget(QWidget):
 
     def make_label(self, value):
         """ Create the intial label. """
-        self._value_label = QLabel(f"{self.name} : {value}")
+        self._value_label = QLabel(f"{self.name}{self.separator}{value}")
         # self._value_label.setWordWrap(True)
 
         self.panel.setStyleSheet(self.layout_style(self._border_colour, 
@@ -190,7 +196,7 @@ class QValueWidget(QWidget):
     def update_label(self, new_value):
         """ Get the most current value and update the QLabel. """
         
-        self._value_label.setText(f"{self.name} : {new_value}")
+        self._value_label.setText(f"{self.name}{self.separator}{new_value}")
         
         self.panel.setStyleSheet(self.layout_style(self._border_colour, 
                                                     self.condition_colour(new_value)))
