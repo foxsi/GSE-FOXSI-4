@@ -59,7 +59,7 @@ class CMOSWidget(QWidget):
         # widget for displaying the automated recommendation
         self._ql_layout = self.layout_bkg(main_layout=ql_layout, 
                                              panel_name="ql_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"), grid=True)
+                                             style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name)
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -75,7 +75,7 @@ class CMOSWidget(QWidget):
         # widget for displaying the automated recommendation
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"), grid=True)
+                                             style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -89,7 +89,7 @@ class CMOSWidget(QWidget):
         exp_layout_colour = "rgb(227, 116, 51)"
         self._exp_layout = self.layout_bkg(main_layout=exp_layout, 
                                              panel_name="exp_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"), 
+                                             style_sheet_string=self._layout_style("white", "white"), 
                                              grid=True)
         self.gain_m = QValueRangeWidget(name="Gain Mode", value=10, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
         self.exp_ql = QValueRangeWidget(name="QL Exp.", value=9, condition={"low":2,"high":np.inf}, border_colour=exp_layout_colour)
@@ -114,7 +114,7 @@ class CMOSWidget(QWidget):
         operation_layout_colour = "rgb(66, 120, 139)"
         self._operation_layout = self.layout_bkg(main_layout=operation_layout, 
                                              panel_name="operation_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"), 
+                                             style_sheet_string=self._layout_style("white", "white"), 
                                              grid=True)
         self.init = QValueRangeWidget(name="Init", value=2.6, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
         self.train = QValueRangeWidget(name="Training", value=8.6, condition={"low":2,"high":15}, border_colour=operation_layout_colour)
@@ -138,7 +138,7 @@ class CMOSWidget(QWidget):
         temp_layout_colour = "rgb(166, 215, 208)"
         self._temp_layout = self.layout_bkg(main_layout=temp_layout, 
                                              panel_name="temp_panel", 
-                                             style_sheet_string=self._layout_style("grey", temp_layout_colour))
+                                             style_sheet_string=self._layout_style("white", temp_layout_colour))
         self.fpga_temp = QValueRangeWidget(name="FPGA T", value=0, condition={"low":0,"high":np.inf}, border_colour=temp_layout_colour)
         self.sensor_temp = QValueRangeWidget(name="Sensor T", value=0, condition={"low":0,"high":np.inf}, border_colour=temp_layout_colour)
         self._temp_layout.addWidget(self.fpga_temp) 
@@ -151,7 +151,7 @@ class CMOSWidget(QWidget):
         phot_layout_colour = "rgba(92, 183, 182, 150)"
         self._phot_layout = self.layout_bkg(main_layout=phot_layout, 
                                              panel_name="phot_panel", 
-                                             style_sheet_string=self._layout_style("grey", phot_layout_colour))
+                                             style_sheet_string=self._layout_style("white", phot_layout_colour))
         self.ph_w = QValueRangeWidget(name="Whole Ph. R.", value=0, condition={"low":0,"high":np.inf}, border_colour=phot_layout_colour)
         self.ph_p = QValueRangeWidget(name="Part Ph. R.", value=0, condition={"low":0,"high":np.inf}, border_colour=phot_layout_colour)
         self._phot_layout.addWidget(self.ph_w) 
@@ -163,7 +163,7 @@ class CMOSWidget(QWidget):
         comp_layout_colour = "rgb(200, 194, 187)"
         self._comp_layout = self.layout_bkg(main_layout=comp_layout, 
                                              panel_name="comp_panel", 
-                                             style_sheet_string=self._layout_style("grey", comp_layout_colour))
+                                             style_sheet_string=self._layout_style("white", comp_layout_colour))
         self.cpu = QValueRangeWidget(name="CPU Load Ave.", value=0, condition={"low":0,"high":np.inf}, border_colour=comp_layout_colour)
         self.mem = QValueRangeWidget(name="Disk Space", value=0, condition={"low":0,"high":np.inf}, border_colour=comp_layout_colour)
         self._comp_layout.addWidget(self.cpu) 
@@ -185,7 +185,7 @@ class CMOSWidget(QWidget):
         xexp_layout_colour = "rgb(141, 141, 134)"
         self._xexp_layout = self.layout_bkg(main_layout=xexp_layout, 
                                              panel_name="xexp_panel", 
-                                             style_sheet_string=self._layout_style("grey", xexp_layout_colour))
+                                             style_sheet_string=self._layout_style("white", xexp_layout_colour))
         self.expxx = QValueRangeWidget(name="Ch. Exp. XX", value=0, condition={"low":0,"high":np.inf}, border_colour=xexp_layout_colour)
         self.exp192 = QValueRangeWidget(name="Ch. Exp. 192", value=0, condition={"low":0,"high":np.inf}, border_colour=xexp_layout_colour)
         self._xexp_layout.addWidget(self.expxx) 
@@ -214,7 +214,7 @@ class CMOSWidget(QWidget):
         global_layout.addLayout(operation_layout, 34, 43, 16, 57)
         global_layout.addLayout(xexp_layout, 9, 79, 9, 21)
         global_layout.addLayout(comp_layout, 0, 79, 9, 21)
-        global_layout.addLayout(write_layout, 45, 81, 5, 19) #last since it overlaps with operation_layout
+        global_layout.addLayout(write_layout, 45, 82, 5, 18) #last since it overlaps with operation_layout
 
         unifrom_layout_stretch(global_layout, grid=True)
 
@@ -332,7 +332,7 @@ class AllCMOSView(QWidget):
         lay.setContentsMargins(1, 1, 1, 1) # left, top, right, bottom
         lay.setHorizontalSpacing(0)
         lay.setVerticalSpacing(0)
-        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(83, 223, 221, 50);")
+        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
         self.setLayout(lay)
 

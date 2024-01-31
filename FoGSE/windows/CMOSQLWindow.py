@@ -41,6 +41,7 @@ class CMOSQLWindow(QWidget):
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
+        self.layoutMain.setContentsMargins(0, 0, 0, 0)# left, top, right, bottom
         self.layoutMain.addWidget(self.graphPane)
         self.setLayout(self.layoutMain)
 
