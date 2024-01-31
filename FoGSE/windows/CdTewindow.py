@@ -43,6 +43,7 @@ class CdTeWindow(QWidget):
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QGridLayout()
+        self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.addWidget(self.graphPane)
         self.setLayout(self.layoutMain)
 

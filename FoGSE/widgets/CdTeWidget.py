@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGr
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
-from FoGSE.widgets.QValueWidget import QValueRangeWidget
+from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
@@ -53,7 +53,7 @@ class CdTeWidget(QWidget):
         # widget for displaying the automated recommendation
         self._image_layout = self.layout_bkg(main_layout=image_layout, 
                                              panel_name="image_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"), grid=True)
+                                             style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.image = CdTeWindow(reader=reader, plotting_product="image", name=name)
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -68,7 +68,7 @@ class CdTeWidget(QWidget):
         # widget for displaying the automated recommendation
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"), grid=True)
+                                             style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name=name)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -80,21 +80,85 @@ class CdTeWidget(QWidget):
         # status values
         self._value_layout = self.layout_bkg(main_layout=value_layout, 
                                              panel_name="value_panel", 
-                                             style_sheet_string=self._layout_style("grey", "white"))
-        self.cts = QValueRangeWidget(name="Counts (cts)", value="N/A", condition={"low":0,"high":np.inf})
-        self.somevalue0 = QValueRangeWidget(name="This", value=9, condition={"low":2,"high":15})
-        self.somevalue1 = QValueRangeWidget(name="That", value=8, condition={"low":2,"high":15})
-        self.somevalue2 = QValueRangeWidget(name="Other", value=60, condition={"low":2,"high":15})
-        self.somevalue3 = QValueRangeWidget(name="Another", value="N/A", condition={"low":2,"high":15})
-        self.somevalue4 = QValueRangeWidget(name="Again", value=2, condition={"low":2,"high":15})
-        self.somevalue5 = QValueRangeWidget(name="This2", value=14, condition={"low":2,"high":15})
-        self._value_layout.addWidget(self.cts) 
-        self._value_layout.addWidget(self.somevalue0) 
-        self._value_layout.addWidget(self.somevalue1) 
-        self._value_layout.addWidget(self.somevalue2) 
-        self._value_layout.addWidget(self.somevalue3) 
-        self._value_layout.addWidget(self.somevalue4) 
-        self._value_layout.addWidget(self.somevalue5) 
+                                             style_sheet_string=self._layout_style("white", "white"))
+        # self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf})
+        # self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf})
+        # self.cts = QValueRangeWidget(name="Ct (ct)", value="N/A", condition={"low":0,"high":np.inf})
+        # self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15})
+        
+        # self.frames = QValueRangeWidget(name="# frames (t,t-1)", value=8, condition={"low":2,"high":15})
+        # self.frames_t = QValueRangeWidget(name="# frames (t,t-1)", value=8, condition={"low":2,"high":15})
+        # self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15})
+        # self.asic_vth = QValueRangeWidget(name="ASIC (vth,dth)", value="N/A", condition={"low":2,"high":15})
+        # self.asic_dth = QValueRangeWidget(name="ASIC (vth,dth)", value="N/A", condition={"low":2,"high":15})
+        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15})
+
+        # need to groupd some of these for the layout
+        # de
+        de_layout = QtWidgets.QGridLayout()
+        de_layout_colour = "rgb(53, 108, 117)"
+        self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=de_layout_colour)
+        de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
+        de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
+        de_layout.addWidget(self.ping, 2, 0, 1, 2) 
+        # counts
+        cts_layout = QtWidgets.QGridLayout()
+        cts_layout_colour = "rgb(141, 141, 134)"
+        self.cts = QValueRangeWidget(name="Ct", value="N/A", condition={"low":0,"high":np.inf}, border_colour=cts_layout_colour)
+        self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15}, border_colour=cts_layout_colour)
+        cts_layout.addWidget(self.cts, 0, 0, 1, 2) 
+        cts_layout.addWidget(self.ctr, 1, 0, 1, 2) 
+        # strips
+        strips_layout = QtWidgets.QGridLayout()
+        strips_layout_colour = "rgb(213, 105, 48)"
+        self.strips = QValueWidget(name="# of det. strips", value="", separator="", border_colour=strips_layout_colour)
+        self.strips_al = QValueRangeWidget(name="Pt", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
+        self.strips_pt = QValueRangeWidget(name="Al", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
+        strips_layout.addWidget(self.strips, 0, 0, 1, 2) 
+        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 1) 
+        strips_layout.addWidget(self.strips_al, 1, 1, 1, 1) 
+        # frames
+        frames_layout = QtWidgets.QGridLayout()
+        frames_layout_colour = "rgb(66, 120, 139)"
+        self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
+        self.frames_t = QValueRangeWidget(name="t", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueRangeWidget(name="t-1", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
+        frames_layout.addWidget(self.frames_t, 1, 0, 1, 1) 
+        frames_layout.addWidget(self.frames_tm1, 1, 1, 1, 1)
+        # # asics
+        # asic_layout = QtWidgets.QGridLayout()
+        # asic_layout_colour = "rgb(234, 141, 54)"
+        # self.asic = QValueWidget(name="ASIC", value="", separator="", border_colour=asic_layout_colour)
+        # self.asic_vth = QValueRangeWidget(name="VTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
+        # self.asic_dth = QValueRangeWidget(name="DTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
+        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15}, border_colour=asic_layout_colour)
+        # asic_layout.addWidget(self.asic, 0, 0, 1, 2) 
+        # asic_layout.addWidget(self.asic_vth, 1, 0, 1, 1) 
+        # asic_layout.addWidget(self.asic_dth, 1, 1, 1, 1)
+        # asic_layout.addWidget(self.asic_load, 2, 0, 1, 2)
+        # ping
+        # ping_layout = QtWidgets.QGridLayout()
+        # ping_layout_colour = "rgb(213, 105, 48)"
+        # self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=ping_layout_colour)
+        # ping_layout.addWidget(self.ping, 0, 0, 1, 2) 
+
+        # self._value_layout.addWidget(self.software_stat) 
+        # self._value_layout.addWidget(self.de_mode) 
+        self._value_layout.addLayout(de_layout) 
+
+        self._value_layout.addLayout(cts_layout) 
+        
+        self._value_layout.addLayout(strips_layout) 
+        self._value_layout.addLayout(frames_layout)
+        # self._value_layout.addLayout(asic_layout)  
+
+        # self._value_layout.addLayout(ping_layout) 
+        # self._value_layout.addWidget(self.asic_vth) 
+        # self._value_layout.addWidget(self.asic_dth) 
+        # self._value_layout.addWidget(self.asic_load) 
         set_all_spacings(self._value_layout)
         # self.somevalue0.setMinimumSize(QtCore.QSize(200,100))
         # self.somevalue1.setMinimumSize(QtCore.QSize(200,100))
@@ -135,9 +199,17 @@ class CdTeWidget(QWidget):
 
         # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
+        # image_layout.setContentsMargins(0, 0, 0, 0)
         # ped_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._ped_layout.setContentsMargins(0, 0, 0, 0)
         self._value_layout.setContentsMargins(0, 0, 0, 0)
+        self._value_layout.setSpacing(6)
+        strips_layout.setSpacing(0)
+        frames_layout.setSpacing(0)
+        # asic_layout.setSpacing(0)
+        de_layout.setSpacing(0)
+        cts_layout.setSpacing(0)
+        # ping_layout.setSpacing(0)
         global_layout.setHorizontalSpacing(0)
         global_layout.setVerticalSpacing(0)
         global_layout.setContentsMargins(0, 0, 0, 0)
@@ -243,7 +315,7 @@ class AllCdTeView(QWidget):
 
         lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
         lay.setHorizontalSpacing(5)
-        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(83, 223, 221, 50);")
+        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
         self.setLayout(lay)
 
