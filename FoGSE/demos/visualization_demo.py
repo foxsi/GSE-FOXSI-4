@@ -170,7 +170,7 @@ class GlobalCommandPanel(QWidget):
     def commandComboBoxClicked(self, events):
         self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
+        cmd = self.cmddeck.get_command_for_system(self.system_combo_box.currentText(), self.command_combo_box.currentText())
 
         # add cmd bytestring to working command
         self._working_command.append(cmd.bytestring)
@@ -194,10 +194,8 @@ class GlobalCommandPanel(QWidget):
         print("\tvalidating command...")
         # todo: validate
         print("\tsending command (placeholder)...")
-        if len(self._working_command) == 3:
-            self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
-        elif len(self._working_command) == 2:
-            self.fmtrif.send(self._working_command[0], self._working_command[1])
+        if len(self._working_command) == 2:
+            self.fmtrif.submit_uplink_command(self._working_command[0], self._working_command[1])
         else:
             raise Exception("wrong length working command")
 

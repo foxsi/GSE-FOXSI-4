@@ -1,13 +1,15 @@
-import sys, typing, logging, math
+import sys, typing, logging, math, json
 import numpy as np
+from collections import namedtuple
 from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
-from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
+from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog, QSlider
 import pyqtgraph as pg
 
 from FoGSE.readBackwards import BackwardsReader
 
 from FoGSE import communication as comm
+from FoGSE import configuration as config
 import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -35,7 +37,7 @@ class AbstractVisualization(QWidget):
 
 class GlobalCommandPanel(QWidget):
     """
-    `GlobalCommandPanel` provides a unified interface to send any uplink commands to the Formatter. This is enabled by the communication.FormatterUDPInterface, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
+    `GlobalCommandPanel` provides a unified interface to send any uplink commands to the Formatter. This is enabled by `communication.FormatterUDPInterface`, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
 
     :param name: Unique name of this panel interface.
     :type name: str
@@ -47,14 +49,16 @@ class GlobalCommandPanel(QWidget):
     :type fmtrif: communication.FormatterUDPInterface
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=comm.FormatterUDPInterface()):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=comm.FormatterUDPInterface()):
         QWidget.__init__(self, parent)
 
         self.name = name
         self.label = "Global command uplink"
 
         # build and validate list of allowable uplink commands
-        self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
+        # self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
+        # self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/all_systems.json", "foxsi4-commands/commands.json")
+        self.cmddeck = formatter_if.deck
 
         # open UDP socket to remote
         # self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
@@ -80,10 +84,10 @@ class GlobalCommandPanel(QWidget):
 
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
-            self.system_combo_box.addItem(sys.name)
+            self.system_combo_box.addItem(sys.name.lower())
 
-        for cmd in self.cmddeck.commands:
-            self.command_combo_box.addItem(cmd.name)
+        # for cmd in self.cmddeck[].commands:
+        #     self.command_combo_box.addItem(cmd.name)
 
         # populate layout:
         self.grid_layout.addWidget(
@@ -170,14 +174,17 @@ class GlobalCommandPanel(QWidget):
     def commandComboBoxClicked(self, events):
         self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        cmd = self.cmddeck.get_command_by_name(self.command_combo_box.currentText())
+        sys_addr = self.cmddeck.get_system_by_name(self.system_combo_box.currentText()).addr
+        cmd = self.cmddeck.get_command_for_system(self.system_combo_box.currentText(), self.command_combo_box.currentText())
 
-        # add cmd bytestring to working command
-        self._working_command.append(cmd.bytestring)
+        # add cmd bitstring to working command
+        # self._working_command.append(cmd.hex)
+        self._working_command = [sys_addr,cmd.hex]
 
         if cmd.arg_len > 0:
-            self.command_args_text.setEnabled(True)
+            # self.command_args_text.setEnabled(True)
             # todo: some arg validation set up here. Implement in UplinkCommandDeck.
+            pass
         else:
             self.command_send_button.setEnabled(True)
 
@@ -193,13 +200,11 @@ class GlobalCommandPanel(QWidget):
 
         print("\tvalidating command...")
         # todo: validate
-        print("\tsending command (placeholder)...")
-        if len(self._working_command) == 3:
-            self.fmtrif.send(self._working_command[0], self._working_command[1], self._working_command[2])
-        elif len(self._working_command) == 2:
-            self.fmtrif.send(self._working_command[0], self._working_command[1])
+        if len(self._working_command) == 2:
+            self.fmtrif.submit_uplink_command(self._working_command[0], self._working_command[1])
         else:
-            raise Exception("wrong length working command")
+            print(self._working_command)
+            raise Exception("wrong length working command: " + str(len(self._working_command)))
 
         print("\tlogging command (placeholder)...")
         # todo: log file setup, open, plus the actual logging
@@ -210,12 +215,405 @@ class GlobalCommandPanel(QWidget):
 
 
 
+class PowerSystem:
+    """
+    `PowerSystem` is a wrapper around system-specific data to help `PowerMonitorView`.
+    """
+    def __init__(self, name="PLACEHOLDER", label="placeholder", parent=None, group=None,
+                current=0, voltage=0, staleness=1, current_range=(), voltage_range=()):
+        self.name = name
+        self.label = QLabel(label)
+        self.label.setFixedWidth(100)
+
+        self.indicator = QPushButton("", parent=parent)
+        self.indicator.setIcon(QtGui.QIcon("./assets/icon_unknown_col_bg.svg"))
+        self.indicator.setFixedSize(24,24)
+        self.indicator.setIconSize(QtCore.QSize(24,24))
+        self.indicator.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
+
+        self.voltage_label = QLineEdit("?\tV", parent=parent)
+        self.voltage_label.setFixedWidth(80)
+        self.voltage_label.setEnabled(False)
+
+        self.current_label = QLineEdit("?\tmA", parent=parent)
+        self.current_label.setFixedWidth(80)
+        self.current_label.setEnabled(False),
+        
+        self.on_button = QCheckBox("", parent=parent)
+        self.on_button.setEnabled(False)
+        
+        self.group=group
+
+        self.current = current
+        self.voltage = voltage
+        self.staleness = staleness
+        self.current_range = current_range
+        self.voltage_range = voltage_range
+
+        self.last_state = False
+
+
+class PowerMonitorView(QWidget):
+    """
+    `PowerMonitorView` provides an interface to onboard power status and basic control of the power system.
+    """
+
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=config.SystemConfiguration(), formatter_if=comm.FormatterUDPInterface()):
+        QWidget.__init__(self, parent)
+
+        self.name = name
+        self.label = "Power monitor"
+
+        self.cmddeck = formatter_if.deck
+        self.fmtrif = formatter_if
+        
+        # group all UI elements in widget
+        self.cmd_box        = QGroupBox(self.label)
+
+        # 
+        self.box_layout     = QVBoxLayout()
+
+        # 
+        self.arm_button = QtWidgets.QCheckBox("Arm on/off command", parent=self)
+        self.send_button = QPushButton("Send power command", parent=self)
+
+        Group = namedtuple("Group", "box layout")
+        self.command_group  = Group(QGroupBox("Command"),    QGridLayout())
+        self.cdte_group     = Group(QGroupBox("CdTe"),       QGridLayout())
+        self.cmos_group     = Group(QGroupBox("CMOS"),       QGridLayout())
+        self.timepix_group  = Group(QGroupBox("Timepix"),    QGridLayout())
+        self.saas_group     = Group(QGroupBox("SAAS"),       QGridLayout())
+        self.reg_group      = Group(QGroupBox("Regulator"),  QGridLayout())
+
+        self.power_system_rows = {
+            "cdte": {
+                "cdtede": PowerSystem(
+                    name="cdtede",
+                    label="CdTe DE",
+                    group=self.cdte_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,4), 
+                    voltage_range=(5.5, 5.9)
+                ),
+                "cdte1": PowerSystem(
+                    name="cdte1",
+                    label="CdTe 1",
+                    group=self.cdte_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,0.2), 
+                    voltage_range=(24, 32)
+                ),
+                "cdte2": PowerSystem(
+                    name="cdte2",
+                    label="CdTe 2",
+                    group=self.cdte_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,0.2), 
+                    voltage_range=(24, 32)
+                ),
+                "cdte3": PowerSystem(
+                    name="cdte3",
+                    label="CdTe 3",
+                    group=self.cdte_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,0.2), 
+                    voltage_range=(24, 32)
+                ),
+                "cdte4": PowerSystem(
+                    name="cdte4",
+                    label="CdTe 4",
+                    group=self.cdte_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,0.2), 
+                    voltage_range=(24, 32)
+                )
+            },
+            "cmos": {
+                "cmos1": PowerSystem(
+                    name="cmos1",
+                    label="CMOS 1",
+                    group=self.cmos_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,0.2), 
+                    voltage_range=(24, 32)
+                ),
+                "cmos2": PowerSystem(
+                    name="cmos2",
+                    label="CMOS 2",
+                    group=self.cmos_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,0.2), 
+                    voltage_range=(24, 32)
+                )
+            },
+            "timepix": {
+                "timepix 5V": PowerSystem(
+                    name="timepix",
+                    label="Timepix 5V",
+                    group=self.timepix_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,3), 
+                    voltage_range=(4.7, 5.3)
+                ),
+                "timepix 12V": PowerSystem(
+                    name="timepix",
+                    label="Timepix 12V",
+                    group=self.timepix_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,1), 
+                    voltage_range=(12, 13)
+                )
+            },
+            "saas": {
+                "saas computer": PowerSystem(
+                    name="saas",
+                    label="SAAS computer",
+                    group=self.saas_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,3), 
+                    voltage_range=(4.7, 5.3)
+                ),
+                "saas camera": PowerSystem(
+                    name="saas",
+                    label="SAAS camera",
+                    group=self.saas_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,3), 
+                    voltage_range=(12, 13)
+                )
+            },
+            "regulators": {
+                "regulators": PowerSystem(
+                    name="regulators",
+                    label="Regulators",
+                    group=self.reg_group,
+                    parent=self,
+                    current=0,
+                    voltage=0, 
+                    staleness=1, 
+                    current_range=(0,3), 
+                    voltage_range=(4.7, 5.3)
+                ),
+            }
+        }
+
+        row = 1
+        yet_timepix = False
+        yet_saas = False
+
+        for outer_key in self.power_system_rows.keys():
+            row = 0
+            for inner_key in self.power_system_rows[outer_key].keys():
+                # add it to layout:
+                self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                    self.power_system_rows[outer_key][inner_key].label,
+                    row,0,1,1,
+                    alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                )
+                self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                    self.power_system_rows[outer_key][inner_key].voltage_label,
+                    row,2,1,1,
+                    alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                )
+                self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                    self.power_system_rows[outer_key][inner_key].current_label,
+                    row,3,1,1,
+                    alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                )
+                if "saas" not in inner_key and "timepix" not in inner_key and "regulator" not in inner_key:
+                    self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                        self.power_system_rows[outer_key][inner_key].indicator,
+                        row,1,1,1,
+                        alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                    )
+                    self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                        self.power_system_rows[outer_key][inner_key].on_button,
+                        row,4,1,1,
+                        alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                    )
+                else:
+                    if "timepix" in inner_key:
+                        if not yet_timepix:
+                            self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                                self.power_system_rows[outer_key][inner_key].indicator,
+                                row,1,2,1,
+                                alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                            )
+                            self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                                self.power_system_rows[outer_key][inner_key].on_button,
+                                row,4,2,1,
+                                alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                            )
+                            yet_timepix = True
+                        else:
+                            self.power_system_rows[outer_key][inner_key].on_button.setEnabled(False)
+                            self.power_system_rows[outer_key][inner_key].on_button.setVisible(False)
+                            self.power_system_rows[outer_key][inner_key].indicator.setEnabled(False)
+                            self.power_system_rows[outer_key][inner_key].indicator.setVisible(False)
+                    elif "saas" in inner_key:
+                        if not yet_saas:
+                            self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                                self.power_system_rows[outer_key][inner_key].indicator,
+                                row,1,2,1,
+                                alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                            )
+                            self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                                self.power_system_rows[outer_key][inner_key].on_button,
+                                row,4,2,1,
+                                alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                            )
+                            yet_saas = True
+                        else:
+                            self.power_system_rows[outer_key][inner_key].on_button.setEnabled(False)
+                            self.power_system_rows[outer_key][inner_key].on_button.setVisible(False)
+                            self.power_system_rows[outer_key][inner_key].indicator.setEnabled(False)
+                            self.power_system_rows[outer_key][inner_key].indicator.setVisible(False)
+                    else:
+                        # regulator case
+                        self.power_system_rows[outer_key][inner_key].group.layout.addWidget(
+                            self.power_system_rows[outer_key][inner_key].indicator,
+                            row,1,1,1,
+                            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                        )
+                        self.power_system_rows[outer_key][inner_key].on_button.setEnabled(False)
+                        self.power_system_rows[outer_key][inner_key].on_button.setVisible(False)
+                        self.power_system_rows[outer_key][inner_key].indicator.setEnabled(False)
+                        self.power_system_rows[outer_key][inner_key].indicator.setVisible(True)
+                row += 1
+
+        self.command_group.layout.addWidget(
+            self.arm_button,
+            0,0,1,2,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+        self.command_group.layout.addWidget(
+            self.send_button,
+            0,4,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+
+        # somehow, this aligns the Widgets in the grid top-left:
+        self.cdte_group.layout.setRowStretch(self.cdte_group.layout.rowCount(),1)
+        self.cdte_group.layout.setColumnStretch(self.cdte_group.layout.columnCount(),1)
+        self.cmos_group.layout.setRowStretch(self.cmos_group.layout.rowCount(),1)
+        self.cmos_group.layout.setColumnStretch(self.cmos_group.layout.columnCount(),1)
+        self.timepix_group.layout.setRowStretch(self.timepix_group.layout.rowCount(),1)
+        self.timepix_group.layout.setColumnStretch(self.timepix_group.layout.columnCount(),1)
+        self.saas_group.layout.setRowStretch(self.saas_group.layout.rowCount(),1)
+        self.saas_group.layout.setColumnStretch(self.saas_group.layout.columnCount(),1)
+        self.reg_group.layout.setRowStretch(self.reg_group.layout.rowCount(),1)
+        self.reg_group.layout.setColumnStretch(self.reg_group.layout.columnCount(),1)
+        self.command_group.layout.setRowStretch(self.command_group.layout.rowCount(),1)
+        self.command_group.layout.setColumnStretch(self.command_group.layout.columnCount(),1)
+
+        # add grid layout to box
+        self.cdte_group.box.setLayout(self.cdte_group.layout)
+        self.cmos_group.box.setLayout(self.cmos_group.layout)
+        self.timepix_group.box.setLayout(self.timepix_group.layout)
+        self.saas_group.box.setLayout(self.saas_group.layout)
+        self.reg_group.box.setLayout(self.reg_group.layout)
+        self.command_group.box.setLayout(self.command_group.layout)
+
+        # # add box to a global layout for whole self widget
+        self.box_layout.addWidget(self.command_group.box)
+        self.box_layout.addWidget(self.cdte_group.box)
+        self.box_layout.addWidget(self.cmos_group.box)
+        self.box_layout.addWidget(self.timepix_group.box)
+        self.box_layout.addWidget(self.saas_group.box)
+        self.box_layout.addWidget(self.reg_group.box)
+        self.box_layout.addStretch(10)
+        self.setLayout(self.box_layout)
+
+        self.send_button.setEnabled(False)
+        self.arm_button.clicked.connect(self.arm_button_clicked)
+        self.send_button.clicked.connect(self.send_button_clicked)
+
+        self._system_buttons_were_checked = [False for i in range(9)]
+    
+    def update_status(self, downlink: bytes):
+        pass
+
+    def system_button_clicked(self):
+        pass
+
+    def send_button_clicked(self):
+        for outer_key in self.power_system_rows.keys():
+            for inner_key in self.power_system_rows[outer_key].keys():
+                if self.power_system_rows[outer_key][inner_key].on_button.isChecked() != self.power_system_rows[outer_key][inner_key].last_state:
+                    self.power_system_rows[outer_key][inner_key].last_state = self.power_system_rows[outer_key][inner_key].on_button.isChecked()
+                    self.send(self.power_system_rows[outer_key][inner_key], self.power_system_rows[outer_key][inner_key].on_button.isChecked())
+
+        self.arm_button.setChecked(False)
+        self.disarm()
+
+    def arm_button_clicked(self):
+        if self.arm_button.isChecked():
+            self.arm()
+        else:
+            self.disarm()
+
+    def arm(self):
+        for outer_key in self.power_system_rows.keys():
+            for inner_key in self.power_system_rows[outer_key].keys():
+                self.power_system_rows[outer_key][inner_key].on_button.setEnabled(True)
+        self.send_button.setEnabled(True)
+
+    def disarm(self):
+        for outer_key in self.power_system_rows.keys():
+            for inner_key in self.power_system_rows[outer_key].keys():
+                self.power_system_rows[outer_key][inner_key].on_button.setEnabled(False)
+        self.send_button.setEnabled(False)
+
+    def send(self, system, on):
+        on_off_str = ("on" if on else "off")
+        hk_addr = self.fmtrif.deck.get_system_by_name("housekeeping").addr
+        command_str = "set_power_" + system.name + "_" + on_off_str
+        command = self.fmtrif.deck.get_command_for_system(hk_addr, command_str)
+        print(system.name + " is being turned " + on_off_str)
+
+        self.fmtrif.submit_uplink_command(hk_addr, command.hex)
+
+
+
 class DetectorTableView(QWidget):
     """
     `DetectorTableView` is a PLACEHOLDER view for a strip/pixel data table. Will be used to view and edit strip/pixel data.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -231,7 +629,7 @@ class DetectorTableView(QWidget):
 
 class DetectorParametersView(QWidget):
     # PLACEHOLDER
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -247,7 +645,7 @@ class DetectorParametersView(QWidget):
 
 class DetectorCommandView(QWidget):
     # PLACEHOLDER
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         QWidget.__init__(self,parent)
 
         self.name=name
@@ -262,7 +660,7 @@ class DetectorCommandView(QWidget):
 
 
 class DetectorPlotView(QWidget):
-    def __init__(self, parent=None, name="PLACEHOLDER", formatter_if=None):
+    def __init__(self, parent=None, name="PLACEHOLDER", configuration=None, formatter_if=None):
         """
         Initialize a DetectorPlotView (inherits from PyQt6.QtWidgets.QWidget). This Widget consists of a central plot surrounded by buttons for controlling plot and detector behavior.
 
@@ -292,26 +690,33 @@ class DetectorPlotView(QWidget):
         self.popout_button.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
 
         # include buttons to allow GUI start/stop data reading/display
-        self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
-        # self.modalStartPlotDataButton = QPushButton("", self)
-        # self.modalStartPlotDataButton.setIcon(QtGui.QIcon("./assets/icon_play_bg.svg"))
-        # self.modalStartPlotDataButton.setFixedSize(32,32)
-        # self.modalStartPlotDataButton.setIconSize(QtCore.QSize(32,32))
-        # self.modalStartPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
+        # self.modalStartPlotDataButton = QPushButton("Start plotting data", self)
+        self.modalStartPlotDataButton = QPushButton("", self)
+        self.modalStartPlotDataButton.setIcon(QtGui.QIcon("./assets/icon_play_col_bg.svg"))
+        self.modalStartPlotDataButton.setFixedSize(32,32)
+        self.modalStartPlotDataButton.setIconSize(QtCore.QSize(32,32))
+        self.modalStartPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
 
-        self.modalStopPlotDataButton = QPushButton("Stop plotting data", self)
+        self.modalStopPlotDataButton = QPushButton("", self)
+        self.modalStopPlotDataButton.setIcon(QtGui.QIcon("./assets/icon_pause_col_bg.svg"))
+        self.modalStopPlotDataButton.setFixedSize(32,32)
+        self.modalStopPlotDataButton.setIconSize(QtCore.QSize(32,32))
+        self.modalStopPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
 
         self.plotADCButton = QRadioButton("Plot in ADC bin", self)
         self.plotADCButton.setChecked(True)
         self.plotEnergyButton = QRadioButton("Plot in energy bin", self)
         self.plotStyleButton = QPushButton("Plot style", self)
 
-        self.temperatureLabel = QLabel("Temperature (ºC):", self)
-        self.voltageLabel = QLabel("Voltage (mV):", self)
-        self.currentLabel = QLabel("Current (mA):", self)
+        # self.temperatureLabel = QLabel("Temperature (ºC):", self)
+        # self.voltageLabel = QLabel("Voltage (mV):", self)
+        # self.currentLabel = QLabel("Current (mA):", self)
+        self.temperatureLabel = QLabel("", self)
+        self.voltageLabel = QLabel("", self)
+        self.currentLabel = QLabel("", self)
 
         self.groupBox = QGroupBox(self.name)
-        self.groupBox.setStyleSheet("QGroupBox {border-width: 1px; border-style: outset; border-radius: 10px; border-color: black;}")
+        self.groupBox.setStyleSheet("QGroupBox {border-width: 2px; border-style: outset; border-radius: 10px; border-color: black;}")
         self.globalLayout = QHBoxLayout()
 
         # organize layout
@@ -544,8 +949,8 @@ class DetectorPlotView1D(DetectorPlotView):
     """
     Detector plot class specifically for 1D data products (e.g., time profiles and spectra).
     """
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView.__init__(self, parent, name, configuration=kwargs["configuration"])
 
         # initial time profile data
         self.x, self.y = [], []
@@ -828,8 +1233,8 @@ class DetectorPlotView2D(DetectorPlotView):
     [3] https://doc.qt.io/qtforpython/PySide6/QtGui/QImage.html
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["formatter_if"])
 
         # set height and width of image in pixels
         self.deth, self.detw = 100, 100
@@ -974,8 +1379,8 @@ class DetectorPlotViewIM(DetectorPlotView2D):
     Detector panel class specifically for images.
     """
 
-    def __init__(self, parent=None, name="PLACEHOLDER"):
-        DetectorPlotView2D.__init__(self, parent, name)
+    def __init__(self, parent=None, name="PLACEHOLDER", **kwargs):
+        DetectorPlotView2D.__init__(self, parent, name, configuration=kwargs["configuration"], formatter_if=kwargs["configuration"])
 
         # set title and labels
         self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
@@ -1156,7 +1561,7 @@ class DetectorContainer(QWidget):
     """
     def __init__(
         self, parent=None, 
-        name="PLACEHOLDER", label="Placeholder", formatter_if=None,
+        name="PLACEHOLDER", label="Placeholder", configuration=None, formatter_if=None,
         plot_view=None, table_view=None, parameters_view=None, command_view=None
     ):
         QWidget.__init__(self, parent)
@@ -1462,7 +1867,7 @@ class DetectorGridDisplay(QWidget):
     A gridded tiling of DetectorPlotViews, maybe more legible that `DetectorArrayDisplay`.
     """
 
-    def __init__(self, parent=None, formatter_if=None):
+    def __init__(self, parent=None, configuration=None, formatter_if=None):
         QWidget.__init__(self, parent)
 
         # self.H = 800
@@ -1474,6 +1879,8 @@ class DetectorGridDisplay(QWidget):
         detector_names = ["Timepix", "CdTe3", "CdTe4", "CMOS1", "CMOS2", "CdTe1", "CdTe2"]
 
         self.setGeometry(10,10,self.W,self.H)
+
+        self.settings_panel = config.SettingsPanel(self, name="Settings", settings_file="./config/settings.json", system_configuration=configuration)
 
         # explicitly populate all default DetectorPlotView types. NOTE: these are different than in DetectorArrayDisplay.
         self.detector_panels = [
@@ -1502,7 +1909,7 @@ class DetectorGridDisplay(QWidget):
         self.detector_containers = []
         for panel in self.detector_panels:
             self.detector_containers.append(DetectorContainer(
-                self, name=panel.name, label=panel.label, formatter_if=formatter_if, 
+                self, name=panel.name, label=panel.label, configuration=configuration, formatter_if=formatter_if, 
                 plot_view=panel, 
                 table_view=DetectorTableView(self, "table"), 
                 parameters_view=DetectorParametersView(self, "parameters"), 
@@ -1510,7 +1917,7 @@ class DetectorGridDisplay(QWidget):
             ))
 
         # add commanding panel
-        self.command_panel = GlobalCommandPanel(self, name="Command", formatter_if=formatter_if)
+        self.command_panel = GlobalCommandPanel(self, name="Command", configuration=configuration, formatter_if=formatter_if)
 
         self.grid_layout = QGridLayout()
 
@@ -1519,6 +1926,7 @@ class DetectorGridDisplay(QWidget):
             self._add_to_layout(container)
         
         self._add_to_layout(self.command_panel)
+        self._add_to_layout(self.settings_panel)
 
         for container in self.detector_containers:
             container.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -1531,35 +1939,39 @@ class DetectorGridDisplay(QWidget):
     def _add_to_layout(self, widget):
         if widget.name == "Timepix":
             self.grid_layout.addWidget(
-                widget, 1,1,1,2
+                widget, 3,3,1,1
             )
         elif widget.name == "CMOS1":
             self.grid_layout.addWidget(
-                widget, 2,1,1,2
+                widget, 3,1,1,1
             )
         elif widget.name == "CMOS2":
             self.grid_layout.addWidget(
-                widget, 2,3,1,2
+                widget, 3,2,1,1
             )
         elif widget.name == "CdTe1":
             self.grid_layout.addWidget(
-                widget, 3,1,1,1
+                widget, 1,1,1,1
             )
         elif widget.name == "CdTe2":
             self.grid_layout.addWidget(
-                widget, 3,2,1,1
+                widget, 1,2,1,1
             )
         elif widget.name == "CdTe3":
             self.grid_layout.addWidget(
-                widget, 3,3,1,1
+                widget, 2,1,1,1
             )
         elif widget.name == "CdTe4":
             self.grid_layout.addWidget(
-                widget, 3,4,1,1
+                widget, 2,2,1,1
             )
         elif widget.name == "Command":
             self.grid_layout.addWidget(
-                widget, 1,4,1,1
+                widget, 1,3,1,1
+            )
+        elif widget.name == "Settings":
+            self.grid_layout.addWidget(
+                widget, 2,3,1,1
             )
         else:
             raise Warning("widget name not found!")
