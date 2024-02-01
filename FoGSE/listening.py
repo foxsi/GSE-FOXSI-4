@@ -5,6 +5,8 @@ import json
 import queue
 import math
 import time
+import ipaddress
+import struct
 from datetime import datetime
 
 # todo: migrate this inside systems.json
@@ -17,7 +19,8 @@ DOWNLINK_TYPE_ENUM = {
     "pow":  0x11,
     "rtd":  0x12,
     "intro":0x13,
-    "err":  0x14,
+    "stat": 0x14,
+    "err":  0x15,
     "none": 0xff
 }
 
@@ -278,11 +281,25 @@ class Listener():
             self.unix_socket.settimeout(0.01)
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
+            
+            # setup UDP interface
+            ip = ipaddress.IPv4Address(self.local_address)
+            if ip.is_multicast:
+                print("got multicast address")
+                # open the socket for standard use
+                # self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                group = socket.inet_aton('224.1.1.8')
+                interface = socket.inet_aton('192.168.1.118')
+                print(group)
+                mreq = struct.pack('4sI', group, interface)
+                self.local_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                self.local_socket.bind(self.local_endpoint)
+            else:
+                print("got unicast address")
+                # open the socket one way
+                self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.local_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-            self.local_socket = socket.socket(
-                socket.AF_INET, socket.SOCK_DGRAM)
-            self.local_socket.bind(self.local_endpoint)
-            self.local_socket.connect(self.remote_endpoint)
             self.local_socket.settimeout(0.01)
             print("listening for downlink (to log) on Ethernet datagram socket at:\t",
                   self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
