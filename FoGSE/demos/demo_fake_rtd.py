@@ -6,7 +6,7 @@ import os
 from PyQt6.QtWidgets import QApplication
 
 from FoGSE.demos.readRawToRefined_fake_rtd import RTDFileReader
-from FoGSE.windows.RTDwindow import RTDWindow
+from FoGSE.windows.RTDWindow import RTDWindow
 
     
 # package top-level

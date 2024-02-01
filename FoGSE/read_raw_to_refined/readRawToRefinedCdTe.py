@@ -7,6 +7,7 @@ Can read:
 """
 
 import struct
+import numpy as np
 
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
@@ -29,8 +30,8 @@ class CdTeReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
 
-        self.define_buffer_size(size=100_000)
-        self.call_interval(1000)
+        self.define_buffer_size(size=100_000)#10_000_000_000 #
+        self.call_interval(100)
 
     def extract_raw_data(self):
         """
@@ -93,7 +94,7 @@ class CdTeReader(ReaderBase):
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            flags, event_df, all_hkdicts = (None,{'ti':-1},None)
+            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1])},None)
         return flags, event_df, all_hkdicts
 
     def parsed_2_collection(self, parsed_data):
@@ -113,8 +114,8 @@ class CdTeReader(ReaderBase):
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = CdTeCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
-        print("Old data time: ",self.old_data_time)
-        print("Newest data time:",col.last_data_time)
+        # print("Old data time: ",self.old_data_time)
+        # print("Newest data time:",col.last_data_time)
         if col.last_data_time>self.old_data_time:
             self.old_data_time = col.last_data_time
         return col

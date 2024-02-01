@@ -7,13 +7,13 @@ import sys
 from PyQt6.QtWidgets import QApplication
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSReader
-from FoGSE.read_raw_to_refined.readRawToRefinedQLCMOS import QLCMOSReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
 from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
-from FoGSE.windows.CdTewindow import CdTeWindow
-from FoGSE.windows.CMOSwindow import CMOSWindow
-from FoGSE.windows.QLCMOSwindow import QLCMOSWindow
-from FoGSE.windows.RTDwindow import RTDWindow
+from FoGSE.windows.CdTeWindow import CdTeWindow
+from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
+from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
+from FoGSE.windows.RTDWindow import RTDWindow
 
 def run_windows(*args):
     """ Opens up user given windows for FOXSI instruments. """
@@ -46,9 +46,9 @@ def run_windows(*args):
         elif d=="cdte_im":
             window = CdTeWindow(reader=CdTeReader(f), plotting_product="image", name=file)
         elif d=="cmos_pc":
-            window = CMOSWindow(reader=CMOSReader(f), plotting_product="image", name=file)
+            window = CMOSPCWindow(reader=CMOSPCReader(f), plotting_product="image", name=file)
         elif d=="cmos_ql":
-            window = QLCMOSWindow(reader=QLCMOSReader(f), plotting_product="image", name=file)
+            window = CMOSQLWindow(reader=CMOSQLReader(f), plotting_product="image", name=file)
         elif d=="rtd":
             window = RTDWindow(reader=RTDReader(f), name=file)
 

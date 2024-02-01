@@ -163,21 +163,21 @@ def QLimageData(data481kB):
     exposureQL = int.from_bytes(data481kB[12:16], byteorder='little')
 
     decimal_list = makeDecimalList(data481kB[16:16+491520])
-    value_array = sortRegions(decimal_list)
+    # value_array = sortRegions(decimal_list)
     # Make QL image
     width, height = 512, 480
     min_value, max_value = 0, 4095
     # QLimage = Image.new("L", (width, height))
     # Set pixel values
-    pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in value_array]
+    # pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
     # QLimage.putdata(pixels)
 
     #**********************************************************************
     #******************************** Kris ********************************
-    pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in value_array])
-    pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
-    pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
-    pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
+    pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in decimal_list])
+    # pixels[pixels>np.quantile(pixels, 0.99)] = np.quantile(pixels, 0.99)
+    # pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
+    # pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
     #**********************************************************************
 
     return linetime, gain, exposureQL, np.reshape(pixels, (height,width))
@@ -238,14 +238,11 @@ def PCimageData(data577kB,frame_no=0):
     min_value, max_value = 0, 4095
     # PCimage = Image.new("L", (width, height))
     # Set pixel values
-    pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
+    # pixels = [(float(value)-min_value)/(max_value - min_value)*256 for value in decimal_list]
 
     #**********************************************************************
     #******************************** Kris ********************************
     pixels = np.array([(float(value)-min_value)/(max_value - min_value) for value in decimal_list])
-    pixels[pixels>np.quantile(pixels, 0.9)] = np.quantile(pixels, 0.9)
-    pixels[pixels<np.quantile(pixels, 0.1)] = np.quantile(pixels, 0.1)
-    pixels = (pixels-np.min(pixels))/(np.max(pixels-np.min(pixels)))*256
     #**********************************************************************
 
     # PCimage.putdata(pixels)
