@@ -1,0 +1,15 @@
+{
+    "uplink_addr":"127.0.0.118",
+    "uplink_port":9999,
+    "downlink_addr":"127.0.0.8",
+    "downlink_port":9999,
+    "logger_addr":"./tmp/local/socket.s",
+    "flight":false,
+    "arm_flight":false,
+    "systems_path":"foxsi4-commands/foxsimile_systems.json",
+    "command_path":"foxsi4-commands/commands/",
+    "logger_executable_path":"",
+    "logger_log_path":"log/gse/",
+    "uplink_log_path":"log/uplink_commands.log",
+    "error_log_path":"log/errors.log"
+}
