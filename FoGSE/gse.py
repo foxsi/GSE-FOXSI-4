@@ -5,39 +5,37 @@ import os
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
-# from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-# from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-# from FoGSE.read_raw_to_refined.readRawToRefinedCMOS import CMOSPCReader
-# from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
-
 from FoGSE.widgets.CdTeWidget import AllCdTeView
 from FoGSE.widgets.CMOSWidget import AllCMOSView
 
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
+from FoGSE.io.newest_data import newest_data_dir
+
+from FoGSE.visualization import GlobalCommandPanel
+
+
+def get_det_file(want_filename, filename_list):
+    """ Returns the filename we're after or an empty string. """
+    if want_filename in filename_list:
+        return want_filename
+    return ""
 
 if __name__=="__main__":
     app = QApplication([])
-    
-    # datafile0 = os.path.dirname(os.path.realpath(__file__))+"/data/test_berk_20230728_det05_00007_001"
-    # datafile1 = os.path.dirname(os.path.realpath(__file__))+"/data/test_berk_20230728_det05_00007_001"
-    # datafile2 = os.path.dirname(os.path.realpath(__file__))+"/data/test_berk_20230728_det05_00007_001"
-    # datafile3 = os.path.dirname(os.path.realpath(__file__))+"/data/test_berk_20230728_det05_00007_001"
-    # datafile4 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log" #PC
-    # datafile5 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
-    # datafile6 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" # "TIMEPIX"
 
-    # reader0 = CdTeFileReader(datafile0)
-    # reader1 = CdTeFileReader(datafile1)
-    # reader2 = CdTeFileReader(datafile2)
-    # reader3 = CdTeFileReader(datafile3)
-    # reader4 = CMOSPCReader(datafile4)
-    # reader5 = CMOSPCReader(datafile5)
-    # reader6 = CMOSQLReader(datafile6)
+    newest_folder = newest_data_dir() 
+    cdte_instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
-    f0 = AllCdTeView()
+    f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1_pc.log", cdte_instruments)), 
+                     os.path.join(newest_folder, get_det_file("cdte2_pc.log", cdte_instruments)), 
+                     os.path.join(newest_folder, get_det_file("cdte3_pc.log", cdte_instruments)), 
+                     os.path.join(newest_folder, get_det_file("cdte4_pc.log", cdte_instruments)))
 
-    f1 = AllCMOSView()
+    f1 = AllCMOSView(os.path.join(newest_folder, get_det_file("cmos1_pc.log", cdte_instruments)), 
+                     os.path.join(newest_folder, get_det_file("cmos1_ql.log", cdte_instruments)), 
+                     os.path.join(newest_folder, get_det_file("cmos2_pc.log", cdte_instruments)), 
+                     os.path.join(newest_folder, get_det_file("cmos2_ql.log", cdte_instruments)))
 
     w = QWidget()
     lay = QGridLayout(w)
@@ -53,4 +51,11 @@ if __name__=="__main__":
     unifrom_layout_stretch(lay, grid=True)
 
     w.show()
+
+    x = QWidget()
+    lay = QGridLayout(x)
+    glc = GlobalCommandPanel()
+    lay.addWidget(glc, 0, 0, 1, 1)
+    x.show()
+    
     app.exec()

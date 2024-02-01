@@ -296,7 +296,7 @@ class CMOSWidget(QWidget):
         self.resize(new_size)
 
 class AllCMOSView(QWidget):
-    def __init__(self):
+    def __init__(self, cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
@@ -306,15 +306,15 @@ class AllCMOSView(QWidget):
         self.setWindowTitle("All CdTe View")
         self.aspect_ratio = self.detw/self.deth
 
-        data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
-        data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
+        # data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
+        # data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
 
-        f0 = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql, name=os.path.basename(data_file_pc))
+        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, name=os.path.basename(cmos_pc0))
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql, name=os.path.basename(data_file_pc))
+        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, name=os.path.basename(cmos_pc1))
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
@@ -356,11 +356,13 @@ class AllCMOSView(QWidget):
 if __name__=="__main__":
     app = QApplication([])
     
-    data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
-    data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
+    cmos_pc0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
+    cmos_ql0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
+    cmos_pc1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
+    cmos_ql1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
     
     # w.resize(1000,500)
-    w = AllCMOSView()
+    w = AllCMOSView(cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1)
     # w = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql)
     
     w.show()
