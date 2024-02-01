@@ -12,6 +12,9 @@ from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.io.newest_data import newest_data_dir
 
+from FoGSE.visualization import GlobalCommandPanel
+
+
 def get_det_file(want_filename, filename_list):
     """ Returns the filename we're after or an empty string. """
     if want_filename in filename_list:
@@ -20,7 +23,7 @@ def get_det_file(want_filename, filename_list):
 
 if __name__=="__main__":
     app = QApplication([])
-    
+
     newest_folder = newest_data_dir() 
     cdte_instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
@@ -48,4 +51,11 @@ if __name__=="__main__":
     unifrom_layout_stretch(lay, grid=True)
 
     w.show()
+
+    x = QWidget()
+    lay = QGridLayout(x)
+    glc = GlobalCommandPanel()
+    lay.addWidget(glc, 0, 0, 1, 1)
+    x.show()
+    
     app.exec()
