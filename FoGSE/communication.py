@@ -1,4 +1,4 @@
-import json, socket, os, time
+import json, socket, os, time, subprocess
 
 import FoGSE.parameters as params
 import FoGSE.singleton as singleton
@@ -331,10 +331,10 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
         self.end_background_process_on_close = end_background_process_on_close
         if self.do_logging:
             print("\nstarting logger in subprocess...")
-            # self.background_listen_process = subprocess.Popen(["python3","FoGSE/listening.py", configfile])
+            self.background_listen_process = subprocess.Popen(["python3","FoGSE/listening.py", configfile])
             # using QProcess for this because it cleans up correctly on exit, unlike 
-            self.background_listen_process = QProcess()
-            self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
+            # self.background_listen_process = QProcess()
+            # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
             print("started listen for downlink\n")
             # sleep so the subprocess can start
             time.sleep(1)

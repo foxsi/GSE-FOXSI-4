@@ -232,8 +232,8 @@ class Listener():
             try:
                 now = datetime.now()
                 now_str = str(now.day) + "-" + str(now.month) + "-" + str(now.year) + \
-                    "_" + str(now.hour) + ":" + str(now.minute) + \
-                    ":" + str(now.second)
+                    "_" + str(now.hour) + "-" + str(now.minute) + \
+                    "-" + str(now.second)
                 self.start = now
                 self.log_in_folder = os.path.join(
                     self.local_system_config["logger_interface"]["log_received_folder"], now_str)
