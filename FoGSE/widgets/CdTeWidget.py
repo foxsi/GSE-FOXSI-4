@@ -268,7 +268,7 @@ class CdTeWidget(QWidget):
         self.resize(new_size)
 
 class AllCdTeView(QWidget):
-    def __init__(self):
+    def __init__(self, cdte0, cdte1, cdte2, cdte3):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
@@ -278,27 +278,27 @@ class AllCdTeView(QWidget):
         self.setWindowTitle("All CdTe View")
         self.aspect_ratio = self.detw/self.deth
 
-        datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-        datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-        datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-        datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
+        # datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
+        # datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
+        # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
+        # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file=datafile0, name=os.path.basename(datafile0))
+        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0))
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=datafile1, name=os.path.basename(datafile1))
+        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1))
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file=datafile2, name=os.path.basename(datafile2))
+        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2))
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file=datafile3, name=os.path.basename(datafile3))
+        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3))
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)
@@ -394,9 +394,14 @@ if __name__=="__main__":
     # lay.addLayout(_f1, 0, 1, 1, 1)
     # lay.addLayout(_f2, 0, 2, 1, 1)
     # lay.addLayout(_f3, 0, 3, 1, 1)
+
+    cdte0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
+    cdte1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
+    cdte2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
+    cdte3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
     
     # w.resize(1000,500)
-    w = AllCdTeView()
+    w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
     # w = CdTeWidget(data_file=datafile)
     
     w.show()
