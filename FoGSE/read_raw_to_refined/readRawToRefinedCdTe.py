@@ -90,7 +90,7 @@ class CdTeReader(ReaderBase):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            flags, event_df, all_hkdicts = CdTerawdataframe2parser(raw_data)
+            flags, event_df, all_hkdicts = CdTerawdataframe2parser(raw_data) #CdTerawalldata2parser(raw_data)# 
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
