@@ -60,7 +60,7 @@ class CMOSWidget(QWidget):
         self._ql_layout = self.layout_bkg(main_layout=ql_layout, 
                                              panel_name="ql_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name)
+        self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name, integrate=True)
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ql.setStyleSheet("border-width: 0px;")
@@ -76,7 +76,7 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name)
+        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name, integrate=True)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")

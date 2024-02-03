@@ -31,7 +31,7 @@ class CMOSPCWindow(QWidget):
         String to determine whether an "image" and or <something else> should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, name="CMOS", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", parent=None):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
@@ -47,6 +47,8 @@ class CMOSPCWindow(QWidget):
         self.setLayout(self.layoutMain)
 
         self.name = name
+        self.integrate = integrate
+        self.name = self.name+": Integrated" if self.integrate else self.name
 
         # decide how to read the data
         if data_file is not None:
@@ -163,6 +165,8 @@ class CMOSPCWindow(QWidget):
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
             new_frame[new_frame<1e-10] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "replace"
+        
+        self.update_method = "integrate" if self.integrate else self.update_method
 
         # update current plotted data with new frame
         self.update_image(existing_frame=self.my_array, new_frame=new_frame)
@@ -210,6 +214,8 @@ class CMOSPCWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] = existing_frame[:,:,self.channel[self.image_colour]] + new_frame
         elif self.update_method=="replace":
             self.my_array[:,:,self.channel[self.image_colour]] = new_frame
+        elif self.update_method=="integrate":
+            self.my_array[:,:,self.channel[self.image_colour]] += new_frame
 
         self._turn_pixels_on_and_off()
 

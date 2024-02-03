@@ -24,7 +24,7 @@ class CdTeCollection:
             The last time of the last data point previously extracted and 
             used. Default is `0` and so should take all data.
             Default: 0
-            
+
     Example
     -------
     with readBackwards.BackwardsReader(file=directory+raw_file, blksize=20_000_000, forward=True) as f:
@@ -55,13 +55,14 @@ class CdTeCollection:
         # for easy remapping of channels
         self.channel_map = self.remap_strip_dict()
 
-        # used in the filter to only consider data with times > than this
-        # self.last_data_time = old_data_time
-        self.new_entries = self.event_dataframe['ti']>old_data_time
-        self.last_data_time = self.event_dataframe['ti'][-1]
-
+        # dont include data more than a second older than the previous frames latest data
+        self.new_entries = self.event_dataframe['unixtime']>=0#old_data_time
+        self.latest_data_time = np.max(self.event_dataframe['unixtime'])
+        # self.latest_data_time = np.max(self.event_dataframe['ti'][np.where(self.event_dataframe['unixtime']==self.latest_unixtime)])
+        
         # filter the counts somehow, go for crude single strip right now
-        self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
+        # self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
+        self.f_data = self.filter_counts_grades(event_dataframe=self.event_dataframe, grade_al="1and2", grade_pt="1and2")
         
         # get more physical information about detector geometry
         self.strip_width_edges = self.strip_widths()
@@ -101,6 +102,7 @@ class CdTeCollection:
             pt_min_adc = np.median(pos_pt) + np.std(pos_pt)
             pos_al = adc_values_al[adc_values_al>0]
             al_min_adc = np.median(pos_al) + np.std(pos_al)
+            # print(np.median(pos_pt), self.get_pt_cmn(), np.median(pos_al),self.get_al_cmn())
             return pt_min_adc, al_min_adc
         elif style=="simple2":
             # takes ages for some reason
@@ -166,6 +168,140 @@ class CdTeCollection:
                 'al_strip_adc':al_value, 
                 'pt_strips':pt_strip, 
                 'al_strips':al_strip-128}
+    
+    def filter_counts_grades(self, event_dataframe, grade_al="1and2", grade_pt="1and2"):
+        """
+        Function to filer the count data.
+
+        Paramters
+        ---------
+        event_dataframe : numpy structured array
+                The numpy structured array returned from the parser 
+                containing the CdTe data.
+
+        grade_al, grade_pt : `str`, `str
+                Filter `event_dataframe` to the grade level for the Pt 
+                and Al side. Options are:
+                    * "1" = single strip events
+                    * "2" = double strip events
+                    * "1and2" = single and double strip events
+                Defaults: "1and2", "1and2"
+
+        Returns
+        -------
+        `dict`:
+            Dictionary of the times, adc value, and strip number of all 
+            filtered data.
+        """
+
+        new = self.new_entries #event_dataframe['ti']>self.last_data_time
+        
+        if np.all(~new):
+            return {'times':self.empty(), 
+                    'pt_strip_adc':self.empty(), 
+                    'al_strip_adc':self.empty(), 
+                    'pt_strips':self.empty(), 
+                    'al_strips':self.empty()}
+
+        trig_times = event_dataframe['ti'][new]
+        pt = event_dataframe['index_pt'][new]
+        al = event_dataframe['index_al'][new]+128
+        pt_adc = event_dataframe['adc_cmn_pt'][new]
+        al_adc = event_dataframe['adc_cmn_al'][new]
+
+        pt_min_adc, al_min_adc = self.single_event(pt_adc, al_adc, style="simple1")
+
+        pt_selection = ((pt<59) | (pt>68)) & (pt_adc>pt_min_adc) & (pt_adc<800)
+        al_selection = ((al>131) & (al<252)) & (al_adc>al_min_adc) & (al_adc<800)
+
+        pt_selection_new = self.get_event_grade(event_selection=pt_selection, grade=grade_pt, data_indices=pt, data_adc=pt_adc)
+        al_selection_new = self.get_event_grade(event_selection=al_selection, grade=grade_al, data_indices=al, data_adc=al_adc)
+
+        joint = (np.sum(pt_selection_new, axis=1) & np.sum(al_selection_new, axis=1)).astype(bool)
+
+        pt_strip = pt[joint][pt_selection_new[joint]]
+        al_strip = al[joint][al_selection_new[joint]]
+        pt_value = pt_adc[joint][pt_selection_new[joint]]
+        al_value = al_adc[joint][al_selection_new[joint]]
+
+        return {'times':trig_times[joint], 
+                'pt_strip_adc':pt_value, 
+                'al_strip_adc':al_value, 
+                'pt_strips':pt_strip, 
+                'al_strips':al_strip-128}
+
+    def get_event_grade(self, event_selection, grade, data_indices, data_adc):
+        """ 
+        Given a grade, return a mask array for the count data.
+        `grade options:
+        * "1" = single strip events
+        * "2" = double strip events
+        * "1and2" = single and double strip events
+        """
+        selection = copy(event_selection)
+        # what times do we have events that are over the threshold and how many of these events at each time (i.e., True)
+        _times, _event_inds = np.where(selection==True)
+        times, counts = np.unique(_times, return_counts=True)
+
+        # can now get times for single event (an event records one True),
+        # can now get times for double events (an event records two Trues), etc.
+        single_times = times[np.where(counts==1)] # times with single counts
+        double_times = times[np.where(counts==2)] # times with double counts
+        more_times = times[np.where(counts>2)] # times with double counts
+        # ti_times = test_data['ti'][np.where(counts==2)]
+
+        if grade=="1":
+            selection[double_times] = False
+            selection[more_times] = False
+        elif grade=="2":
+            selection[single_times] = False
+            selection[more_times] = False
+            selection = self.grade_2_handler(selection, double_times, data_indices, data_adc)
+        elif grade=="1and2":
+            selection[more_times] = False
+            selection = self.grade_2_handler(selection, double_times, data_indices, data_adc)
+            
+        # mask array will only have ONE True in a row if a count is determined to be there
+        return selection
+        
+    def grade_2_handler(self, selection, double_times, data_indices, data_adc):
+        # select the above threshold array at times with double counts
+        double_selection = selection[double_times] 
+
+        # arrange double counts in pairs, always even (double counts) so arrange into pairs
+        pairs = data_indices[double_times][double_selection].reshape((-1,2)) 
+        # get difference in pairs is 1, else not adjacent strips 
+        adjacent = abs(np.diff(pairs))==1 
+
+        # flatten array and can now select "true" double times
+        true_double_times_inds = adjacent.flatten() 
+
+        # true double times, not just times with two random strips lit up
+        true_double_times = double_times[true_double_times_inds] 
+
+        # take out the false double times
+        false_double_times = double_times[~true_double_times_inds]
+        selection[false_double_times] = False
+
+        # get full rows of the over-threshold selection that have times of doube events
+        select_rows = selection[true_double_times]
+
+        # turn the minimum value off in the selection process
+        # in the future, might want to do something fancier but for now
+        # just putting the double count event into the strip with the highest value
+        _d_adc = data_adc[true_double_times][select_rows].reshape(-1,2) # adc values at the time and strip location 
+        turn_min_off = np.argmin(_d_adc, axis=1)
+
+        # find the indices of the real double events
+        row_time, true_event = np.where(select_rows==True)
+        # make sure they are easily indexed
+        _t, _e = row_time.reshape(-1,2), true_event.reshape(-1,2)
+        # set the minimum adc value to false
+        select_rows[_t[:,0], _e[:,0]+turn_min_off] = False
+        # set the changed rows to the selected ones
+        selection[true_double_times] = select_rows
+        
+        return selection
     
     def channel_bins(self):
         """ Define the strip and ADC bins. """
@@ -337,10 +473,10 @@ class CdTeCollection:
                             counts.T, 
                             vmin=0, 
                             vmax=v)
-        plt.ylabel("ADC [common mode subtracted]")
+        plt.ylabel(f"ADC [common mode subtracted={cmn_sub}]")
         plt.xlabel("Strip [Pt: 0-127, Al: 128-255]")
         plt.colorbar(label="Counts")
-        plt.title(f"Spectrogram: CMN Subtracted, Re-map={remap}")
+        plt.title(f"Spectrogram: CMN-Subtracted={cmn_sub}, Re-map={remap}")
         
         return pc
     
@@ -366,6 +502,7 @@ class CdTeCollection:
         
         if remap:
             pt_strips, al_strips = self._remap_strip_values(pt_strips, al_strips)
+        self.rstrips = (pt_strips, al_strips)
         
         im, _, _ = np.histogram2d(pt_strips, 
                                   al_strips, 
@@ -521,4 +658,8 @@ class CdTeCollection:
     def total_counts(self):
         """ Just return the present total counts for the collection. """
         return np.sum(self.new_entries)
+        
+    def total_count_rate(self):
+        """ Just return the present total counts for the collection. """
+        return self.total_counts()/(1)
     

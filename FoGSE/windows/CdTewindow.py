@@ -33,7 +33,7 @@ class CdTeWindow(QWidget):
         Default: "image"
     """
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, name="CdTe", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", parent=None):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
@@ -48,6 +48,8 @@ class CdTeWindow(QWidget):
         self.setLayout(self.layoutMain)
 
         self.name = name
+        self.integrate = integrate
+        self.name = self.name+": Integrated" if self.integrate else self.name
 
         # decide how to read the data
         if data_file is not None:
@@ -169,18 +171,22 @@ class CdTeWindow(QWidget):
         
         # get the new frame
         if self.image_product=="image":
-            new_frame = self.reader.collection.image_array(area_correction=False)
+            new_frame = self.reader.collection.image_array(area_correction=False)[:,::-1]
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-10] = 0 # because interp 0s causes tiny artifacts
+            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "fade"
         elif self.image_product=="spectrogram":
             new_frame = self.reader.collection.spectrogram_array(remap=True, 
                                                                   nan_zeros=False, 
                                                                   cmn_sub=False).T
             print("Min/max CdTe frame1",np.min(new_frame),np.max(new_frame))
-            new_frame[new_frame>0.01*np.max(new_frame)] = 0.01*np.max(new_frame)
-            print("Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
+            _new_frame_gt0 = new_frame[new_frame>0]
+            _new_frame_cap = np.median(_new_frame_gt0) + 2*np.std(_new_frame_gt0)
+            new_frame[new_frame>_new_frame_cap] = _new_frame_cap
+            print("New Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
             self.update_method = "replace"
+
+        self.update_method = "integrate" if self.integrate else self.update_method
 
         # update current plotted data with new frame
         self.update_image(existing_frame=self.my_array, new_frame=new_frame)
@@ -229,6 +235,8 @@ class CdTeWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] = existing_frame[:,:,self.channel[self.image_colour]] + new_frame
         elif self.update_method=="replace":
             self.my_array[:,:,self.channel[self.image_colour]] = new_frame
+        elif self.update_method=="integrate":
+            self.my_array[:,:,self.channel[self.image_colour]] += new_frame
 
         self._turn_pixels_on_and_off()
 
@@ -293,7 +301,7 @@ class CdTeWindow(QWidget):
         An extra processing step for the data before it is plotted.
         """
     
-        # make sure everything is normalised between 0--255
+        # make sure every colour (axis=2) is normalised between 0--255
         norm = np.max(self.my_array, axis=(0,1))
         norm[norm==0] = 1 # can't divide by 0
         uf = self.max_val*self.my_array//norm
