@@ -24,7 +24,7 @@ class CdTeCollection:
             The last time of the last data point previously extracted and 
             used. Default is `0` and so should take all data.
             Default: 0
-            
+
     Example
     -------
     with readBackwards.BackwardsReader(file=directory+raw_file, blksize=20_000_000, forward=True) as f:
@@ -55,14 +55,14 @@ class CdTeCollection:
         # for easy remapping of channels
         self.channel_map = self.remap_strip_dict()
 
-        # used in the filter to only consider data with times > than this
-        # self.last_data_time = old_data_time
-        self.new_entries = self.event_dataframe['ti']>old_data_time
-        self.last_data_time = self.event_dataframe['ti'][-1]
-
+        # dont include data more than a second older than the previous frames latest data
+        self.new_entries = self.event_dataframe['unixtime']>=0#old_data_time
+        self.latest_data_time = np.max(self.event_dataframe['unixtime'])
+        # self.latest_data_time = np.max(self.event_dataframe['ti'][np.where(self.event_dataframe['unixtime']==self.latest_unixtime)])
+        
         # filter the counts somehow, go for crude single strip right now
-        self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
-        # self.f_data = self.filter_counts_grades(event_dataframe=self.event_dataframe)
+        # self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
+        self.f_data = self.filter_counts_grades(event_dataframe=self.event_dataframe, grade_al="1and2", grade_pt="1and2")
         
         # get more physical information about detector geometry
         self.strip_width_edges = self.strip_widths()
@@ -102,6 +102,7 @@ class CdTeCollection:
             pt_min_adc = np.median(pos_pt) + np.std(pos_pt)
             pos_al = adc_values_al[adc_values_al>0]
             al_min_adc = np.median(pos_al) + np.std(pos_al)
+            # print(np.median(pos_pt), self.get_pt_cmn(), np.median(pos_al),self.get_al_cmn())
             return pt_min_adc, al_min_adc
         elif style=="simple2":
             # takes ages for some reason
@@ -210,8 +211,8 @@ class CdTeCollection:
 
         pt_min_adc, al_min_adc = self.single_event(pt_adc, al_adc, style="simple1")
 
-        pt_selection = ((pt<59) | (pt>68)) & (pt_adc>pt_min_adc) #& (pt_adc<800)
-        al_selection = ((al>131) & (al<252)) & (al_adc>al_min_adc) #& (al_adc<800)
+        pt_selection = ((pt<59) | (pt>68)) & (pt_adc>pt_min_adc) & (pt_adc<800)
+        al_selection = ((al>131) & (al<252)) & (al_adc>al_min_adc) & (al_adc<800)
 
         pt_selection_new = self.get_event_grade(event_selection=pt_selection, grade=grade_pt, data_indices=pt, data_adc=pt_adc)
         al_selection_new = self.get_event_grade(event_selection=al_selection, grade=grade_al, data_indices=al, data_adc=al_adc)
@@ -472,10 +473,10 @@ class CdTeCollection:
                             counts.T, 
                             vmin=0, 
                             vmax=v)
-        plt.ylabel("ADC [common mode subtracted]")
+        plt.ylabel(f"ADC [common mode subtracted={cmn_sub}]")
         plt.xlabel("Strip [Pt: 0-127, Al: 128-255]")
         plt.colorbar(label="Counts")
-        plt.title(f"Spectrogram: CMN Subtracted, Re-map={remap}")
+        plt.title(f"Spectrogram: CMN-Subtracted={cmn_sub}, Re-map={remap}")
         
         return pc
     
@@ -656,4 +657,8 @@ class CdTeCollection:
     def total_counts(self):
         """ Just return the present total counts for the collection. """
         return np.sum(self.new_entries)
+        
+    def total_count_rate(self):
+        """ Just return the present total counts for the collection. """
+        return self.total_counts()/(1)
     

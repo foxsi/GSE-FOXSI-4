@@ -54,7 +54,7 @@ class CdTeWidget(QWidget):
         self._image_layout = self.layout_bkg(main_layout=image_layout, 
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name)
+        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True)#, integrate=True
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.image.setStyleSheet("border-width: 0px;")
@@ -69,7 +69,7 @@ class CdTeWidget(QWidget):
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="")
+        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ped.setStyleSheet("border-width: 0px;")

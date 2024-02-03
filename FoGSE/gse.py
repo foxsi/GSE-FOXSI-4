@@ -25,12 +25,17 @@ if __name__=="__main__":
     app = QApplication([])
 
     newest_folder = newest_data_dir() 
+    # newest_folder = "/Users/kris/Downloads/jan30/run17/gse"
     cdte_instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
     f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1_pc.log", cdte_instruments)), 
                      os.path.join(newest_folder, get_det_file("cdte2_pc.log", cdte_instruments)), 
                      os.path.join(newest_folder, get_det_file("cdte3_pc.log", cdte_instruments)), 
                      os.path.join(newest_folder, get_det_file("cdte4_pc.log", cdte_instruments)))
+    # f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1.log", cdte_instruments)), 
+    #                  os.path.join(newest_folder, get_det_file("cdte2.log", cdte_instruments)), 
+    #                  os.path.join(newest_folder, get_det_file("cdte3.log", cdte_instruments)), 
+    #                  os.path.join(newest_folder, get_det_file("cdte4.log", cdte_instruments)))
 
     f1 = AllCMOSView(os.path.join(newest_folder, get_det_file("cmos1_pc.log", cdte_instruments)), 
                      os.path.join(newest_folder, get_det_file("cmos1_ql.log", cdte_instruments)), 
