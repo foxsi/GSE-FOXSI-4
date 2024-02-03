@@ -173,7 +173,7 @@ class CdTeWindow(QWidget):
         if self.image_product=="image":
             new_frame = self.reader.collection.image_array(area_correction=False)
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-10] = 0 # because interp 0s causes tiny artifacts
+            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "fade"
         elif self.image_product=="spectrogram":
             new_frame = self.reader.collection.spectrogram_array(remap=True, 

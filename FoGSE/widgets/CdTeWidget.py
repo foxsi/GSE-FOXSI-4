@@ -28,7 +28,7 @@ class CdTeWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, name="CdTe", parent=None):
+    def __init__(self, data_file=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
         reader = CdTeReader(datafile=data_file)
@@ -54,7 +54,7 @@ class CdTeWidget(QWidget):
         self._image_layout = self.layout_bkg(main_layout=image_layout, 
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True)#, integrate=True
+        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.image.setStyleSheet("border-width: 0px;")
@@ -69,7 +69,7 @@ class CdTeWidget(QWidget):
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True)
+        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ped.setStyleSheet("border-width: 0px;")
@@ -283,22 +283,22 @@ class AllCdTeView(QWidget):
         # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
         # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0))
+        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-120)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1))
+        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1), image_angle=-30)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2))
+        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2), image_angle=-90)
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3))
+        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3), image_angle=+30)
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)

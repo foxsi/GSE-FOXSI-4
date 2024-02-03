@@ -502,6 +502,7 @@ class CdTeCollection:
         
         if remap:
             pt_strips, al_strips = self._remap_strip_values(pt_strips, al_strips)
+        self.rstrips = (pt_strips, al_strips)
         
         im, _, _ = np.histogram2d(pt_strips, 
                                   al_strips, 
