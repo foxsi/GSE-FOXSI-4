@@ -3,10 +3,8 @@ Create a class that will read the LOG file containing raw binary data received f
 FOXSI and parse the data to be readyfor the GUI plotting windows. 
 
 Can read:
-    * CdTe
+    * Timepix
 """
-
-import struct
 
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
