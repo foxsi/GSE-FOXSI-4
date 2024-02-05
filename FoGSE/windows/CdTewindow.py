@@ -4,17 +4,16 @@ A demo to walk through an existing CdTe raw file.
 
 import numpy as np
 
-from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt6 import QtCore, QtWidgets, QtGui
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 import pyqtgraph as pg
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.visualization import DetectorPlotView
 from FoGSE.windows.images import rotatation
 
 
-class CdTeWindow(DetectorPlotView):
+class CdTeWindow(QWidget):
     """
     An individual window to display CdTe data read from a file.
 
@@ -33,9 +32,24 @@ class CdTeWindow(DetectorPlotView):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, parent=None, name="CdTe"):
 
-        DetectorPlotView.__init__(self, parent, name)
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", parent=None):
+
+        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
+
+        QWidget.__init__(self, parent)
+        self.graphPane = pg.PlotWidget()
+        # self.graphPane.setMinimumSize(QtCore.QSize(200,100)) # was 250,250
+        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+
+        self.layoutMain = QGridLayout()
+        self.layoutMain.setContentsMargins(0, 0, 0, 0)
+        self.layoutMain.addWidget(self.graphPane)
+        self.setLayout(self.layoutMain)
+
+        self.name = name
+        self.integrate = integrate
+        self.name = self.name+": Integrated" if self.integrate else self.name
 
         # decide how to read the data
         if data_file is not None:
@@ -59,7 +73,9 @@ class CdTeWindow(DetectorPlotView):
         self.reader.value_changed_collection.connect(self.update_plot)
 
         # Disable interactivity
-        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
+        # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
+
+        self.update_background(colour=(10,40,80,100))#colour="white"
         
     def setup_2d(self):
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
@@ -78,12 +94,20 @@ class CdTeWindow(DetectorPlotView):
             # could do some maths to figure out but this WILL give the result need even if something is changed elsewhere
             _rm = rotatation.rotate_matrix(matrix=np.zeros((128, 128)), angle=self.image_angle)
             self.detw, self.deth = np.shape(_rm)
+            self.update_aspect(aspect_ratio=self.detw/self.deth)
             # set title and labels
-            self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title="Image")
+            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}")
+            xlabel = " "
+            ylabel = " "
         elif self.image_product=="spectrogram":
             self.detw, self.deth = 256, 1024
-            # set title and labels
-            self.set_labels(self.graphPane, xlabel="Strips [Pt:0-127, Al:127-255]", ylabel="ADC/Energy", title="Spectrogram")
+            self.update_aspect(aspect_ratio=2)
+            xlabel = "Strips [Pt:0-127, Al:127-255]"
+            ylabel = "ADC/Energy"
+        # set title and labels
+        self.set_labels(self.graphPane, xlabel=xlabel, ylabel=ylabel, title=f"{self.name}")
+ 
+        self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
 
         self.numpy_format = np.uint8
         self.set_image_ndarray()
@@ -102,9 +126,23 @@ class CdTeWindow(DetectorPlotView):
         self.image_angle = image_angle
         self.setup_2d()
 
+    def update_background(self, colour):
+        """ 
+        Update the background image colour. 
+        
+        E.g., colour=(10,40,80,100))
+              colour=\"white\"
+              etc.
+        """
+        self.graphPane.getViewBox().setBackgroundColor(colour)
+    
+    def update_aspect(self, aspect_ratio):
+        """ Update the image aspect ratio (width/height). """
+        self.aspect_ratio = aspect_ratio
+
     def set_fade_out(self, no_of_frames):
         """ Define how many frames to fade a count out over. """
-        self.fade_out = 25
+        self.fade_out = no_of_frames
         # the minimum fade for a pixel, should be redunant but this can end up being 
         # an incredibly small value (e.g, 1e-14) instead of exactly 0
         self._min_fade_alpha = self.max_val - (self.max_val/self.fade_out)*self.fade_out
@@ -133,18 +171,22 @@ class CdTeWindow(DetectorPlotView):
         
         # get the new frame
         if self.image_product=="image":
-            new_frame = self.reader.collection.image_array(area_correction=False)
+            new_frame = self.reader.collection.image_array(area_correction=False)[:,::-1]
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-1] = 0 # because interp 0s causes tiny artifacts
+            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "fade"
         elif self.image_product=="spectrogram":
             new_frame = self.reader.collection.spectrogram_array(remap=True, 
                                                                   nan_zeros=False, 
                                                                   cmn_sub=False).T
             print("Min/max CdTe frame1",np.min(new_frame),np.max(new_frame))
-            new_frame[new_frame>0.01*np.max(new_frame)] = 0.01*np.max(new_frame)
-            print("Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
+            _new_frame_gt0 = new_frame[new_frame>0]
+            _new_frame_cap = np.median(_new_frame_gt0) + 2*np.std(_new_frame_gt0)
+            new_frame[new_frame>_new_frame_cap] = _new_frame_cap
+            print("New Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
             self.update_method = "replace"
+
+        self.update_method = "integrate" if self.integrate else self.update_method
 
         # update current plotted data with new frame
         self.update_image(existing_frame=self.my_array, new_frame=new_frame)
@@ -159,6 +201,7 @@ class CdTeWindow(DetectorPlotView):
         self.graphPane.removeItem(self.img)
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
+
         self.update()
 
     def update_image(self, existing_frame, new_frame):
@@ -192,8 +235,19 @@ class CdTeWindow(DetectorPlotView):
             self.my_array[:,:,self.channel[self.image_colour]] = existing_frame[:,:,self.channel[self.image_colour]] + new_frame
         elif self.update_method=="replace":
             self.my_array[:,:,self.channel[self.image_colour]] = new_frame
+        elif self.update_method=="integrate":
+            self.my_array[:,:,self.channel[self.image_colour]] += new_frame
 
-    def fade_control(self, new_hits_array, control_with="alpha"):
+        self._turn_pixels_on_and_off()
+
+    def _turn_pixels_on_and_off(self):
+        """ Turn pixels alpha channels on and off. """
+        _frame = self.my_array[:,:,self.channel[self.image_colour]]
+        _lowest_value_to_view = np.max(_frame)/1e6 #i.e., dynamic range of 1e6
+        self.my_array[:,:,self.alpha][_frame>_lowest_value_to_view] = self.max_val
+        self.my_array[:,:,self.alpha][_frame<=_lowest_value_to_view] = self.min_val
+
+    def fade_control(self, new_hits_array, control_with="rgb"):
         """
         Fades out pixels that haven't had a new count in steps of `self.max_val//self.fade_out` until a pixel has not had an 
         event for `self.fade_out` frames. If a pixel has not had a detection in `self.fade_out` frames then reset the colour 
@@ -201,9 +255,14 @@ class CdTeWindow(DetectorPlotView):
 
         Parameters
         ----------
-        new_frame : `numpy.ndarray`, `bool`
+        new_hits_array : `numpy.ndarray`, `bool`
             This is a 2D boolean array of shape (`self.deth`,`self.detw`) which shows True if the pixel has just detected 
             a new count and False if it hasn't.
+
+        control_with : `str`
+            Sets how to control the image fade. Can choose rgb, and it will control the fade with `self.image_colour` or
+            set to alpha and it will use th alpha channel if it can.
+            Default: 'rgb'
         """
 
         # add to counter if pixel has no hits
@@ -227,9 +286,12 @@ class CdTeWindow(DetectorPlotView):
             # reset alpha
             self.my_array[:,:,self.alpha][turn_off_colour] = self.max_val
 
-        elif control_with in ["red", "green", "blue"]:
-            index = self.channel[control_with]
+        elif control_with=="rgb":# in ["red", "green", "blue"]:
+            cw = self.image_colour
+            index = self.channel[cw]
             self.my_array[:,:,index] = self.my_array[:,:,index] - (self.my_array[:,:,index]/self.fade_out)*self.no_new_hits_counter_array
+            #sometimes the above line doesn't set an entry to zero, just really really close to it
+            self.my_array[:,:,index][self.my_array[:,:,index]<1e-1] = 0 
 
         # reset the no hits counter when max is reached
         self.no_new_hits_counter_array[self.no_new_hits_counter_array>=self.fade_out] = 0
@@ -238,8 +300,8 @@ class CdTeWindow(DetectorPlotView):
         """
         An extra processing step for the data before it is plotted.
         """
-
-        # make sure everything is normalised between 0--255
+    
+        # make sure every colour (axis=2) is normalised between 0--255
         norm = np.max(self.my_array, axis=(0,1))
         norm[norm==0] = 1 # can't divide by 0
         uf = self.max_val*self.my_array//norm
@@ -263,11 +325,27 @@ class CdTeWindow(DetectorPlotView):
             The strings relating to each label to be set.
         """
 
-        graph_widget.setTitle(title)
+        styles = {"size":"10pt", "font-size":"10pt", "color":"grey", "margin":"0"}
+
+        # graph_widget.setTitle(title, **styles)
+        self.add_label(title)
 
         # Set label for both axes
-        graph_widget.setLabel('bottom', xlabel)
-        graph_widget.setLabel('left', ylabel)
+        graph_widget.setLabel('bottom', xlabel, **styles)
+        graph_widget.setLabel('left', ylabel, **styles)
+
+        graph_widget.getAxis("left").setWidth(0)
+        graph_widget.getAxis("right").setWidth(0)
+        graph_widget.getAxis("top").setHeight(0)
+        graph_widget.getAxis("bottom").setHeight(0)
+
+    def add_label(self, entry):
+        self.label_title = pg.TextItem("", **{'color': '#FFF', "anchor":(0,1)})
+        self.label_title.setFont(QtGui.QFont('Arial', 10))
+        self.label_title.setPos(QtCore.QPointF(0, 0))
+        self.label_title.setText(entry)
+        self.label_title.setZValue(1)
+        self.graphPane.addItem(self.label_title)
 
     def set_image_ndarray(self):
         """
@@ -286,6 +364,21 @@ class CdTeWindow(DetectorPlotView):
 
         # define array to keep track of the last hit to each pixel
         self.no_new_hits_counter_array = (np.zeros((self.deth, self.detw))).astype(self.numpy_format)
+
+    def resizeEvent(self,event):
+        """ Define how the widget can be resized and keep the same apsect ratio. """
+        super().resizeEvent(event)
+        # Create a square base size of 10x10 and scale it to the new size
+        # maintaining aspect ratio.
+        # if self.image_product=="spectrogram":
+        #     print("ere", event.size().width(), event.size().height())
+        if event is None:
+            return 
+        
+        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
+        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.resize(new_size)
 
 
 if __name__=="__main__":
@@ -321,8 +414,8 @@ if __name__=="__main__":
     # reader = CdTeReader(datafile)
 
     f0 = CdTeWindow(reader=reader, plotting_product="spectrogram")
-    # f1 = CdTeWindow(reader=reader, plotting_product="image")
+    f1 = CdTeWindow(reader=reader, plotting_product="image")
     # print(R.collections)
     f0.show()
-    # f1.show()
+    f1.show()
     app.exec()

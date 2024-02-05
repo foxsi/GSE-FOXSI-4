@@ -85,7 +85,7 @@ class ReaderBase(QWidget):
             # self.buffer_size = new_size
         self.buffer_size = size
 
-    def call_interval(self, call_interval=1000):
+    def call_interval(self, call_interval=100):
         """
         Define how often to attempt to read the data file.
 

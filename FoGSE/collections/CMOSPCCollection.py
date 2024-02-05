@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class QLCMOSCollection:
+class CMOSPCCollection:
     """
     A container for CMOS data after being parsed.
     
@@ -27,18 +27,18 @@ class QLCMOSCollection:
     -------
     with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
         data = f.read_block()
-        linetime, gain, exposure_pc, pc_image = QLimageData(raw_data)
+        linetime, gain, exposure_pc, pc_image = PCimageData(raw_data)
         
-    qlcmos_data = QLCMOSCollection((linetime, gain, exposure_ql, ql_image))
+    cmos_data = CMOSPCCollection((linetime, gain, exposure_pc, pc_image))
     
     plt.figure(figsize=(12,8))
-    qlcmos_data.plot_image()
+    cmos_data.plot_image()
     plt.show()
     """
     
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
-        self.linetime, _, _, self._image = parsed_data
+        self.linetime, self.gain_pc, self.exposure_pc, self._image = parsed_data
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time
@@ -48,7 +48,7 @@ class QLCMOSCollection:
 
     def empty(self):
         """ Define what an empty return should be. """
-        return np.zeros((480,512))
+        return np.zeros((384,768))
     
     def new_array(self):
         """ Check if the array is new or a repeat. """
@@ -65,7 +65,9 @@ class QLCMOSCollection:
         `np.ndarray` :
             The image array.
         """
-        return self._image
+        im = self._image
+        im[im>1] = 0 #images are normalsed so remove values of artificially large value
+        return im
     
     def plot_image(self):
         """
@@ -85,3 +87,11 @@ class QLCMOSCollection:
         plt.title("CMOS Image")
         
         return i
+    
+    def get_exposure(self):
+        """ Return the exposure time of PC image. """
+        return self.exposure_pc
+    
+    def get_gain(self):
+        """ Return the exposure time of PC image. """
+        return self.gain_pc

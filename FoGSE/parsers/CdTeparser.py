@@ -170,8 +170,13 @@ def CdTerawalldata2parser(datalist):
 
         elif(tmpdata == 0x02):#//10
             print("eventframestart")
+            
+            if(nlist+framewordsize>nlist_max):
+                print("************Caution: STOP in PROCESSING EVENT DATA, LAST FRAME is BROKEN***********************",nlist,nlist_max)
+                errorflag=True
+                break
+            
             framedata=datalist[nlist:nlist+framewordsize+1]
-
             nlist+=framewordsize
         
             try:
@@ -182,6 +187,7 @@ def CdTerawalldata2parser(datalist):
                 else:
                     unixtime =  framedata[framewordsize-2]
                     framedataok = True
+                    
             except IndexError:
                 # to test full files being artificially split-up  - kris
                 print("A non-full frame was encountered.")
@@ -193,8 +199,15 @@ def CdTerawalldata2parser(datalist):
                 while(True):
                     while( (framedata[j] & 0x0000FFFF) != 0x00003c3c and j<framewordsize):
                         j+=1
+                        if(j>=framewordsize):
+                            break
                     i=0
                     offset = j
+                    
+                    if(j>=framewordsize):
+                        print("eventframe end! Sum of Nevent:",eventid)
+                        eventflag=True
+                        break
 
                     while(framedata[j] != 0x77770000 and i<eventsize and  j<framewordsize):
                         eventdata[i] = ((framedata[j]&0xff000000)>>24)+ ((framedata[j]&0x00ff0000)>>8)+ ((framedata[j]&0x0000ff00)<<8)+ ((framedata[j]&0x000000ff)<<24)
@@ -279,6 +292,7 @@ def CdTerawalldata2parser(datalist):
                                     bitoffset += (80+10*hitnum+10+1)
 
                                 k= iasic + idchain * numofasicperdaisychains;
+                                #print(k, iasic , idchain)
 
                                 #if( not(eventid % 1000) and k==0):
                                     #print(eventid)
@@ -290,42 +304,52 @@ def CdTerawalldata2parser(datalist):
 
                                 array_chflag.append([chflag[0],chflag[1],chflag[2]])
                                 array_cmn_ex[k] =statistics.median(adc)
+                                array_ref[k] = ref
+                                array_hitnum[k] = hitnum
 
                                 if(k==0):
                                     array_adccmn.append([])
                                     array_index.append([])
                                     array_cmn.append([])
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[0].append(adc[i]-cmn)
                                         array_index[0].append(index[i])
                                     array_cmn[0].append(cmn)
 
                                 elif(k==1):
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[0].append(adc[i]-cmn)
                                         array_index[0].append(index[i]+64)
                                     array_cmn[0].append(cmn)
+                                    if(array_hitnum[0]+array_hitnum[1]<noofch*2):
+                                        for i in range(noofch*2-(array_hitnum[0]+array_hitnum[1])):
+                                            array_adccmn[0].append(0)
+                                            array_index[0].append(128)
+                                    
 
                                 elif(k==2):
                                     array_adccmn.append([])
                                     array_index.append([])
                                     array_cmn.append([])
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[1].append(adc[i]-cmn)
                                         array_index[1].append(index[i])
                                     array_cmn[1].append(cmn)
 
                                 elif(k==3):
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[1].append(adc[i]-cmn)
                                         array_index[1].append(index[i]+64)
                                     array_cmn[1].append(cmn)
+                                    if(array_hitnum[2]+array_hitnum[3]<noofch*2):
+                                        for i in range(noofch*2-(array_hitnum[2]+array_hitnum[3])):
+                                            array_adccmn[1].append(0)
+                                            array_index[1].append(128)
 
                                 #if (eventid == 1):
                                     #print(iasic,idchain,k,i, array_index,array_adccmn)
 
-                                array_ref[k] = ref
-                                array_hitnum[k] = hitnum
+                                
 
                             if (bitoffset % 32 != 0):
                                 bitoffset += (32 - bitoffset % 32)
@@ -351,44 +375,9 @@ def CdTerawalldata2parser(datalist):
                     Lflag_pseudo.append(flag_pseudo)
 
 
-    #print(np.array(Lti,dtype=np.uint16))
-    #print("all frame ", framecount)
-    #pl_ti = pl.Series("ti",np.array(Lti,dtype=np.uint16))
-    #pl_unixtime = pl.Series("unixtime",np.array(Lunixtime,dtype=np.uint16))
-    #pl_livetime = pl.Series("livetime",np.array(Llivetime,dtype=np.uint16))
-    #pl_e_al = pl.Series("e_al",np.array(Ladccmn_al,dtype=np.float16))
-    #pl_e_pt = pl.Series("e_pt",np.array(Ladccmn_pt,dtype=np.float16))
-    #pl_cmn_al= pl.Series("cmn_al",np.array(Lcmn_al,dtype=np.uint8))
-    #pl_cmn_pt= pl.Series("cmn_pt",np.array(Lcmn_pt,dtype=np.uint8))
-    #pl_pos_al = pl.Series("pos_al",np.array(Lindex_al,dtype=np.float16))
-    #pl_pos_pt = pl.Series("pos_pt",np.array(Lindex_pt,dtype=np.float16))
-    #pl_hitnum_al = pl.Series("hitnum_al",np.array(Lhitnum_al,dtype=np.uint8))
-    #pl_hitnum_pt = pl.Series("hitnum_pt",np.array(Lhitnum_pt,dtype=np.uint8))
-    #pl_flag_pseudo=pl.Series("flag_pseudo",np.array(Lflag_pseudo,dtype=np.uint8))
-    #print(np.array(array_adc[0],dtype=np.uint8))
     if(eventflag and hkflag):
         errorflag = True
         print("CAUTION!! : INPUT DATA IS FRAME DATA? BOTH HK AND EVENT DATA ARE FOUND")
-
-    #print(framecount)
-    # df  = pl.DataFrame(
-    #     {
-    #        "ti":np.array(Lti,dtype=np.uint32),
-    #         "unixtime":np.array(Lunixtime,dtype=np.uint32),
-    #         "livetime":np.array(Llivetime,dtype=np.uint32),
-    #         "adc_cmn_al":np.array(Ladccmn_al,dtype=np.int32),
-    #         "adc_cmn_pt":np.array(Ladccmn_pt,dtype=np.int32),
-    #         "cmn_al":np.array(Lcmn_al,dtype=np.uint32),
-    #         "cmn_pt":np.array(Lcmn_pt,dtype=np.uint32),
-    #         "index_al":np.array(Lindex_al,dtype=np.uint8),
-    #         "index_pt":np.array(Lindex_pt,dtype=np.uint8),
-    #         "hitnum_al":np.array(Lhitnum_al,dtype=np.uint8),
-    #         "hitnum_pt":np.array(Lhitnum_pt,dtype=np.uint8),
-    #         "flag_pseudo":np.array(Lflag_pseudo,dtype=np.uint8),
-    #         #"all_adc":np.array(all_array_adc,dtype=np.uint8),
-    #         #"all_index":np.array(all_array_index,dtype=np.uint8),
-    #     }
-    # )
 
     # # Example of Numpy structured array
     # >> dt = np.dtype({'names':('t',"y"),'formats':('(3,)f4', 'i4')})
