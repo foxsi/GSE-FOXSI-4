@@ -360,6 +360,12 @@ if __name__=="__main__":
     cmos_ql0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
     cmos_pc1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
     cmos_ql1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
+
+    
+    cmos_pc0 = "/Users/kris/Downloads/feb3/run22/gse/cmos1_pc.log"
+    cmos_ql0 = "/Users/kris/Downloads/feb3/run22/gse/cmos1_ql.log"
+    cmos_pc1 = "/Users/kris/Downloads/feb3/run22/gse/cmos2_pc.log"
+    cmos_ql1 = "/Users/kris/Downloads/feb3/run22/gse/cmos2_ql.log"
     
     # w.resize(1000,500)
     w = AllCMOSView(cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1)

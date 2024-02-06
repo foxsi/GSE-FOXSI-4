@@ -163,7 +163,7 @@ class CMOSPCWindow(QWidget):
         if self.image_product=="image":
             new_frame = self.reader.collection.image_array()
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-10] = 0 # because interp 0s causes tiny artifacts
+            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "replace"
         
         self.update_method = "integrate" if self.integrate else self.update_method
