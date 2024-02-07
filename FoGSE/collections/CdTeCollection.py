@@ -62,7 +62,7 @@ class CdTeCollection:
         
         # filter the counts somehow, go for crude single strip right now
         # self.f_data = self.filter_counts(event_dataframe=self.event_dataframe)
-        self.f_data = self.filter_counts_grades(event_dataframe=self.event_dataframe, grade_al="everything", grade_pt="everything")
+        self.f_data = self.filter_counts_grades(event_dataframe=self.event_dataframe, grade_al="max_adc", grade_pt="max_adc")
         
         # get more physical information about detector geometry
         self.strip_width_edges = self.strip_widths()
@@ -162,16 +162,16 @@ class CdTeCollection:
         pt_value = pt_adc[pt_selection & single]
         al_value = al_adc[al_selection & single]
         
-        # self.last_data_time = event_dataframe['ti'][-1]
         return {'times':single_trig_times, 
                 'pt_strip_adc':pt_value, 
                 'al_strip_adc':al_value, 
                 'pt_strips':pt_strip, 
                 'al_strips':al_strip-128}
     
-    def filter_counts_grades(self, event_dataframe, grade_al="1and2", grade_pt="1and2"):
+    def filter_counts_grades(self, event_dataframe, grade_al="max_adc", grade_pt="max_adc"):
         """
-        Function to filer the count data.
+        Function to filer the count data byt considering strip and ADC value
+        information.
 
         Paramters
         ---------
@@ -185,7 +185,8 @@ class CdTeCollection:
                     * "1" = single strip events
                     * "2" = double strip events
                     * "1and2" = single and double strip events
-                Defaults: "1and2", "1and2"
+                    "max_adc" = max of each trigger is kept
+                Defaults: "max_adc", "max_adc"
 
         Returns
         -------
@@ -209,20 +210,18 @@ class CdTeCollection:
         pt_adc = event_dataframe['adc_cmn_pt'][new]
         al_adc = event_dataframe['adc_cmn_al'][new]
 
-        pt_min_adc, al_min_adc = self.single_event(pt_adc, al_adc, style="simple1")
-        # print("min pt:", pt_min_adc, al_min_adc)
+        # for more filtering `pt_min_adc, al_min_adc = self.single_event(pt_adc, al_adc, style="simple1")`
         pt_selection = ((pt<59) | (pt>68)) #& (pt_adc>pt_min_adc) & (pt_adc<800)
-        al_selection = ((al>131) & (al<252))# & (al_adc>al_min_adc) & (al_adc<800)
-        # pt_selection = (((pt>30) & (pt<50)) | ((pt>77) & (pt<123))) & (pt_adc>pt_min_adc) & (pt_adc<800)
-        # al_selection = (((al>145) & (al<170)) | ((al>210) & (al<245))) & (al_adc>al_min_adc) & (al_adc<800)#(((al>145) & (al<170)) | ((al>210) & (al<245)))
+        al_selection = ((al>131) & (al<252)) #& (al_adc>al_min_adc) & (al_adc<800)
 
+        # get matrices for Pt and Al that have a single True value for every readout
         pt_selection_new = self.get_event_grade(event_selection=pt_selection, grade=grade_pt, data_indices=pt, data_adc=pt_adc)
         al_selection_new = self.get_event_grade(event_selection=al_selection, grade=grade_al, data_indices=al, data_adc=al_adc)
 
+        # find all triggers where Pt and Al have a count each
         joint = (np.sum(pt_selection_new, axis=1) & np.sum(al_selection_new, axis=1)).astype(bool)
-        # print(np.max(np.sum(pt_selection_new, axis=1)), np.max(np.sum(al_selection_new, axis=1)))
-        # print(np.sum(pt_selection_new, axis=1), np.sum(al_selection_new, axis=1))
 
+        # look at the joint triggers on both sides and select the index for each to use as x and y coords
         pt_strip = pt[joint][pt_selection_new[joint]]
         al_strip = al[joint][al_selection_new[joint]]
         pt_value = pt_adc[joint][pt_selection_new[joint]]
@@ -241,6 +240,7 @@ class CdTeCollection:
         * "1" = single strip events
         * "2" = double strip events
         * "1and2" = single and double strip events
+        * "max_adc" = max of each trigger is kept
         """
         selection = copy(event_selection)
         # what times do we have events that are over the threshold and how many of these events at each time (i.e., True)
@@ -252,7 +252,6 @@ class CdTeCollection:
         single_times = times[np.where(counts==1)] # times with single counts
         double_times = times[np.where(counts==2)] # times with double counts
         more_times = times[np.where(counts>2)] # times with double counts
-        # ti_times = test_data['ti'][np.where(counts==2)]
 
         if grade=="1":
             selection[double_times] = False
@@ -260,25 +259,22 @@ class CdTeCollection:
         elif grade=="2":
             selection[single_times] = False
             selection[more_times] = False
-            # selection = self.grade_2_handler(selection, double_times, data_indices, data_adc)
-            selection = self.grade_2_handler_take_max_count_if_double(selection, double_times, data_indices, data_adc)
+            selection = self.grade_2_handler(selection, double_times, data_indices, data_adc)
+            # another option is `selection = self.grade_2_handler_take_max_count_if_double(selection, double_times, data_adc)`
         elif grade=="1and2":
             selection[more_times] = False
-            # selection = self.grade_2_handler(selection, double_times, data_indices, data_adc)
-            selection = self.grade_2_handler_take_max_count_if_double(selection, double_times, data_indices, data_adc)
-        elif grade=="everything":
-            selection = self.grade_everything_handler(selection, data_indices, data_adc)
+            selection = self.grade_2_handler(selection, double_times, data_indices, data_adc)
+            # another option is `selection = self.grade_2_handler_take_max_count_if_double(selection, double_times, data_adc)`
+        elif grade=="max_adc":
+            selection = self.grade_max_adc_handler(selection, data_adc)
             
         # mask array will only have ONE True in a row if a count is determined to be there
         return selection
     
-    def grade_everything_handler(self, selection, data_indices, data_adc):
+    def grade_max_adc_handler(self, selection, data_adc):
         """ Just take the max ADC from every event as valid count. """
         # copy the ADC value to avoid changing original
         _data_adc = copy(data_adc)
-
-        # find the rows that are viable from removing the bad strips previously
-        # viable_rows = np.sum(selection, axis=1)>0
         
         # any ADC value that is on a bad strip, set it to zero
         _data_adc[selection==False] = 0
@@ -299,6 +295,11 @@ class CdTeCollection:
         return max_selection 
         
     def grade_2_handler(self, selection, double_times, data_indices, data_adc):
+        """ 
+        If two strips have a valid ADC value for a single CdTe readout
+        and they are adjacent then just accept the maxmimum of the 
+        two as a real count. 
+        """
         # select the above threshold array at times with double counts
         double_selection = selection[double_times] 
 
@@ -337,26 +338,15 @@ class CdTeCollection:
         
         return selection
     
-    def grade_2_handler_take_max_count_if_double(self, selection, double_times, data_indices, data_adc):
-        # select the above threshold array at times with double counts
-        double_selection = selection[double_times] 
-
-        # arrange double counts in pairs, always even (double counts) so arrange into pairs
-        pairs = data_indices[double_times][double_selection].reshape((-1,2)) 
-        # get difference in pairs is 1, else not adjacent strips 
-        adjacent = abs(np.diff(pairs))==1 
-        self._pairs = pairs
-
-        # flatten array and can now select "true" double times
-        true_double_times_inds = adjacent.flatten() 
+    def grade_2_handler_take_max_count_if_double(self, selection, double_times, data_adc):
+        """ 
+        If two strips have a valid ADC value for a single CdTe readout
+        but they are not adjacent then just accept the maxmimum of the 
+        two as a real count. 
+        """
 
         # true double times, not just times with two random strips lit up
         true_double_times = double_times#[true_double_times_inds] 
-
-        # take out the false double times
-        false_double_times = double_times[~true_double_times_inds]
-        # selection[false_double_times] = False
-        # print(false_double_times)
 
         # get full rows of the over-threshold selection that have times of doube events
         select_rows = selection[true_double_times]
