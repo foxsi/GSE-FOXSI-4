@@ -52,9 +52,11 @@ class CMOSPCCollection:
     
     def new_array(self):
         """ Check if the array is new or a repeat. """
-        if self.linetime>self.last_data_time:
-            return True
-        return False
+        return True
+        # previously was
+        # if self.linetime>self.last_data_time:
+        #     return True
+        # return False
     
     def image_array(self):
         """
