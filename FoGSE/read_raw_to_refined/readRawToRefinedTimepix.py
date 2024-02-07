@@ -106,7 +106,7 @@ class TimepixReader(ReaderBase):
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = TimepixCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
+        col = TimepixCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
 
         # if col.last_data_time>self.old_data_time:
         #     self.old_data_time = col.last_data_time

@@ -28,6 +28,8 @@ class TimepixWindow(QWidget):
     """
     def __init__(self, data_file=None, reader=None, parent=None, name="Timepix"):
 
+        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
+
         QWidget.__init__(self, parent)
 
         # decide how to read the data
@@ -48,6 +50,8 @@ class TimepixWindow(QWidget):
         self.graphPane_flux.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QVBoxLayout()
+        self.layoutMain.setContentsMargins(0, 0, 0, 0)
+        self.layoutMain.setSpacing(0)
         self.layoutMain.addWidget(self.graphPane_mean_tot)
         self.layoutMain.addWidget(self.graphPane_flux)
 
@@ -63,7 +67,7 @@ class TimepixWindow(QWidget):
         self.sensor_plots_flux = self.plot(self.graphPane_flux, [0,0], [0,0], color="purple", plotname="Flux")
 
         # set title and labels
-        self.set_labels(self.graphPane_mean_tot, xlabel="Time (entry)", ylabel="Mean ToT", title=" ")
+        self.set_labels(self.graphPane_mean_tot, xlabel="", ylabel="Mean ToT", title=" ")
         self.set_labels(self.graphPane_flux, xlabel="Time (entry)", ylabel="Flux", title=" ")
 
         self.keep_entries = 30 # entries
@@ -205,7 +209,7 @@ if __name__=="__main__":
     #     # generate fake data and save to `datafile`
     #     fake_Timepixs(DATAFILE, loops=1_000_000)
 
-    from multiprocessing import Process
+    # from multiprocessing import Process
 
     # fake temps
     # p1 = Process(target = initiate_fake_Timepixs)
