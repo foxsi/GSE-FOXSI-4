@@ -1,4 +1,5 @@
 import socket
+import struct
 import os
 import sys
 import json
@@ -279,13 +280,23 @@ class Listener():
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
 
-            self.local_socket = socket.socket(
-                socket.AF_INET, socket.SOCK_DGRAM)
-            self.local_socket.bind(self.local_endpoint)
-            self.local_socket.connect(self.remote_endpoint)
-            self.local_socket.settimeout(0.01)
-            print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                  self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
+# new:
+            group = "224.1.1.118"
+            port = 9999
+            self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            self.local_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.local_socket.bind((group, port))
+            mreq = struct.pack("4sl", socket.inet_aton(group), socket.INADDR_ANY)
+            self.local_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+# old:
+            # self.local_socket = socket.socket(
+            #     socket.AF_INET, socket.SOCK_DGRAM)
+            # self.local_socket.bind(self.local_endpoint)
+            # self.local_socket.connect(self.remote_endpoint)
+            # self.local_socket.settimeout(0.01)
+            # print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+            #       self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
 
             self._uplink_message_queue = queue.Queue()
 

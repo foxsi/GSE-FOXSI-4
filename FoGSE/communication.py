@@ -5,6 +5,8 @@ import FoGSE.singleton as singleton
 
 from PyQt6.QtCore import QProcess
 
+import serial as serial
+
 
 
 class CommandSystem:
@@ -326,6 +328,16 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
         self.unix_local_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.unix_local_socket.bind(self.unix_local_socket_path)
 
+        self.has_serial = False
+        try:
+            self.serial_port = serial.Serial(port="/dev/tty.usbserial-FTK1YS5N", baudrate=1200)
+            self.has_serial = True
+            print("opened serial port.")
+        except Exception as e:
+            print("couldn't open serial port!")
+            print(e)
+            self.has_serial = False
+
         # log sent packets to file
         self.do_logging = logging
         self.end_background_process_on_close = end_background_process_on_close
@@ -363,6 +375,14 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
 
         if self.deck.validate(message[0], message[1]):
             self.unix_local_socket.send(bytes(message))
+            if self.has_serial:
+                try:
+                    self.serial_port.write(bytes(message))
+                    print("sent serial command: ", bytes(message))
+                except Exception as e:
+                    print("couldn't send serial command:")
+                    print(e)
+
             params.DEBUG_PRINT("submitted uplink command: " + str(message))
         else:
             params.DEBUG_PRINT("got bad uplink command! ignoring.")
