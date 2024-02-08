@@ -26,7 +26,7 @@ def timepix_parser(bin_data):
     flags = flag_byte_packet
     print("Mean ToT = {}".format(mean_tot))
     print("flux rate = {}".format(flx_rate))
-    print(get_raised_flags(bin(flags)))
+    print(f"Flags = {get_raised_flags(bin(flags))}")
     return mean_tot, flx_rate, get_raised_flags(bin(flags))
 
 # #################################################################################
