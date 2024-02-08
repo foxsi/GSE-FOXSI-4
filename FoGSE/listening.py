@@ -280,23 +280,28 @@ class Listener():
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
 
-# new:
-            group = "224.1.1.118"
-            port = 9999
-            self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            self.local_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.local_socket.bind((group, port))
-            mreq = struct.pack("4sl", socket.inet_aton(group), socket.INADDR_ANY)
-            self.local_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            # check if there is a multicast interface to use
+            try:
+                # listen on a multicast socket
+                self.mcast_group = self.local_system_config["ethernet_interface"]["mcast_group"]
+                self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                self.local_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-# old:
-            # self.local_socket = socket.socket(
-            #     socket.AF_INET, socket.SOCK_DGRAM)
-            # self.local_socket.bind(self.local_endpoint)
-            # self.local_socket.connect(self.remote_endpoint)
-            # self.local_socket.settimeout(0.01)
-            # print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-            #       self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
+                self.local_socket.bind((self.mcast_group, self.local_port))
+                self.local_socket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP,
+                    socket.inet_aton(self.mcast_group) + socket.inet_aton(self.local_address))
+                self.local_socket.settimeout(0.01)
+                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                    self.mcast_group + ":" + str(self.local_port))
+            except KeyError:
+                # listen on a unicast socket
+                self.local_socket = socket.socket(
+                    socket.AF_INET, socket.SOCK_DGRAM)
+                self.local_socket.bind((self.local_address, self.local_port))
+                self.local_socket.connect(self.remote_endpoint)
+                self.local_socket.settimeout(0.01)
+                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                    self.local_address + ":" + str(self.local_port))
 
             self._uplink_message_queue = queue.Queue()
 
