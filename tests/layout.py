@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import QApplication
 from FoGSE.application import GSEMain, GSEFocus, GSECommand
 
 app = QApplication([])
-window = GSEMain()
+# window = GSEMain()
 # window = GSEFocus()
-# window = GSECommand()
+window = GSECommand()
 window.show()
 sys.exit(app.exec())

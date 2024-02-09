@@ -1,5 +1,5 @@
 """
-A demo to walk through an existing CdTe raw file.
+A demo to walk through an existing RTD raw file.
 """
 
 import numpy as np
@@ -180,7 +180,7 @@ class RTDWindow(DetectorPlotView):
 
         [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
 
-        arameters
+        Parameters
         ----------
         graph_widget : `PyQt6 PlotWidget`
             The widget for the labels

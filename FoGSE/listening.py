@@ -10,15 +10,16 @@ from datetime import datetime
 # todo: migrate this inside systems.json
 
 DOWNLINK_TYPE_ENUM = {
-    "pc":   0x00,
-    "ql":   0x01,
-    "tpx":  0x02,
-    "hk":   0x10,
-    "pow":  0x11,
-    "temp": 0x12,
-    "stat": 0x13,
-    "err":  0x14,
-    "none": 0xff
+    "pc":       0x00,
+    "ql":       0x01,
+    "tpx":      0x02,
+    "hk":       0x10,
+    "pow":      0x11,
+    "temp":     0x12,
+    "intro":    0x13,
+    "stat":     0x14,
+    "err":      0x15,
+    "none":     0xff
 }
 
 
