@@ -7,12 +7,13 @@ from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.widgets.CdTeWidget import AllCdTeView
 from FoGSE.widgets.CMOSWidget import AllCMOSView
+from FoGSE.widgets.TimepixWidget import TimepixWidget
 
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.io.newest_data import newest_data_dir
 
-from FoGSE.visualization import GlobalCommandPanel
+# from FoGSE.visualization import GlobalCommandPanel
 
 
 def get_det_file(want_filename, filename_list):
@@ -41,15 +42,20 @@ if __name__=="__main__":
                      os.path.join(newest_folder, get_det_file("cmos1_ql.log", cdte_instruments)), 
                      os.path.join(newest_folder, get_det_file("cmos2_pc.log", cdte_instruments)), 
                      os.path.join(newest_folder, get_det_file("cmos2_ql.log", cdte_instruments)))
+    
+    # f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix.log", cdte_instruments)))
+    f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
     w = QWidget()
     lay = QGridLayout(w)
 
-    lay.addWidget(f0, 0, 0, 1, 1)
-    lay.addWidget(f1, 1, 0, 1, 1)
+    lay.addWidget(f0, 0, 0, 3, 12)
+    lay.addWidget(f1, 3, 0, 3, 12)
+    lay.addWidget(f2, 6, 0, 2, 4)
     
     # w.resize(1000,500)
-    w.setGeometry(100,100,2000, 870)
+    _s = 122
+    w.setGeometry(0,0, 12*_s, 8*_s) # 12 to 8
     w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
     set_all_spacings(lay)
@@ -57,10 +63,10 @@ if __name__=="__main__":
 
     w.show()
 
-    x = QWidget()
-    lay = QGridLayout(x)
-    glc = GlobalCommandPanel()
-    lay.addWidget(glc, 0, 0, 1, 1)
-    x.show()
+    # x = QWidget()
+    # lay = QGridLayout(x)
+    # glc = GlobalCommandPanel()
+    # lay.addWidget(glc, 0, 0, 1, 1)
+    # x.show()
     
     app.exec()

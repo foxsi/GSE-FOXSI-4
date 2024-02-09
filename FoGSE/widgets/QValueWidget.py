@@ -111,7 +111,7 @@ class QValueWidget(QWidget):
         * `check_condition_input(self, condition)`
         * `condition_colour(self, value):`
         """
-        QWidget.__init__(self,parent, **kwargs)
+        QWidget.__init__(self, parent, **kwargs)
         # self.setSizePolicy(
         #     QSizePolicy.Policy.MinimumExpanding,
         #     QSizePolicy.Policy.MinimumExpanding
@@ -138,6 +138,7 @@ class QValueWidget(QWidget):
         self.setLayout(self.layout)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.bkg_layout.setContentsMargins(1, 1, 1, 1)
         self.setMinimumSize(2, 1)
 
     def check_condition_input(self, condition):

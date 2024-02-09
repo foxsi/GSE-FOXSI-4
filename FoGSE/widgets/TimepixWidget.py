@@ -101,20 +101,6 @@ class TimepixWidget(QWidget):
         self._first_layout.addWidget(self.flx, 5, 0, 1, 2) 
         self._first_layout.addWidget(self.flgs, 6, 0, 1, 2) 
         self._first_layout.addWidget(self.health, 7, 0, 1, 2) 
-        # next
-        # second_layout = QtWidgets.QGridLayout()
-        # second_layout_colour = "rgb(213, 105, 48)"
-        # self._second_layout = self.layout_bkg(main_layout=second_layout, 
-        #                                       panel_name="second_panel", 
-        #                                       style_sheet_string=self._layout_style("white", "white"), grid=True)
-        # self.mtot = QValueRangeWidget(name="Meant ToT", value="N/A", condition={"low":0,"high":np.inf}, border_colour=first_layout_colour)
-        # self.flx = QValueRangeWidget(name="Flux", value="N/A", condition={"low":0,"high":np.inf}, border_colour=first_layout_colour)
-        # self.flgs = QValueRangeWidget(name="Flags", value=60, condition={"low":2,"high":15}, border_colour=first_layout_colour)
-        # self.health = QValueRangeWidget(name="Health", value=14, condition={"low":2,"high":15}, border_colour=second_layout_colour)
-        # self._second_layout.addWidget(self.mtot, 0, 0, 1, 2) 
-        # self._second_layout.addWidget(self.flx, 0, 2, 1, 2) 
-        # self._second_layout.addWidget(self.flgs, 0, 4, 1, 2) 
-        # self._second_layout.addWidget(self.health, 0, 6, 1, 2) 
         
         set_all_spacings(self._first_layout)
         # set_all_spacings(self._second_layout)
@@ -193,75 +179,6 @@ class TimepixWidget(QWidget):
         # maintaining aspect ratio.
         # lc_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
         # self.lc.resize(lc_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.resize(new_size)
-
-class AllCdTeView(QWidget):
-    def __init__(self, cdte0, cdte1, cdte2, cdte3):
-        super().__init__()     
-        
-        # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,500
-        self.setGeometry(100,100,self.detw, self.deth)
-        self.setMinimumSize(600,150)
-        self.setWindowTitle("All CdTe View")
-        self.aspect_ratio = self.detw/self.deth
-
-        # datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-        # datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-        # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-        # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
-
-        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-120)
-        # f0.resize(QtCore.QSize(150, 190))
-        _f0 =QHBoxLayout()
-        _f0.addWidget(f0)
-
-        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1), image_angle=-30)
-        # f1.resize(QtCore.QSize(150, 150))
-        _f1 =QGridLayout()
-        _f1.addWidget(f1, 0, 0)
-
-        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2), image_angle=-90)
-        # f2.resize(QtCore.QSize(150, 150))
-        _f2 =QGridLayout()
-        _f2.addWidget(f2, 0, 0)
-
-        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3), image_angle=+30)
-        # f3.resize(QtCore.QSize(150, 150))
-        _f3 =QGridLayout()
-        _f3.addWidget(f3, 0, 0)
-
-        lay = QGridLayout(spacing=0)
-        # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-
-        # lay.addWidget(f0, 0, 0, 1, 1)
-        # lay.addWidget(f1, 0, 1, 1, 1)
-        lay.addLayout(_f0, 0, 0, 1, 1)
-        lay.addLayout(_f1, 0, 1, 1, 1)
-        lay.addLayout(_f2, 0, 2, 1, 1)
-        lay.addLayout(_f3, 0, 3, 1, 1)
-
-        lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
-        lay.setHorizontalSpacing(5)
-        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
-
-        self.setLayout(lay)
-
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
         # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
         # self.ped.resize(ped_resize)
         if event is None:
