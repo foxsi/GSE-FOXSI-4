@@ -2,6 +2,7 @@
 Timepix collection to handle the read-in RTD data.
 """
 
+import numpy as np
 
 class TimepixCollection:
     """
@@ -22,7 +23,20 @@ class TimepixCollection:
             
     Example
     -------
-    ...
+    from FoGSE.parsers.Timepixparser import timepix_parser
+    from FoGSE.collections.TimepixCollection import TimepixCollection
+
+    # get the raw data and parse it
+    tot, flx, flgs = timepix_parser(raw_data)
+
+    # set to a single variable
+    parsed_data = (tot, flx, flgs)
+
+    # pass the parsed data to the collection
+    col = TimepixCollection(parsed_data, 0)
+
+    # to get the mean time-over-threshold, e.g., for the parsed data
+    col.get_mean_tot()
     """
     
     def __init__(self, parsed_data, old_data_time=0):
@@ -44,4 +58,11 @@ class TimepixCollection:
 
     def get_flags(self):
         """ Return the flags. """
-        return self.flags
+        # assume no flags
+        _flags_status = np.zeros(8).astype(int)
+
+        # set the flag indices, if any, then set to one
+        if len(self.flags)>0:
+            _flags_status[np.array(self.flags)-1] = 1
+            
+        return '-'.join(map(str, self.flags))

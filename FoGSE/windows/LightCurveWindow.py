@@ -50,8 +50,11 @@ class LightCurve(QWidget):
         self.graphPane.showGrid(x=True, y=True)
 
         self.plot_data = np.array([0])
+        self._remove_first = True
 
-        self.plot = self.plot(self.graphPane, [0,0], [0,0], color=colour, plotname=name)
+        self.plot_line = self.plot(self.graphPane, [], [], 
+                                   color=colour, plotname=name, symbol="+", 
+                                   symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255))
 
         self.keep_entries = 30 # entries
 
@@ -67,34 +70,49 @@ class LightCurve(QWidget):
         _no_nans = ~np.isnan(self.plot_data) #avoid plotting nans
         if len(self.plot_data[_no_nans])>1:
             #pyqtgraph won't plot 1 data-point and throws an error instead :|
-            self.plot.clear()
+            self.plot_line.clear()
             _xs = np.arange(len(self.plot_data[_no_nans]))
-            xs = _xs+self.counter if self.counter>self.keep_entries else _xs
-            self.plot.setData(xs, self.plot_data[_no_nans])
+            xs = _xs+(self.counter-self.keep_entries) if self.counter>=self.keep_entries else _xs
+            self.plot_line.setData(xs, self.plot_data[_no_nans])
             self.counter += 1
+
+    def _remove_first_artificial_point(self):
+        """ 
+        First point is artificial since PlotWidget object won't plot 
+        a single datapoint by itself.
+        
+        The check is we still have that entry there (`_remove_first`), 
+        and if there are at least two real data points, the just remove 
+        the artificial one.
+        """
+        if self._remove_first and len(self.plot_data)>=3:
+            self._remove_first = False
+            self.plot_data = self.plot_data[1:]
 
     def add_plot_data(self, new_data):
         """ Adds the new data to the array to be plotted. """
 
         # self.sensor_plot_data_mean_tot.append(new_data)
         self.plot_data = np.append(self.plot_data, new_data)
+
+        self._remove_first_artificial_point()
         
         if len(self.plot_data)>self.keep_entries:
-            self.plot_data = self.plot_data[-30:]
+            self.plot_data = self.plot_data[-self.keep_entries:]
 
-        minmax = np.array([np.min(self.plot_data), np.max(self.plot_data)])
+        self._minmax = np.array([np.min(self.plot_data), np.max(self.plot_data)])
         
-        if (not np.isnan(minmax[0])):
-            self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(minmax[0])*0.95)
-        if (not np.isnan(minmax[1])):
-            self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(minmax[1])*1.05)
+        if (not np.isnan(self._minmax[0])):
+            self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(self._minmax[0])*0.95)
+        if (not np.isnan(self._minmax[1])):
+            self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(self._minmax[1])*1.05)
 
-        minx = self.counter-self.keep_entries if len(self.plot_data)>self.keep_entries else 0
-        self.graphPane.plotItem.vb.setLimits(xMin=minx, xMax=self.counter+1)
+        self._minx = self.counter-self.keep_entries if len(self.plot_data)>=self.keep_entries else 0
+        self.graphPane.plotItem.vb.setLimits(xMin=self._minx, xMax=self.counter+1)
 
-    def plot(self, graph_widget, x, y, color, plotname=''):
+    def plot(self, graph_widget, x, y, color, plotname='', **kwargs):
         pen = pg.mkPen(color=color, width=5)
-        return graph_widget.plot(x, y, name=plotname, pen=pen)
+        return graph_widget.plot(x, y, name=plotname, pen=pen, **kwargs)
 
     def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
         """

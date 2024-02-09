@@ -106,6 +106,7 @@ class TimepixWindow(QWidget):
 if __name__=="__main__":
     
     DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame.bin"
+    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
 
     def initiate_gui():
         app = QApplication([])
@@ -117,12 +118,6 @@ if __name__=="__main__":
 
         f0.show()
         app.exec()
-
-    # def initiate_fake_Timepixs():
-    #     from FoGSE.fake_foxsi.fake_Timepixs import fake_Timepixs
-
-    #     # generate fake data and save to `datafile`
-    #     fake_Timepixs(DATAFILE, loops=1_000_000)
 
     # from multiprocessing import Process
 
