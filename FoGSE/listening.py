@@ -98,6 +98,10 @@ class LogFileManager:
         self.queue = bytearray(self.queue_len)
         self.queued = [0]*math.ceil(self.queue_len/self.payload_len)
 
+        print("payload len:\t", self.payload_len)
+        print("queue len:\t", self.queue_len)
+        print("queued len:\t", len(self.queued))
+
     def enqueue(self, raw_data: bytearray):
         """
         Adds raw data to queue for file write.
@@ -125,11 +129,13 @@ class LogFileManager:
 
         npackets = int.from_bytes(raw_data[1:3], byteorder='big')
         ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
+        print(ipacket, npackets)
         if ipacket <= npackets:
             # add this packet to the queue, mark it as queued
             this_index = (ipacket - 1)*self.payload_len
             distance = len(raw_data[8:])
             self.queue[this_index:(this_index + distance)] = raw_data[8:]
+            # print(ipacket, this_index, distance)
             self.queued[ipacket - 1] = 1
             if all(entry == 1 for entry in self.queued):
                 self.write()
@@ -137,7 +143,7 @@ class LogFileManager:
             else:
                 return False
         else:
-            print("Logging got bad packet number!")
+            print("Logging got bad packet number: ", ipacket, " for max index ", npackets)
             raise KeyError
 
     def write(self):
@@ -145,6 +151,7 @@ class LogFileManager:
         Writes data in `self.queue` to `self.file`, then refreshes queue.
         """
         self.file.write(self.queue)
+        self.file.flush()
         print("wrote " + str(len(self.queue)) + " bytes to " + self.filepath)
         self.queue = bytearray(self.queue_len)
         self.queued = [0]*len(self.queued)
@@ -226,8 +233,8 @@ class Listener():
             try:
                 now = datetime.now()
                 now_str = str(now.day) + "-" + str(now.month) + "-" + str(now.year) + \
-                    "_" + str(now.hour) + ":" + str(now.minute) + \
-                    ":" + str(now.second)
+                    "_" + str(now.hour) + "-" + str(now.minute) + \
+                    "-" + str(now.second)
                 self.start = now
                 self.log_in_folder = os.path.join(
                     self.local_system_config["logger_interface"]["log_received_folder"], now_str)
@@ -282,6 +289,8 @@ class Listener():
                   self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
 
             self._uplink_message_queue = queue.Queue()
+
+            self.print()
 
             try:
                 self._run_log()

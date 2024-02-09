@@ -80,5 +80,5 @@ class GSECommand(QMainWindow):
         self.fmtrif = FormatterUDPInterface(logging=True, logfilename=None)
         self.config = SystemConfiguration(formatter_if=self.fmtrif)
 
-        # self.setCentralWidget(GlobalCommandPanel(self, name="Command", configuration=self.config, formatter_if=self.fmtrif))
-        self.setCentralWidget(PowerMonitorView(self, configuration=self.config, formatter_if=self.fmtrif))
+        self.setCentralWidget(GlobalCommandPanel(self, name="Command", configuration=self.config, formatter_if=self.fmtrif))
+        # self.setCentralWidget(PowerMonitorView(self, configuration=self.config, formatter_if=self.fmtrif))
