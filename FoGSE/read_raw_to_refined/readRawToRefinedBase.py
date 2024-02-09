@@ -81,8 +81,8 @@ class ReaderBase(QWidget):
         """
         if size%4!=0:
             new_size = int(int(size/4)*4)
-            print(f"Buffer size must be divisable by 4 for parser code, changing to {new_size}.")
-            self.buffer_size = new_size
+            print(f"Buffer size might need to be divisable by 4 for parser code, maybe try {new_size}?")
+            # self.buffer_size = new_size
         self.buffer_size = size
 
     def call_interval(self, call_interval=100):
