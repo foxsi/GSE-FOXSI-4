@@ -6,8 +6,9 @@ import numpy as np
 import re
 import collections
 
-from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel, QToolTip
 from PyQt6.QtCore import QSize, QTimer
+from PyQt6.QtGui import QFont
 import pyqtgraph as pg
 
 
@@ -53,7 +54,7 @@ class QValueWidget(QWidget):
     window.show()
     app.exec()
     """
-    def __init__(self, name, value, condition=None, parent=None, border_colour="grey", separator=" : ", **kwargs):
+    def __init__(self, name, value, condition=None, parent=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", **kwargs):
         """ 
         Constructs the widget and adds the latest plotted data to the widget.
 
@@ -77,6 +78,7 @@ class QValueWidget(QWidget):
                 can instead contain information of two lists with the 
                 acceptable and unacceptable states of `value` 
                 (keys:`acceptable` and `unacceptable`)
+                Default: None
 
         border_colour : `str`
                 The border colour of the label. E.g., "blue", "rgba(255,255,9,100)",
@@ -87,6 +89,18 @@ class QValueWidget(QWidget):
                 The character used to separate the value name and the 
                 value in the label, this includes spaces between them.
                 Default: " : "
+
+        tool_tip_values : `dict`
+                Dictionary where the key is the value name and the value 
+                is a tuple of legnth 2. The first tuple entry is the value
+                and the second is the relevant `QValueWidget` with the desired 
+                conditioning condition if different from the main widget condition.
+                Default: None
+
+        name_plus : `str`
+                String to be added after `name` in the label. E.g., could be used 
+                to indicate box with "<sup>*</sup>" to show it is special but the 
+                box can still just be edited with `name`.
 
         Methods
         -------
@@ -119,7 +133,10 @@ class QValueWidget(QWidget):
 
         # make sure the name can be obtained anywhere
         self.name = name
+        self.value = value
         self.condition = self.check_condition_input(condition)
+        self.tool_tip_value_info = tool_tip_values
+        self.name_plus = name_plus
 
         # set main layout for widget
         self.layout = QGridLayout()
@@ -129,7 +146,7 @@ class QValueWidget(QWidget):
         # make the label for the value
         self._border_colour = border_colour
         self.separator = separator
-        self.make_label(value)
+        self.make_label(self.value)
         
         # style the label widgets
         self._style_label()
@@ -141,6 +158,9 @@ class QValueWidget(QWidget):
         self.bkg_layout.setContentsMargins(1, 1, 1, 1)
         self.setMinimumSize(2, 1)
 
+        # QToolTip.setFont(QFont('SansSerif', 20))
+        self.setup_tool_tip()
+        
     def check_condition_input(self, condition):
         """ 
         Check that the condition given is workable. 
@@ -151,21 +171,22 @@ class QValueWidget(QWidget):
         
     def layout_style(self, border_colour, background_colour):
         """ Define a global layout style. """
+        # return "QLabel {"+f"border-width: 2px; border-style: outset; border-radius: 0px; border-color: {border_colour}; background-color: {background_colour};"+"} QToolTip {background-color: white;};"
         return f"border-width: 2px; border-style: outset; border-radius: 0px; border-color: {border_colour}; background-color: {background_colour};"
 
     def layout_bkg(self, main_layout, grid=False):
-            """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
-            # create panel widget
-            self.panel = QWidget()
+        """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
+        # create panel widget
+        self.panel = QWidget()
 
-            # make the panel take up the main layout 
-            main_layout.addWidget(self.panel)
+        # make the panel take up the main layout 
+        main_layout.addWidget(self.panel)
 
-            # now return a new, child layout that inherits from the panel widget
-            if grid:
-                return QGridLayout(self.panel)
-            else:
-                return QVBoxLayout(self.panel)
+        # now return a new, child layout that inherits from the panel widget
+        if grid:
+            return QGridLayout(self.panel)
+        else:
+            return QVBoxLayout(self.panel)
 
     def _data_style(self):
         """ Define the style for the label widgets. """
@@ -181,9 +202,11 @@ class QValueWidget(QWidget):
 
     def make_label(self, value):
         """ Create the intial label. """
-        self._value_label = QLabel(f"{self.name}{self.separator}{value}")
+        self._value_label = QLabel(f"{self.name}{self.name_plus}{self.separator}{value}")
         # self._value_label.setWordWrap(True)
 
+        # self.panel.setStyleSheet(self.layout_style(self._border_colour, 
+        #                                             self.condition_colour(value)))
         self.panel.setStyleSheet(self.layout_style(self._border_colour, 
                                                     self.condition_colour(value)))
 
@@ -200,12 +223,65 @@ class QValueWidget(QWidget):
     def update_label(self, new_value):
         """ Get the most current value and update the QLabel. """
         
-        self._value_label.setText(f"{self.name}{self.separator}{new_value}")
+        self._value_label.setText(f"{self.name}{self.name_plus}{self.separator}{new_value}")
         
         self.panel.setStyleSheet(self.layout_style(self._border_colour, 
                                                     self.condition_colour(new_value)))
 
         self._trigger_label_update()
+
+    def setup_tool_tip(self):
+        """ Sets up the main string used for the tool tip. """
+        if self.tool_tip_value_info is None:
+            return
+        _tool_tip_str_list = []
+        for key, val in self.tool_tip_value_info.items():
+            if not issubclass(type(val), QValueWidget):
+                colour = self.condition_colour(val)
+            else:
+                colour = val.condition_colour(val.value)
+                val = val.value
+            colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
+            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{val}</span>")
+
+        self.full_string_tool_tip("\n".join(_tool_tip_str_list))
+
+    def update_tool_tip(self, new_values):
+        """ 
+        A way to update the tool tip with new values. 
+        
+        This is a dictionary with the same keys as `self.tool_tip_value_info`
+        but all values are just the display value. 
+
+        The `self.tool_tip_value_info` dictionary gets checked to see if the 
+        value for that key was set up with a display value, therefore, using 
+        the same condition as the hosting widget or if the key was associated 
+        with a different QValueWidget and so the colour should be taken from 
+        that object.
+
+        Must update all values, if only a subset then only the subset appears 
+        in the tool tip.
+        """
+        if self.tool_tip_value_info is None:
+            # could also `raise ValueError("It does not seem any tool tip information was provided during widget set-up.")`
+            print("It does not seem any tool tip information was provided during widget set-up.")
+            return 
+        
+        _tool_tip_str_list = []
+        for key, val in self.tool_tip_value_info.items():
+            if not issubclass(type(val), QValueWidget):
+                colour = self.condition_colour(new_values[key])
+            else:
+                colour = val.condition_colour(new_values[key])
+            colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
+            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{new_values[key]}</span>")
+
+        self.full_string_tool_tip("\n".join(_tool_tip_str_list))
+
+    def full_string_tool_tip(self, string):
+        """ Ensures the full tool tip string doesn't wrap. """
+        self._value_label.setStyleSheet("QLabel {border-width: 0px; border-style: outset; border-radius: 0px;} QToolTip {background-color: white; font-size:15pt};")
+        self._value_label.setToolTip(f"<p style='white-space:pre'>{string}</p>")
 
     def sizeHint(self):
         """ Helps define the size of the widget. """

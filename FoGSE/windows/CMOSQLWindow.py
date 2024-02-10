@@ -37,6 +37,7 @@ class CMOSQLWindow(QWidget):
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget()
+        
         # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 250,250 # was 2,1
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
@@ -74,6 +75,8 @@ class CMOSQLWindow(QWidget):
         self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
         
         self.update_background(colour=(10,40,80,100))
+
+        # self.graphPane.clicked.connect(self.plot_pc_region())
         
     def setup_2d(self):
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
@@ -110,6 +113,13 @@ class CMOSQLWindow(QWidget):
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
         self.set_image_colour("green")
+
+    def plot_pc_region(self):
+        """ A rectangle to indicate the size of the PC region. """
+        r = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
+        r.setPen(pg.mkPen((255, 255, 255, 255), width=3))
+        r.setBrush(pg.mkBrush((255, 255, 255, 0)))
+        self.graphPane.addItem(r)
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
@@ -181,6 +191,7 @@ class CMOSQLWindow(QWidget):
         self.graphPane.removeItem(self.img)
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
+        # self.plot_pc_region()
         self.update()
 
     def update_image(self, existing_frame, new_frame):

@@ -130,6 +130,9 @@ class CMOSWidget(QWidget):
         self._operation_layout.addWidget(self.stop, 1, 2, 1, 2) 
         self._operation_layout.addWidget(self.stop2start, 1, 4, 1, 2) 
         self._operation_layout.addWidget(self.software, 2, 2, 1, 2) 
+        write_layout_colour = "rgb(88, 189, 186)"
+        self.pointer = QValueRangeWidget(name="Write Pointer", value=0, condition={"low":0,"high":np.inf}, border_colour=write_layout_colour)
+        self._operation_layout.addWidget(self.pointer, 2, 4, 1, 2) 
         set_all_spacings(self._operation_layout)
         unifrom_layout_stretch(self._operation_layout, grid=True)
 
@@ -171,14 +174,14 @@ class CMOSWidget(QWidget):
         set_all_spacings(self._comp_layout)
 
         # write status
-        write_layout = QtWidgets.QVBoxLayout()
-        write_layout_colour = "rgb(88, 189, 186)"
-        self._write_layout = self.layout_bkg(main_layout=write_layout, 
-                                             panel_name="write_panel", 
-                                             style_sheet_string=self._layout_style(write_layout_colour, write_layout_colour))
-        self.pointer = QValueRangeWidget(name="Write Pointer", value=0, condition={"low":0,"high":np.inf}, border_colour=write_layout_colour)
-        self._write_layout.addWidget(self.pointer) 
-        set_all_spacings(self._write_layout)
+        # write_layout = QtWidgets.QVBoxLayout()
+        # write_layout_colour = "rgb(88, 189, 186)"
+        # self._write_layout = self.layout_bkg(main_layout=write_layout, 
+        #                                      panel_name="write_panel", 
+        #                                      style_sheet_string=self._layout_style(write_layout_colour, write_layout_colour))
+        # self.pointer = QValueRangeWidget(name="Write Pointer", value=0, condition={"low":0,"high":np.inf}, border_colour=write_layout_colour)
+        # self._write_layout.addWidget(self.pointer) 
+        # set_all_spacings(self._write_layout)
 
         # more exposure
         xexp_layout = QtWidgets.QVBoxLayout()
@@ -214,7 +217,7 @@ class CMOSWidget(QWidget):
         global_layout.addLayout(operation_layout, 34, 43, 16, 57)
         global_layout.addLayout(xexp_layout, 9, 79, 9, 21)
         global_layout.addLayout(comp_layout, 0, 79, 9, 21)
-        global_layout.addLayout(write_layout, 45, 82, 5, 18) #last since it overlaps with operation_layout
+        # global_layout.addLayout(write_layout, 45, 82, 5, 18) #last since it overlaps with operation_layout
 
         unifrom_layout_stretch(global_layout, grid=True)
 
@@ -225,7 +228,7 @@ class CMOSWidget(QWidget):
         self._temp_layout.setContentsMargins(0, 0, 0, 0)
         self._phot_layout.setContentsMargins(0, 0, 0, 0)
         self._exp_layout.setContentsMargins(0, 0, 0, 0)
-        self._write_layout.setContentsMargins(0, 0, 0, 0)
+        # self._write_layout.setContentsMargins(0, 0, 0, 0)
         self._operation_layout.setContentsMargins(0, 0, 0, 0)
         self._xexp_layout.setContentsMargins(0, 0, 0, 0)
         self._comp_layout.setContentsMargins(0, 0, 0, 0)

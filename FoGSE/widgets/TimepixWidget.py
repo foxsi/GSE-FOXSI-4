@@ -64,10 +64,21 @@ class TimepixWidget(QWidget):
                                                      "range2":[bt1["nom_high"],bt1["too_high"],"red"],
                                                      "other":"orange",
                                                      "error":"orange"}, 
-                                          border_colour=first_layout_colour)
+                                          border_colour=first_layout_colour,
+                                          tool_tip_values={"Board T1":"N/A", "Board T2":"N/A"},
+                                          name_plus="<sup>*</sup>")
         
         asic0_i = {"too_low":40-10, "too_high":40+10}
-        self.asic0_i = QValueRangeWidget(name="ASIC0", value="N/A", condition={"low":asic0_i["too_low"],"high":asic0_i["too_high"]}, border_colour=first_layout_colour)
+        asic0_v = {"too_low":-np.inf, "nom_low":1500-300, "nom_high":1500+300, "too_high":np.inf}
+        asic_v_cond = {"range1":[asic0_v["nom_low"],asic0_v["nom_high"],"white"], "range2":[asic0_v["nom_high"],asic0_v["too_high"],"red"], "other":"orange", "error":"orange"}
+        self.asic0_i = QValueRangeWidget(name="ASIC0 I", value="N/A", 
+                                         condition={"low":asic0_i["too_low"],"high":asic0_i["too_high"]}, 
+                                         border_colour=first_layout_colour,
+                                         tool_tip_values={"ASIC0 I":"N/A", "ASIC0 V":QValueMultiRangeWidget(name="ASIC0 V", value="N/A", condition=asic_v_cond), 
+                                                          "ASIC1 I":"N/A", "ASIC1 V":QValueMultiRangeWidget(name="ASIC1 V", value="N/A", condition=asic_v_cond), 
+                                                          "ASIC2 I":"N/A", "ASIC2 V":QValueMultiRangeWidget(name="ASIC2 V", value="N/A", condition=asic_v_cond), 
+                                                          "ASIC3 I":"N/A", "ASIC3 V":QValueMultiRangeWidget(name="ASIC3 V", value="N/A", condition=asic_v_cond)},
+                                         name_plus="<sup>*</sup>")
 
         fpga_v1 = {"too_low":-np.inf, "nom_low":3000-500, "nom_high":3000+500, "too_high":np.inf}
         self.fpga_v1 = QValueMultiRangeWidget(name="FPGA V1", 
@@ -145,6 +156,11 @@ class TimepixWidget(QWidget):
         self.mtot.update_label(self.lc.reader.collection.get_mean_tot())
         self.flx.update_label(self.lc.reader.collection.get_flux())
         self.flgs.update_label(self.lc.reader.collection.get_flags())
+
+        # self.bt1.update_label(self.lc.reader.collection.board_temp1())
+        # self.bt1.update_tool_tip({"Board T1":5, "Board T2":100})
+
+        self.asic0_i.update_tool_tip({"ASIC0 I":0, "ASIC0 V":5, "ASIC1 I":40, "ASIC1 V":1500, "ASIC2 I":100, "ASIC2 V":5, "ASIC3 I":0, "ASIC3 V":5000})
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
