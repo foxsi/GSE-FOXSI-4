@@ -5,6 +5,7 @@ A widget to display a value and its status.
 import numpy as np
 import re
 import collections
+from copy import copy
 
 from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel, QToolTip
 from PyQt6.QtCore import QSize, QTimer
@@ -538,16 +539,17 @@ class QValueMultiRangeWidget(QValueWidget):
         """ Check that the condition given is workable. """
 
         _conds = {}
+        condition_all = copy(condition)
 
         # deal with the colour outside the range first
-        other = condition.get("other", "white")
-        condition.pop("other", None)
-
-        error = condition.get("error", "purple")
-        condition.pop("error", None)
+        other = condition_all.get("other", "white")
+        condition_all.pop("other", None)
+        
+        error = condition_all.get("error", "purple")
+        condition_all.pop("error", None)
         
         # get the ranges from the dictionary and put then in correct order
-        for key, value in condition.items():
+        for key, value in condition_all.items():
             _r = re.findall("^(range\d+)",key) # find the "rangeN"
             if (len(_r)!=1) or len(value)!=3:
                 raise ValueError(f"Current key: {key}\nCurrent value: {value}\nPlease have `condition` be a `dict` with keys `rangeN` with list [low,high,colour]")

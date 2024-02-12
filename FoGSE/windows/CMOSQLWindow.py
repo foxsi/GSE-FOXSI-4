@@ -77,6 +77,18 @@ class CMOSQLWindow(QWidget):
         self.update_background(colour=(10,40,80,100))
 
         # self.graphPane.clicked.connect(self.plot_pc_region())
+        # self.status.QHoverEvent =
+        self.installEventFilter(self)
+        # self.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover)
+
+    def eventFilter(self, obj, event):
+        
+        # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
+        if event.type() == QtCore.QEvent.Type.Enter:
+            self.add_pc_region()
+        elif event.type() == QtCore.QEvent.Type.Leave:
+            self.remove_pc_region()
+        return super(CMOSQLWindow, self).eventFilter(obj, event)
         
     def setup_2d(self):
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
@@ -114,12 +126,17 @@ class CMOSQLWindow(QWidget):
         self.graphPane.addItem(self.img)
         self.set_image_colour("green")
 
-    def plot_pc_region(self):
+    def add_pc_region(self):
         """ A rectangle to indicate the size of the PC region. """
-        r = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
-        r.setPen(pg.mkPen((255, 255, 255, 255), width=3))
-        r.setBrush(pg.mkBrush((255, 255, 255, 0)))
-        self.graphPane.addItem(r)
+        self.rect = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
+        self.rect.setPen(pg.mkPen((255, 255, 255, 255), width=3))
+        self.rect.setBrush(pg.mkBrush((255, 255, 255, 0)))
+        self.graphPane.addItem(self.rect)
+
+    def remove_pc_region(self):
+        """ Removes rectangle indicating the size of the PC region. """
+        if hasattr(self,"rect"):
+            self.graphPane.removeItem(self.rect)
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """

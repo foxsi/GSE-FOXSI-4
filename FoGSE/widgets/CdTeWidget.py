@@ -99,15 +99,17 @@ class CdTeWidget(QWidget):
         de_layout_colour = "rgb(53, 108, 117)"
         self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
         self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=de_layout_colour)
+        self.ping = QValueRangeWidget(name="Ping", value="N/A", condition={"low":2,"high":15}, border_colour=de_layout_colour)
+        self.hv = QValueRangeWidget(name="HV", value="N/A", condition={"low":2,"high":15}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
+        de_layout.addWidget(self.hv, 3, 0, 1, 2) 
         # counts
         cts_layout = QtWidgets.QGridLayout()
         cts_layout_colour = "rgb(141, 141, 134)"
-        self.cts = QValueRangeWidget(name="Ct", value="N/A", condition={"low":0,"high":np.inf}, border_colour=cts_layout_colour)
-        self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15}, border_colour=cts_layout_colour)
+        self.cts = QValueRangeWidget(name="<span>&#931;</span> Ct", value="N/A", condition={"low":0,"high":np.inf}, border_colour=cts_layout_colour)
+        self.ctr = QValueRangeWidget(name="<span>&#931;</span> Ct/s", value="N/A", condition={"low":0,"high":np.inf}, border_colour=cts_layout_colour)
         cts_layout.addWidget(self.cts, 0, 0, 1, 2) 
         cts_layout.addWidget(self.ctr, 1, 0, 1, 2) 
         # strips
