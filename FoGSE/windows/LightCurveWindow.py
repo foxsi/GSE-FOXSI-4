@@ -114,7 +114,7 @@ class LightCurve(QWidget):
         pen = pg.mkPen(color=color, width=5)
         return graph_widget.plot(x, y, name=plotname, pen=pen, **kwargs)
 
-    def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
+    def set_labels(self, graph_widget, xlabel="", ylabel="", title="", font_size="20pt", title_font_size="25pt"):
         """
         Method just to easily set the x, y-label andplot title without having to write all lines below again 
         and again.
@@ -129,10 +129,11 @@ class LightCurve(QWidget):
         xlabel, ylabel, title : `str`
             The strings relating to each label to be set.
         """
-        graph_widget.setTitle(title, color='k', size='25pt')
+        if title_font_size!="0pt":
+            graph_widget.setTitle(title, color='k', size=title_font_size)
 
         # Set label for both axes
-        styles = {'color':'k', 'font-size':'20pt'} 
+        styles = {'color':'k', 'font-size':font_size} 
         graph_widget.setLabel('bottom', xlabel, **styles)
         graph_widget.setLabel('left', ylabel, **styles)
 

@@ -42,7 +42,7 @@ class TimepixCollection:
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
         self.mean_tot, self.flux, self.flags = parsed_data
-
+        self.flags = []
         # # filter data to only include the new stuff
         # self.last_data_time = old_data_time
         # self.new_entries = self.event['ti']>self.last_data_time

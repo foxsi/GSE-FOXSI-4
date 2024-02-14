@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGr
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
-from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget
+from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
@@ -94,20 +94,43 @@ class CdTeWidget(QWidget):
         # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15})
 
         # need to groupd some of these for the layout
+        # self.asic_vth = QValueRangeWidget(name="ASIC VTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
+        # self.asic_dth = QValueRangeWidget(name="DTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
+        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15}, border_colour=asic_layout_colour)
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
-        self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        self.software_stat = QValueTimeWidget(name="SW Status", 
+                                              value="N/A", 
+                                              time=2000, 
+                                              condition=[int, float, np.int64], 
+                                              border_colour=de_layout_colour,
+                                              tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value="N/A"), 
+                                                               "ASIC DTH":QValueWidget(name="ASIC DTH", value="N/A"), 
+                                                               "ASIC Load":QValueWidget(name="ASIC Load", value="N/A")},
+                                              name_plus="<sup>*</sup>")
         self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=de_layout_colour)
+        self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.hv = QValueRangeWidget(name="HV", value="N/A", condition={"low":0,"high":200}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
+        de_layout.addWidget(self.hv, 3, 0, 1, 2) 
         # counts
         cts_layout = QtWidgets.QGridLayout()
         cts_layout_colour = "rgb(141, 141, 134)"
-        self.cts = QValueRangeWidget(name="Ct", value="N/A", condition={"low":0,"high":np.inf}, border_colour=cts_layout_colour)
-        self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15}, border_colour=cts_layout_colour)
+        self.cts = QValueRangeWidget(name="<span>&#931;</span> Ct", 
+                                     value="N/A", 
+                                     condition={"low":0,"high":np.inf}, 
+                                     border_colour=cts_layout_colour,
+                                     tool_tip_values={"Ct Now":"N/A", "Ct Mean":"N/A", "Ct Median":"N/A", "Ct Max.":"N/A", "Ct Min.":"N/A"},
+                                     name_plus="<sup>*</sup>")
+        self.ctr = QValueRangeWidget(name="<span>&#931;</span> Ct/s", 
+                                     value="N/A", 
+                                     condition={"low":0,"high":np.inf}, 
+                                     border_colour=cts_layout_colour,
+                                     tool_tip_values={"Ct Now":"N/A", "Ct Mean":"N/A", "Ct Median":"N/A", "Ct Max.":"N/A", "Ct Min.":"N/A"},
+                                     name_plus="<sup>*</sup>")
         cts_layout.addWidget(self.cts, 0, 0, 1, 2) 
         cts_layout.addWidget(self.ctr, 1, 0, 1, 2) 
         # strips
@@ -223,6 +246,11 @@ class CdTeWidget(QWidget):
         * count rate field, 
         """
         self.cts.update_label(self.image.reader.collection.total_counts())
+        self.cts.update_tool_tip({"Ct Now":self.image.reader.collection.total_counts(), 
+                                  "Ct Mean":"N/A", 
+                                  "Ct Median":"N/A", 
+                                  "Ct Max.":"N/A", 
+                                  "Ct Min.":"N/A"})
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -283,7 +311,7 @@ class AllCdTeView(QWidget):
         # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
         # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-120)
+        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-150)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
