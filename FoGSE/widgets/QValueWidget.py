@@ -55,7 +55,7 @@ class QValueWidget(QWidget):
     window.show()
     app.exec()
     """
-    def __init__(self, name, value, condition=None, parent=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", **kwargs):
+    def __init__(self, name, value, condition=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", parent=None, **kwargs):
         """ 
         Constructs the widget and adds the latest plotted data to the widget.
 
@@ -656,6 +656,115 @@ class QValueCheckWidget(QValueWidget):
         self.unexpected(value=value)
         return "red"
 
+class QValueTimeWidget(QValueWidget):
+    """
+    A widget to be added to a GUI to display values and their status.
+
+    To just check if the value being displayed has been changed or not.
+    If it has then goes with custom colour, else red.
+
+    Example
+    -------
+    class test(QWidget):
+        \""" A test widget class to use QValueWidget. \"""
+        def __init__(self, parent=None):
+            \""" Initialise a grid on a widget and add different iterations of the QValueWidget widget. \"""
+            QWidget.__init__(self,parent)
+
+            # define layout
+            l = QGridLayout()
+
+            # create value widget and add it to the layout
+            self.value = QValueCheckWidget(name="Another1", value=50, time=200, condition=[int, float, np.int64])
+            l.addWidget(self.value, 0, 0) # widget, -y, x
+
+            # actually display the layout
+            self.setLayout(l)
+
+            # test the changing values
+            self.timer = QTimer()
+            self.timer.setInterval(1000) # fastest is every millisecond here
+            self.timer.timeout.connect(self.cycle_values) # call self.update_plot_data every cycle
+            self.timer.start()
+
+        def cycle_values(self):
+            \""" Add new data, update widget.\"""
+            r = np.random.randint(20, size=1)
+            self.value.update_label(r[0])
+
+    # for testing
+    app = QApplication([])
+    window = test()
+    window.show()
+    app.exec()
+    """
+    def __init__(self, name, value, time, condition=None, parent=None, **kwargs):
+        """ 
+        Constructs the widget and adds the latest plotted data to the widget.
+        
+        Parameters
+        ----------
+        name : `str`
+                The name to display for `value`.
+
+        value : any
+                The initial value to be displayed for the widget.
+
+        time : `int` or `float`
+                The time after which the widget will turn red, in milliseconds, 
+                if the value has not changed.
+
+        condition : `dict`
+                The dictionary contains information of a list with the 
+                acceptable states of `value` and color (keys:`acceptable`).
+                E.g., {"acceptable":[(1,"white"), (2,"purple")]}
+        """
+        self.timer_check = False
+        self.update_counter, self.old_counter = 0, -1
+
+        QValueWidget.__init__(self, name, value, condition=condition, parent=parent, **kwargs)
+    
+        # timer to check staleness of widget
+        self.timer = QTimer()
+        self.timer.setInterval(time) # fastest is every millisecond here
+        self.timer.timeout.connect(self.update_label_check) # call self.update_plot_data every cycle
+        self.timer.start()
+
+    def check_condition_input(self, condition):
+        """ 
+        Check that the condition given is workable. 
+        
+        Should be a list of types. E.g., [int, float, np.int64,...]
+        """
+        return condition
+    
+    def update_label_check(self):
+        """ Give the timer a function to check the counter. """
+        self.timer_check = True
+        if hasattr(self, "old_value"):
+            self.update_label(self.old_value)
+        self.timer_check = False
+        self.old_counter = self.update_counter
+
+    def condition_colour(self, value):
+        """ Returns the widget colour for the value being displayed. """
+
+        if self.timer_check and (self.update_counter==self.old_counter):
+            return "red"
+        
+        self.old_value = value
+
+        if type(value) not in self.condition:
+            # check the value is of valid type first
+            self.unexpected(value=value)
+            return "orange"
+
+        # to keep track that the label has been updated
+        # avoids the counter from getting too big
+        self.update_counter = (self.update_counter + 1)%1024 
+
+        return "white"
+        
 
 class test(QWidget):
     """ A test widget class to use QValueWidget. """
@@ -677,6 +786,8 @@ class test(QWidget):
         l.addWidget(self.value3, 1, 1) # widget, -y, x
         self.value4 = QValueCheckWidget(name="Another", value=50, condition={"acceptable":[(1,"white"), (2,"purple"), (3,"purple"), (8,"green")]})
         l.addWidget(self.value4, 1, 2) # widget, -y, x
+        self.value5 = QValueTimeWidget(name="Another1", value=50, time=200, condition=[int, float, np.int64])
+        l.addWidget(self.value5, 0, 2) # widget, -y, x
         
         # actually display the layout
         self.setLayout(l)
@@ -696,6 +807,7 @@ class test(QWidget):
         self.value2.update_label(r[2])
         self.value3.update_label(rr[0])
         self.value4.update_label(r[3])
+        self.value5.update_label(r[3])
 
 
 if __name__=="__main__":

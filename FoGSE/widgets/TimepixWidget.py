@@ -104,8 +104,17 @@ class TimepixWidget(QWidget):
                                                          "error":"orange"}, 
                                               border_colour=first_layout_colour)
 
-        self.mtot = QValueRangeWidget(name="Mean ToT", value="N/A", condition={"low":0,"high":np.inf}, border_colour=first_layout_colour)
-        self.flx = QValueRangeWidget(name="Flux", value="N/A", condition={"low":0,"high":np.inf}, border_colour=first_layout_colour)
+        self.mtot = QValueRangeWidget(name="Mean ToT", 
+                                      value="N/A", 
+                                      condition={"low":0,"high":np.inf}, 
+                                      border_colour=first_layout_colour,
+                                      tool_tip_values={"Mean ToT Now":"N/A", "Mean ToT Mean":"N/A", "Mean ToT Median":"N/A", "Mean ToT Max.":"N/A", "Mean ToT Min.":"N/A"},
+                                      name_plus="<sup>*</sup>")
+        self.flx = QValueRangeWidget(name="Flux", 
+                                     value="N/A", 
+                                     condition={"low":0,"high":np.inf}, 
+                                     tool_tip_values={"Flux Now":"N/A", "Flux Mean":"N/A", "Flux Median":"N/A", "Flux Max.":"N/A", "Flux Min.":"N/A"},
+                                     name_plus="<sup>*</sup>"border_colour=first_layout_colour)
         
         self.flgs = QValueCheckWidget(name="Flags", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=first_layout_colour)
 
