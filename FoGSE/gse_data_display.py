@@ -43,8 +43,8 @@ class GSEDataDisplay(QWidget):
                         os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)))
         
-        # f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix.log", instruments)))
-        f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
+        f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix.log", instruments)))
+        # f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
         lay = QGridLayout()
 

@@ -56,8 +56,8 @@ class CdTeCollection:
         self.channel_map = self.remap_strip_dict()
 
         # dont include data more than a second older than the previous frames latest data
-        self.new_entries = self.event_dataframe['unixtime']>=0#old_data_time
-        self.latest_data_time = np.max(self.event_dataframe['unixtime'])
+        self.new_entries = self.event_dataframe['ti']>=0#old_data_time
+        self.latest_data_time = np.max(self.event_dataframe['ti'])
         # self.latest_data_time = np.max(self.event_dataframe['ti'][np.where(self.event_dataframe['unixtime']==self.latest_unixtime)])
         
         # filter the counts somehow, go for crude single strip right now

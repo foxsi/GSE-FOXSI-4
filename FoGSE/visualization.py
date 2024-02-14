@@ -77,10 +77,16 @@ class GlobalCommandPanel(QWidget):
         self.system_combo_box = QComboBox()
         self.command_label = QLabel("Command")
         self.command_combo_box = QComboBox()
-        self.args_label = QLabel("Argument")
-        self.command_args_text = QLineEdit()
+        # self.args_label = QLabel("Argument")
+        # self.command_args_text = QLineEdit()
         self.send_label = QLabel("")
         self.command_send_button = QPushButton("Send command")
+
+        self._raw, self._check = "Raw: ", "Check: "
+        self.system_label_raw = QLabel(self._raw)
+        self.system_label_raw_check = QLabel(self._check)
+        self.command_label_raw = QLabel(self._raw)
+        self.command_label_raw_check = QLabel(self._check)
 
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
@@ -101,25 +107,45 @@ class GlobalCommandPanel(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
+            self.system_label_raw,
+            2,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
+            self.system_label_raw_check,
+            3,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
             self.command_label,
             0,1,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
             self.command_combo_box,
-            1,1,1,1,
+            1,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
-            self.args_label,
-            0,2,1,1,
+            self.command_label_raw,
+            2,1,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
-            self.command_args_text,
-            1,2,1,1,
+            self.command_label_raw_check,
+            3,1,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
+        # self.grid_layout.addWidget(
+        #     self.args_label,
+        #     0,2,1,1,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.grid_layout.addWidget(
+        #     self.command_args_text,
+        #     1,2,1,1,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
         self.grid_layout.addWidget(
             self.send_label,
             0,3,1,1,
@@ -146,17 +172,17 @@ class GlobalCommandPanel(QWidget):
         # hook up callbacks
         self.system_combo_box.activated.connect(self.systemComboBoxClicked)
         self.command_combo_box.activated.connect(self.commandComboBoxClicked)
-        self.command_args_text.returnPressed.connect(self.commandArgsEdited)
+        # self.command_args_text.returnPressed.connect(self.commandArgsEdited)
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
 
         # disable downstream command pieces (until selection is made)
         self.command_combo_box.setEnabled(False)
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
     
     def systemComboBoxClicked(self, events):
         self.command_combo_box.setEnabled(False)
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
 
         cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentText())
@@ -164,22 +190,26 @@ class GlobalCommandPanel(QWidget):
         
         # start working command with address of selected system
         self._working_command = []
-        self._working_command.append(self.cmddeck.get_system_by_name(self.system_combo_box.currentText()).addr)
+        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentText())
+        self._working_command.append(sys.addr)
         # todo: if adding delimiters, do it here.
 
         self.command_combo_box.clear()
         self.command_combo_box.addItems(names)
         self.command_combo_box.setEnabled(True)
 
+        self.system_label_raw.setText(f"{self._raw}{sys.addr}")
+        self.system_label_raw_check.setText(f"{self._check}{sys.get_system_by_addr(sys.addr)}")
+
     def commandComboBoxClicked(self, events):
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        sys_addr = self.cmddeck.get_system_by_name(self.system_combo_box.currentText()).addr
+        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentText())
         cmd = self.cmddeck.get_command_for_system(self.system_combo_box.currentText(), self.command_combo_box.currentText())
 
         # add cmd bitstring to working command
         # self._working_command.append(cmd.hex)
-        self._working_command = [sys_addr,cmd.hex]
+        self._working_command = [sys.addr,cmd.hex]
 
         if cmd.arg_len > 0:
             # self.command_args_text.setEnabled(True)
@@ -188,9 +218,13 @@ class GlobalCommandPanel(QWidget):
         else:
             self.command_send_button.setEnabled(True)
 
+        self.command_label_raw.setText(f"{self._raw}{sys.addr} : {cmd.hex}")
+        self.command_label_raw_check.setText(f"{self._check}{sys.get_system_by_addr(sys.addr)} : {self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name}")
+        
+
     def commandArgsEdited(self):
         # todo: some arg validation
-        text = self.command_args_text.text()
+        # text = self.command_args_text.text()
 
         # add arg to working command
         self._working_command.append(int(text, 10))
@@ -210,7 +244,7 @@ class GlobalCommandPanel(QWidget):
         # todo: log file setup, open, plus the actual logging
 
         self.command_combo_box.setEnabled(False)
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
 
 
