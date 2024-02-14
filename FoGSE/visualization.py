@@ -2,7 +2,6 @@ import sys, typing, logging, math, json
 import numpy as np
 from collections import namedtuple
 from PyQt6 import QtCore, QtWidgets, QtGui
-from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog, QSlider
 import pyqtgraph as pg
 
@@ -118,22 +117,22 @@ class GlobalCommandPanel(QWidget):
         )
         self.grid_layout.addWidget(
             self.command_label,
-            0,1,1,1,
+            0,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
             self.command_combo_box,
-            1,1,1,2,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+            1,1,1,2
         )
+        self.command_combo_box.setMinimumWidth(270)
         self.grid_layout.addWidget(
             self.command_label_raw,
-            2,1,1,1,
+            2,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
             self.command_label_raw_check,
-            3,1,1,1,
+            3,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         # self.grid_layout.addWidget(
@@ -199,7 +198,9 @@ class GlobalCommandPanel(QWidget):
         self.command_combo_box.setEnabled(True)
 
         self.system_label_raw.setText(f"{self._raw}{sys.addr}")
-        self.system_label_raw_check.setText(f"{self._check}{sys.get_system_by_addr(sys.addr)}")
+        self.system_label_raw_check.setText(f"{self._check}{self.cmddeck.get_system_by_addr(sys.addr).name}")
+        self.command_label_raw.setText(f"{self._raw}")
+        self.command_label_raw_check.setText(f"{self._check}")
 
     def commandComboBoxClicked(self, events):
         # self.command_args_text.setEnabled(False)
@@ -218,8 +219,8 @@ class GlobalCommandPanel(QWidget):
         else:
             self.command_send_button.setEnabled(True)
 
-        self.command_label_raw.setText(f"{self._raw}{sys.addr} : {cmd.hex}")
-        self.command_label_raw_check.setText(f"{self._check}{sys.get_system_by_addr(sys.addr)} : {self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name}")
+        self.command_label_raw.setText(f"{self._raw}{cmd.hex}")
+        self.command_label_raw_check.setText(f"{self._check}{self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name}")
         
 
     def commandArgsEdited(self):

@@ -3,7 +3,7 @@ First go at a full GSE (data viewing only).
 """
 import os
 
-from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QVBoxLayout
 
 from FoGSE.gse_data_display import GSEDataDisplay
 
@@ -28,9 +28,9 @@ if __name__=="__main__":
     w.show()
 
     x = QWidget()
-    lay = QGridLayout(x)
+    lay = QVBoxLayout(x)
     glc = GlobalCommandPanel()
-    lay.addWidget(glc, 0, 0, 1, 1)
+    lay.addWidget(glc)
     x.show()
     
     app.exec()
