@@ -113,8 +113,9 @@ class TimepixWidget(QWidget):
         self.flx = QValueRangeWidget(name="Flux", 
                                      value="N/A", 
                                      condition={"low":0,"high":np.inf}, 
+                                     border_colour=first_layout_colour,
                                      tool_tip_values={"Flux Now":"N/A", "Flux Mean":"N/A", "Flux Median":"N/A", "Flux Max.":"N/A", "Flux Min.":"N/A"},
-                                     name_plus="<sup>*</sup>"border_colour=first_layout_colour)
+                                     name_plus="<sup>*</sup>")
         
         self.flgs = QValueCheckWidget(name="Flags", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=first_layout_colour)
 
@@ -177,6 +178,8 @@ class TimepixWidget(QWidget):
         * count rate field, 
         """
         self.mtot.update_label(self.lc.reader.collection.get_mean_tot())
+        self.mtot.update_tool_tip({"Mean ToT Now":"N/A", "Mean ToT Mean":"N/A", "Mean ToT Median":"N/A", "Mean ToT Max.":"N/A", "Mean ToT Min.":"N/A"})
+
         self.flx.update_label(self.lc.reader.collection.get_flux())
         self.flgs.update_label(self.lc.reader.collection.get_flags())
 

@@ -8,8 +8,8 @@ import collections
 from copy import copy
 
 from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel, QToolTip
-from PyQt6.QtCore import QSize, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QSize, QTimer, QEvent
+from PyQt6 import QtGui
 import pyqtgraph as pg
 
 
@@ -160,8 +160,18 @@ class QValueWidget(QWidget):
         self.setMinimumSize(2, 1)
 
         # QToolTip.setFont(QFont('SansSerif', 20))
+        self._last_event_pos = None
         self.setup_tool_tip()
         
+    def event(self,event):
+        # if event.type() == QEvent.ToolTip:
+        #     self._last_event_pos = event.globalPos()
+        #     return True
+        # elif event.type() == QEvent.Leave:
+        #     self._last_event_pos = None
+        #     QToolTip.hideText()
+        return QWidget.event(self,event)
+    
     def check_condition_input(self, condition):
         """ 
         Check that the condition given is workable. 
@@ -277,7 +287,11 @@ class QValueWidget(QWidget):
             colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
             _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{new_values[key]}</span>")
 
+        # _mouse_pos  = self.mapFromGlobal(QtGui.QCursor.pos())
+        # _mouse_pos  = QtGui.QCursor.pos()
+        # QToolTip.hideText()
         self.full_string_tool_tip("\n".join(_tool_tip_str_list))
+        # QToolTip.showText(_mouse_pos,"\n".join(_tool_tip_str_list))
 
     def full_string_tool_tip(self, string):
         """ Ensures the full tool tip string doesn't wrap. """
@@ -788,6 +802,13 @@ class test(QWidget):
         l.addWidget(self.value4, 1, 2) # widget, -y, x
         self.value5 = QValueTimeWidget(name="Another1", value=50, time=200, condition=[int, float, np.int64])
         l.addWidget(self.value5, 0, 2) # widget, -y, x
+        self.value6 = QValueRangeWidget(name="YetAnother", 
+                                       value=6, 
+                                       condition={"low":2,"high":15},
+                                       tool_tip_values={"mean?":"N/A", "max?":"N/A"},
+                                       name_plus="<sup>*</sup>")
+        l.addWidget(self.value6, 2, 0) # widget, -y, x
+                                      
         
         # actually display the layout
         self.setLayout(l)
@@ -808,6 +829,9 @@ class test(QWidget):
         self.value3.update_label(rr[0])
         self.value4.update_label(r[3])
         self.value5.update_label(r[3])
+
+        self.value6.update_label(r[0])
+        self.value6.update_tool_tip({"mean?":r[2], "max?":r[1]})
 
 
 if __name__=="__main__":
