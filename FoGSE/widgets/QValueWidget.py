@@ -8,7 +8,7 @@ import collections
 from copy import copy
 
 from PyQt6.QtWidgets import QWidget, QApplication, QSizePolicy,QVBoxLayout,QGridLayout, QLabel, QToolTip
-from PyQt6.QtCore import QSize, QTimer, QEvent
+from PyQt6.QtCore import QSize, QTimer
 from PyQt6 import QtGui
 import pyqtgraph as pg
 
@@ -163,14 +163,14 @@ class QValueWidget(QWidget):
         self._last_event_pos = None
         self.setup_tool_tip()
         
-    def event(self,event):
-        # if event.type() == QEvent.ToolTip:
-        #     self._last_event_pos = event.globalPos()
-        #     return True
-        # elif event.type() == QEvent.Leave:
-        #     self._last_event_pos = None
-        #     QToolTip.hideText()
-        return QWidget.event(self,event)
+    # def event(self,event):
+    #     # if event.type() == QEvent.ToolTip:
+    #     #     self._last_event_pos = event.globalPos()
+    #     #     return True
+    #     # elif event.type() == QEvent.Leave:
+    #     #     self._last_event_pos = None
+    #     #     QToolTip.hideText()
+    #     return QWidget.event(self,event)
     
     def check_condition_input(self, condition):
         """ 
@@ -287,11 +287,16 @@ class QValueWidget(QWidget):
             colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
             _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{new_values[key]}</span>")
 
-        # _mouse_pos  = self.mapFromGlobal(QtGui.QCursor.pos())
-        # _mouse_pos  = QtGui.QCursor.pos()
-        # QToolTip.hideText()
-        self.full_string_tool_tip("\n".join(_tool_tip_str_list))
-        # QToolTip.showText(_mouse_pos,"\n".join(_tool_tip_str_list))
+        # get mouse position in the coordinated of the widget (TL is (0,0), BR is (width,length))
+        _mouse_pos  = self.mapFromGlobal(QtGui.QCursor.pos()) 
+        # remove the tooltip to force it to shut off if looking at it while it changes
+        QToolTip.hideText()
+
+        # want to check is the local mouse position is still in the widget
+        if (0<=_mouse_pos.x()<=self.geometry().width()) and (0<=_mouse_pos.y()<=self.geometry().height()):
+            _s = "\n".join(_tool_tip_str_list) # new label
+            QToolTip.setFont(QtGui.QFont('Arial', 15)) # make sure tooltip font size is set at least
+            QToolTip.showText(self.mapToGlobal(_mouse_pos),f"<p style='white-space:pre'>{_s}</p>") # show new tool tip info
 
     def full_string_tool_tip(self, string):
         """ Ensures the full tool tip string doesn't wrap. """
