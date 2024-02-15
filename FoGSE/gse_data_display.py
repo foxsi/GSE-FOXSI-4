@@ -26,25 +26,25 @@ class GSEDataDisplay(QWidget):
         QWidget.__init__(self, parent)
 
         newest_folder = newest_data_dir() 
-        newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
+        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
-        # f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
-        #                 os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
-        #                 os.path.join(newest_folder, get_det_file("cdte3_pc.log", instruments)), 
-        #                 os.path.join(newest_folder, get_det_file("cdte4_pc.log", instruments)))
-        f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
-                         os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
-                         os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 
-                         os.path.join(newest_folder, get_det_file("cdte4.log", instruments)))
-        newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
+        f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
+                        os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
+                        os.path.join(newest_folder, get_det_file("cdte3_pc.log", instruments)), 
+                        os.path.join(newest_folder, get_det_file("cdte4_pc.log", instruments)))
+        # f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
+        #                  os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
+        #                  os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 
+        #                  os.path.join(newest_folder, get_det_file("cdte4.log", instruments)))
+        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
         f1 = AllCMOSView(os.path.join(newest_folder, get_det_file("cmos1_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos1_ql.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)))
         
-        # f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix.log", instruments)))
-        f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
+        f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix.log", instruments)))
+        # f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
         lay = QGridLayout()
 

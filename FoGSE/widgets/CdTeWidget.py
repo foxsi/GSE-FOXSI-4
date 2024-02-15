@@ -105,7 +105,7 @@ class CdTeWidget(QWidget):
                                      value="N/A", 
                                      condition={"low":0,"high":np.inf}, 
                                      border_colour=cts_layout_colour,
-                                     tool_tip_values={"Ct Now":"N/A", "Ct Mean":"N/A", "Ct Median":"N/A", "Ct Max.":"N/A", "Ct Min.":"N/A"},
+                                     tool_tip_values={"Ct/s Now":"N/A", "Ct/s Mean":"N/A", "Ct/s Median":"N/A", "Ct/s Max.":"N/A", "Ct/s Min.":"N/A"},
                                      name_plus="<sup>*</sup>")
         cts_layout.addWidget(self.cts, 0, 0, 1, 2) 
         cts_layout.addWidget(self.ctr, 1, 0, 1, 2) 
@@ -137,7 +137,8 @@ class CdTeWidget(QWidget):
         self._value_layout.addLayout(frames_layout)
         set_all_spacings(self._value_layout)
 
-        self.image.reader.value_changed_collection.connect(self.all_fields)
+        self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
+        # self.hk.reader.value_changed_collection.connect(self.all_fields_from_hk)
 
         ## all widgets together
         # image
@@ -163,20 +164,37 @@ class CdTeWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
-    def all_fields(self):
+    def all_fields_from_data(self):
         """ 
         Update the:
         * count rate field, 
         """
+        # self.software_stat.update_label(...)
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+
         total_counts = self.image.reader.collection.total_counts()
         self.cts.update_label(total_counts)
         _lc_info = self._get_lc_info()
-        print("sadgfs", _lc_info)
         self.cts.update_tool_tip({"Ct Now":total_counts, 
                                   "Ct Mean":_lc_info["Ct Mean"], 
                                   "Ct Median":_lc_info["Ct Median"], 
                                   "Ct Max.":_lc_info["Ct Max."], 
                                   "Ct Min.":_lc_info["Ct Min."]})
+        
+    def all_fields_from_hk(self):
+        """ 
+        Update the:
+        * count rate field, 
+        """
+        # self.software_stat.update_label(...)
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+        # self.de_mode.update_label(...)
+        # self.ping.update_label(...)
+        # self.hv.update_label(...)
         
     def _get_lc_info(self):
         """ To update certain fields, we look to the lightcurve information. """

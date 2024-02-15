@@ -253,7 +253,7 @@ class QValueWidget(QWidget):
                 colour = val.condition_colour(val.value)
                 val = val.value
             colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
-            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{val}</span>")
+            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key:10}{self.separator}{val:8}</span>")
 
         self.full_string_tool_tip("\n".join(_tool_tip_str_list))
 
@@ -285,7 +285,7 @@ class QValueWidget(QWidget):
             else:
                 colour = val.condition_colour(new_values[key])
             colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
-            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{new_values[key]}</span>")
+            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key:10}{self.separator}{new_values[key]:8}</span>")
 
         # get mouse position in the coordinated of the widget (TL is (0,0), BR is (width,length))
         _mouse_pos  = self.mapFromGlobal(QtGui.QCursor.pos()) 
