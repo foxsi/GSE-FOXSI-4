@@ -21,7 +21,7 @@ def rotate_matrix(matrix, angle):
             The newly rotated image where the number of pixels has been 
             increased to accomodate the rotation
     """
-    return rotate(matrix, angle=angle)
+    return rotate(matrix, angle=angle, order=1)
 
 if __name__=="__main__":
     x = np.random.randint(1, 256, size=[100, 100, 3])/256

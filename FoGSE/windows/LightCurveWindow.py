@@ -42,9 +42,10 @@ class LightCurve(QWidget):
         # self.graphPane.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QVBoxLayout()
+        self.layoutMain.addWidget(self.graphPane)
+
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.setSpacing(0)
-        self.layoutMain.addWidget(self.graphPane)
 
         self.graphPane.setBackground('w')
         self.graphPane.showGrid(x=True, y=True)
@@ -133,7 +134,7 @@ class LightCurve(QWidget):
             graph_widget.setTitle(title, color='k', size=title_font_size)
 
         # Set label for both axes
-        styles = {'color':'k', 'font-size':font_size} 
+        styles = {'color':'k', 'font-size':font_size, 'padding-top': '5px', 'padding-right': '5px', 'display': 'block'} 
         graph_widget.setLabel('bottom', xlabel, **styles)
         graph_widget.setLabel('left', ylabel, **styles)
 
