@@ -295,8 +295,10 @@ class QValueWidget(QWidget):
         # want to check is the local mouse position is still in the widget
         if (0<=_mouse_pos.x()<=self.geometry().width()) and (0<=_mouse_pos.y()<=self.geometry().height()):
             _s = "\n".join(_tool_tip_str_list) # new label
-            QToolTip.setFont(QtGui.QFont('Arial', 15)) # make sure tooltip font size is set at least
+            QToolTip.setFont(QtGui.QFont("",15)) # make sure tooltip font size is set at least
             QToolTip.showText(self.mapToGlobal(_mouse_pos),f"<p style='white-space:pre'>{_s}</p>") # show new tool tip info
+        else:
+            self.full_string_tool_tip("\n".join(_tool_tip_str_list))
 
     def full_string_tool_tip(self, string):
         """ Ensures the full tool tip string doesn't wrap. """

@@ -36,7 +36,6 @@ class CdTeWidget(QWidget):
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
         self.detw, self.deth = 50, 50
-        # self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
@@ -44,8 +43,6 @@ class CdTeWidget(QWidget):
         image_layout = QtWidgets.QGridLayout()
         ped_layout = QtWidgets.QGridLayout()
         value_layout = QtWidgets.QVBoxLayout()
-        # image_layout.setColumnStretch(0,1)
-        # image_layout.setRowStretch(0,1)
 
         self.panels = dict() # for all the background panels
         
@@ -55,14 +52,8 @@ class CdTeWidget(QWidget):
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
-        # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
-        # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
-        
-        # image_layout.addWidget(self.image)
-        # self._image_layout.setColumnStretch(0, 1)
-        # self._image_layout.setRowStretch(0, 1)
 
         ## for CdTe pedestal
         # widget for displaying the automated recommendation
@@ -70,33 +61,18 @@ class CdTeWidget(QWidget):
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
-        # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
-        # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.lc = CdTeWindow(reader=reader, plotting_product="lightcurve", name="")
         self.ped.setStyleSheet("border-width: 0px;")
         self._ped_layout.addWidget(self.ped) 
-        # self._ped_layout.setColumnStretch(0, 1)
-        # self._ped_layout.setRowStretch(0, 1)
+        self.ped_layout = ped_layout
+
+        self.ped.mousePressEvent = self._switch2lc
+        self.lc.mousePressEvent = self._switch2ped
 
         # status values
         self._value_layout = self.layout_bkg(main_layout=value_layout, 
                                              panel_name="value_panel", 
                                              style_sheet_string=self._layout_style("white", "white"))
-        # self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf})
-        # self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf})
-        # self.cts = QValueRangeWidget(name="Ct (ct)", value="N/A", condition={"low":0,"high":np.inf})
-        # self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15})
-        
-        # self.frames = QValueRangeWidget(name="# frames (t,t-1)", value=8, condition={"low":2,"high":15})
-        # self.frames_t = QValueRangeWidget(name="# frames (t,t-1)", value=8, condition={"low":2,"high":15})
-        # self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15})
-        # self.asic_vth = QValueRangeWidget(name="ASIC (vth,dth)", value="N/A", condition={"low":2,"high":15})
-        # self.asic_dth = QValueRangeWidget(name="ASIC (vth,dth)", value="N/A", condition={"low":2,"high":15})
-        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15})
-
-        # need to groupd some of these for the layout
-        # self.asic_vth = QValueRangeWidget(name="ASIC VTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
-        # self.asic_dth = QValueRangeWidget(name="DTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
-        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15}, border_colour=asic_layout_colour)
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
@@ -151,88 +127,35 @@ class CdTeWidget(QWidget):
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
         frames_layout.addWidget(self.frames_t, 1, 0, 1, 1) 
         frames_layout.addWidget(self.frames_tm1, 1, 1, 1, 1)
-        # # asics
-        # asic_layout = QtWidgets.QGridLayout()
-        # asic_layout_colour = "rgb(234, 141, 54)"
-        # self.asic = QValueWidget(name="ASIC", value="", separator="", border_colour=asic_layout_colour)
-        # self.asic_vth = QValueRangeWidget(name="VTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
-        # self.asic_dth = QValueRangeWidget(name="DTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
-        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15}, border_colour=asic_layout_colour)
-        # asic_layout.addWidget(self.asic, 0, 0, 1, 2) 
-        # asic_layout.addWidget(self.asic_vth, 1, 0, 1, 1) 
-        # asic_layout.addWidget(self.asic_dth, 1, 1, 1, 1)
-        # asic_layout.addWidget(self.asic_load, 2, 0, 1, 2)
-        # ping
-        # ping_layout = QtWidgets.QGridLayout()
-        # ping_layout_colour = "rgb(213, 105, 48)"
-        # self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=ping_layout_colour)
-        # ping_layout.addWidget(self.ping, 0, 0, 1, 2) 
-
-        # self._value_layout.addWidget(self.software_stat) 
-        # self._value_layout.addWidget(self.de_mode) 
+        
+        
         self._value_layout.addLayout(de_layout) 
 
         self._value_layout.addLayout(cts_layout) 
         
         self._value_layout.addLayout(strips_layout) 
         self._value_layout.addLayout(frames_layout)
-        # self._value_layout.addLayout(asic_layout)  
-
-        # self._value_layout.addLayout(ping_layout) 
-        # self._value_layout.addWidget(self.asic_vth) 
-        # self._value_layout.addWidget(self.asic_dth) 
-        # self._value_layout.addWidget(self.asic_load) 
         set_all_spacings(self._value_layout)
-        # self.somevalue0.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue1.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue2.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue3.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue4.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue5.setMinimumSize(QtCore.QSize(200,100))
 
         self.image.reader.value_changed_collection.connect(self.all_fields)
 
         ## all widgets together
         # image
         global_layout = QGridLayout()
-        # global_layout.addWidget(self.image, 0, 0, 4, 4)
-        global_layout.addLayout(image_layout, 0, 0, 4, 4)#,
-                                #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop) # y,x,h,w
-        # pedestal
-        # global_layout.addWidget(self.ped, 4, 0, 4, 3)
-        global_layout.addLayout(ped_layout, 4, 0, 2, 4)#,
-                                #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignBottom)# y,x,h,w
-        # status values
-        # global_layout.addWidget(self.somevalue0, 0, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue1, 1, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue2, 2, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue3, 3, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue4, 4, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue5, 5, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue5, 6, 4, 1, 1)
-        global_layout.addLayout(value_layout, 0, 4, 6, 2)#,
-                                #alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignBottom)
-        
-        # make sure all cell sizes in the grid expand in proportion
-        # for col in range(global_layout.columnCount()):
-        #     global_layout.setColumnStretch(col, 1)
-        # for row in range(global_layout.rowCount()):
-        #     global_layout.setRowStretch(row, 1)
+        global_layout.addLayout(image_layout, 0, 0, 4, 4)
+        global_layout.addLayout(ped_layout, 4, 0, 2, 4)
+        global_layout.addLayout(value_layout, 0, 4, 6, 2)
+
         unifrom_layout_stretch(global_layout, grid=True)
 
-        # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
-        # image_layout.setContentsMargins(0, 0, 0, 0)
-        # ped_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._ped_layout.setContentsMargins(0, 0, 0, 0)
         self._value_layout.setContentsMargins(0, 0, 0, 0)
         self._value_layout.setSpacing(6)
         strips_layout.setSpacing(0)
         frames_layout.setSpacing(0)
-        # asic_layout.setSpacing(0)
         de_layout.setSpacing(0)
         cts_layout.setSpacing(0)
-        # ping_layout.setSpacing(0)
         global_layout.setHorizontalSpacing(0)
         global_layout.setVerticalSpacing(0)
         global_layout.setContentsMargins(0, 0, 0, 0)
@@ -245,12 +168,44 @@ class CdTeWidget(QWidget):
         Update the:
         * count rate field, 
         """
-        self.cts.update_label(self.image.reader.collection.total_counts())
-        self.cts.update_tool_tip({"Ct Now":self.image.reader.collection.total_counts(), 
-                                  "Ct Mean":"N/A", 
-                                  "Ct Median":"N/A", 
-                                  "Ct Max.":"N/A", 
-                                  "Ct Min.":"N/A"})
+        total_counts = self.image.reader.collection.total_counts()
+        self.cts.update_label(total_counts)
+        _lc_info = self._get_lc_info()
+        print("sadgfs", _lc_info)
+        self.cts.update_tool_tip({"Ct Now":total_counts, 
+                                  "Ct Mean":_lc_info["Ct Mean"], 
+                                  "Ct Median":_lc_info["Ct Median"], 
+                                  "Ct Max.":_lc_info["Ct Max."], 
+                                  "Ct Min.":_lc_info["Ct Min."]})
+        
+    def _get_lc_info(self):
+        """ To update certain fields, we look to the lightcurve information. """
+        if len(self.lc.graphPane.plot_data)<2:
+            return {"Ct Mean":"N/A",
+                    "Ct Median":"N/A", 
+                    "Ct Max.":"N/A", 
+                    "Ct Min.":"N/A"}
+        elif len(self.lc.graphPane.plot_data)==2:
+            lc_data = self.lc.graphPane.plot_data[1:] 
+        else:
+            lc_data = self.lc.graphPane.plot_data
+
+        return {"Ct Mean":np.nanmean(lc_data),
+                "Ct Median":np.nanmedian(lc_data), 
+                "Ct Max.":np.nanmax(lc_data), 
+                "Ct Min.":np.nanmin(lc_data)}
+        
+    def _switch2lc(self, event=None):
+        self._ped_layout.removeWidget(self.ped) 
+        self.ped_layout.removeWidget(self.ped) 
+        self._ped_layout.addWidget(self.lc) 
+        self.ped_layout.addWidget(self.lc) 
+
+    def _switch2ped(self, event=None):
+        self._ped_layout.removeWidget(self.lc) 
+        self.ped_layout.removeWidget(self.lc) 
+        self._ped_layout.addWidget(self.ped) 
+        self.ped_layout.addWidget(self.ped) 
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -281,12 +236,6 @@ class CdTeWidget(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
         if event is None:
             return 
         
@@ -350,12 +299,7 @@ class AllCdTeView(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
+        
         if event is None:
             return 
         
