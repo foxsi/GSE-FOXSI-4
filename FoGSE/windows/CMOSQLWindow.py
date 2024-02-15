@@ -35,7 +35,7 @@ class CMOSQLWindow(QWidget):
     add_box_signal = QtCore.pyqtSignal()
     remove_box_signal = QtCore.pyqtSignal()
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", colour="green", parent=None):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
@@ -53,6 +53,7 @@ class CMOSQLWindow(QWidget):
         self.name = name
         self.integrate = integrate
         self.name = self.name+": Integrated" if self.integrate else self.name
+        self.colour = colour
 
         # decide how to read the data
         if data_file is not None:
@@ -136,7 +137,7 @@ class CMOSQLWindow(QWidget):
         # send image to frame and add to plot
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
-        self.set_image_colour("green")
+        self.set_image_colour(self.colour)
 
     def add_pc_region(self):
         """ A rectangle to indicate the size of the PC region. """
