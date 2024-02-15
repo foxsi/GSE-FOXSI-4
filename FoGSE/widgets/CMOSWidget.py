@@ -32,7 +32,7 @@ class CMOSWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_ql=None, name="CMOS", parent=None):
+    def __init__(self, data_file_pc=None, data_file_ql=None, name="CMOS", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
         reader_pc = CMOSPCReader(datafile=data_file_pc)
@@ -60,7 +60,7 @@ class CMOSWidget(QWidget):
         self._ql_layout = self.layout_bkg(main_layout=ql_layout, 
                                              panel_name="ql_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name)
+        self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name, integrate=True, image_angle=image_angle)
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ql.setStyleSheet("border-width: 0px;")
@@ -76,7 +76,7 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name)
+        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name, integrate=True, image_angle=image_angle)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")
@@ -84,6 +84,9 @@ class CMOSWidget(QWidget):
         # self._ped_layout.setColumnStretch(0, 1)
         set_all_spacings(pc_layout, grid=True)
         # self._ped_layout.setRowStretch(0, 1)
+
+        self.pc.add_box_signal.connect(self.ql.add_pc_region)
+        self.pc.remove_box_signal.connect(self.ql.remove_pc_region)
 
         # exposure values
         exp_layout_colour = "rgb(227, 116, 51)"
@@ -130,6 +133,9 @@ class CMOSWidget(QWidget):
         self._operation_layout.addWidget(self.stop, 1, 2, 1, 2) 
         self._operation_layout.addWidget(self.stop2start, 1, 4, 1, 2) 
         self._operation_layout.addWidget(self.software, 2, 2, 1, 2) 
+        write_layout_colour = "rgb(88, 189, 186)"
+        self.pointer = QValueRangeWidget(name="Write Pointer", value=0, condition={"low":0,"high":np.inf}, border_colour=write_layout_colour)
+        self._operation_layout.addWidget(self.pointer, 2, 4, 1, 2) 
         set_all_spacings(self._operation_layout)
         unifrom_layout_stretch(self._operation_layout, grid=True)
 
@@ -171,14 +177,14 @@ class CMOSWidget(QWidget):
         set_all_spacings(self._comp_layout)
 
         # write status
-        write_layout = QtWidgets.QVBoxLayout()
-        write_layout_colour = "rgb(88, 189, 186)"
-        self._write_layout = self.layout_bkg(main_layout=write_layout, 
-                                             panel_name="write_panel", 
-                                             style_sheet_string=self._layout_style(write_layout_colour, write_layout_colour))
-        self.pointer = QValueRangeWidget(name="Write Pointer", value=0, condition={"low":0,"high":np.inf}, border_colour=write_layout_colour)
-        self._write_layout.addWidget(self.pointer) 
-        set_all_spacings(self._write_layout)
+        # write_layout = QtWidgets.QVBoxLayout()
+        # write_layout_colour = "rgb(88, 189, 186)"
+        # self._write_layout = self.layout_bkg(main_layout=write_layout, 
+        #                                      panel_name="write_panel", 
+        #                                      style_sheet_string=self._layout_style(write_layout_colour, write_layout_colour))
+        # self.pointer = QValueRangeWidget(name="Write Pointer", value=0, condition={"low":0,"high":np.inf}, border_colour=write_layout_colour)
+        # self._write_layout.addWidget(self.pointer) 
+        # set_all_spacings(self._write_layout)
 
         # more exposure
         xexp_layout = QtWidgets.QVBoxLayout()
@@ -214,7 +220,7 @@ class CMOSWidget(QWidget):
         global_layout.addLayout(operation_layout, 34, 43, 16, 57)
         global_layout.addLayout(xexp_layout, 9, 79, 9, 21)
         global_layout.addLayout(comp_layout, 0, 79, 9, 21)
-        global_layout.addLayout(write_layout, 45, 82, 5, 18) #last since it overlaps with operation_layout
+        # global_layout.addLayout(write_layout, 45, 82, 5, 18) #last since it overlaps with operation_layout
 
         unifrom_layout_stretch(global_layout, grid=True)
 
@@ -225,7 +231,7 @@ class CMOSWidget(QWidget):
         self._temp_layout.setContentsMargins(0, 0, 0, 0)
         self._phot_layout.setContentsMargins(0, 0, 0, 0)
         self._exp_layout.setContentsMargins(0, 0, 0, 0)
-        self._write_layout.setContentsMargins(0, 0, 0, 0)
+        # self._write_layout.setContentsMargins(0, 0, 0, 0)
         self._operation_layout.setContentsMargins(0, 0, 0, 0)
         self._xexp_layout.setContentsMargins(0, 0, 0, 0)
         self._comp_layout.setContentsMargins(0, 0, 0, 0)
@@ -309,12 +315,12 @@ class AllCMOSView(QWidget):
         # data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
         # data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
 
-        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, name=os.path.basename(cmos_pc0))
+        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, name=os.path.basename(cmos_pc0), image_angle=180)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, name=os.path.basename(cmos_pc1))
+        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, name=os.path.basename(cmos_pc1), image_angle=180)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
@@ -322,8 +328,6 @@ class AllCMOSView(QWidget):
         lay = QGridLayout(spacing=0)
         # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
 
-        # lay.addWidget(f0, 0, 0, 1, 1)
-        # lay.addWidget(f1, 0, 1, 1, 1)
         lay.addLayout(_f0, 0, 0, 1, 1)
         lay.addLayout(_f1, 0, 1, 1, 1)
 
@@ -335,6 +339,18 @@ class AllCMOSView(QWidget):
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
         self.setLayout(lay)
+
+        f0.ql.add_box_signal.connect(f1.ql.add_pc_region)
+        # f0.ql.add_box_signal.connect(f1.ql.add_rotate_frame)
+        
+        f0.ql.remove_box_signal.connect(f1.ql.remove_pc_region)
+        # f0.ql.remove_box_signal.connect(f1.ql.remove_rotate_frame)
+
+        f1.ql.add_box_signal.connect(f0.ql.add_pc_region)
+        # f1.ql.add_box_signal.connect(f0.ql.add_rotate_frame)
+
+        f1.ql.remove_box_signal.connect(f0.ql.remove_pc_region)
+        # f1.ql.remove_box_signal.connect(f0.ql.remove_rotate_frame)
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
@@ -356,10 +372,23 @@ class AllCMOSView(QWidget):
 if __name__=="__main__":
     app = QApplication([])
     
+    
     cmos_pc0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
     cmos_ql0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
     cmos_pc1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
     cmos_ql1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
+
+    
+    cmos_pc0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run22/gse/cmos1_pc.log"
+    cmos_ql0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run22/gse/cmos1_ql.log"
+    cmos_pc1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run22/gse/cmos2_pc.log"
+    cmos_ql1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run22/gse/cmos2_ql.log"
+    
+    cmos_pc0 = "/Users/kris/Downloads/PC_check_downlink_new.dat"
+    cmos_ql0 = "/Users/kris/Downloads/QL_check_downlink_new.dat"
+    cmos_pc1 = "/Users/kris/Downloads/PC_check_downlink_new.dat"
+    cmos_ql1 = "/Users/kris/Downloads/QL_check_downlink_new.dat"
+    
     
     # w.resize(1000,500)
     w = AllCMOSView(cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1)

@@ -52,9 +52,11 @@ class CMOSPCCollection:
     
     def new_array(self):
         """ Check if the array is new or a repeat. """
-        if self.linetime>self.last_data_time:
-            return True
-        return False
+        return True
+        # previously was
+        # if self.linetime>self.last_data_time:
+        #     return True
+        # return False
     
     def image_array(self):
         """
@@ -66,7 +68,6 @@ class CMOSPCCollection:
             The image array.
         """
         im = self._image
-        im[im>1] = 0 #images are normalsed so remove values of artificially large value
         return im
     
     def plot_image(self):

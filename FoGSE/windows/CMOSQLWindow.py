@@ -31,12 +31,17 @@ class CMOSQLWindow(QWidget):
         String to determine whether an "image" and or <something else> should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, name="CMOS", parent=None):
+
+    add_box_signal = QtCore.pyqtSignal()
+    remove_box_signal = QtCore.pyqtSignal()
+
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", parent=None):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
         self.graphPane = pg.PlotWidget()
+        
         # self.graphPane.setMinimumSize(QtCore.QSize(800,500)) # was 250,250 # was 2,1
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
@@ -46,6 +51,8 @@ class CMOSQLWindow(QWidget):
         self.setLayout(self.layoutMain)
 
         self.name = name
+        self.integrate = integrate
+        self.name = self.name+": Integrated" if self.integrate else self.name
 
         # decide how to read the data
         if data_file is not None:
@@ -61,7 +68,7 @@ class CMOSQLWindow(QWidget):
         self.image_angle = image_angle
             
         self.image_product = plotting_product
-        if self.image_product in ["image"]:
+        if self.image_product in ["image", "integrated_image"]:
             self.setup_2d()
         else:
             print("Nothing else is set-up yet.")
@@ -72,6 +79,28 @@ class CMOSQLWindow(QWidget):
         self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
         
         self.update_background(colour=(10,40,80,100))
+
+        # self.graphPane.clicked.connect(self.plot_pc_region())
+        # self.status.QHoverEvent =
+        self.installEventFilter(self)
+        self.setMouseTracking(True)
+        self.add_rotate_frame()
+        # self.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover)
+
+    def mouseMoveEvent(self, event):
+        print('Mouse coords: ( %d : %d )' % (event.x(), event.y()))
+
+    def eventFilter(self, obj, event):
+        # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
+        if event.type() == QtCore.QEvent.Type.Enter:
+            self.add_pc_region()
+            # self.add_rotate_frame()
+            self.add_box_signal.emit()
+        elif event.type() == QtCore.QEvent.Type.Leave:
+            self.remove_pc_region()
+            # self.remove_rotate_frame()
+            self.remove_box_signal.emit()
+        return super(CMOSQLWindow, self).eventFilter(obj, event)
         
     def setup_2d(self):
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
@@ -108,6 +137,48 @@ class CMOSQLWindow(QWidget):
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
         self.set_image_colour("green")
+
+    def add_pc_region(self):
+        """ A rectangle to indicate the size of the PC region. """
+        ql_center_width, ql_center_height = int(self.detw/2),int(self.deth/2)
+        rect_width, rect_height = 192, 96
+        # self.rect = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
+        self.rect = QtWidgets.QGraphicsRectItem(int(ql_center_width-rect_width/2), 
+                                                int(ql_center_height-rect_height/2), 
+                                                int(rect_width), 
+                                                int(rect_height)) # x, y, w, h
+        self.rect.setPen(pg.mkPen((255, 255, 255, 255), width=3))
+        self.rect.setBrush(pg.mkBrush((255, 255, 255, 0)))
+        self.rect.setTransformOriginPoint(self.img.boundingRect().center())
+        # self.rect.setRotation(0) #+ve is anticlockwise and -ve is clockwise
+        self.rect.setRotation(-self.image_angle) #+ve is anticlockwise and -ve is clockwise
+        self.graphPane.addItem(self.rect)
+
+    def remove_pc_region(self):
+        """ Removes rectangle indicating the size of the PC region. """
+        if hasattr(self,"rect"):
+            self.graphPane.removeItem(self.rect)
+
+    def add_rotate_frame(self):
+        """ A rectangle to indicate image rotation. """
+        ql_center_width, ql_center_height = int(self.detw/2),int(self.deth/2)
+        im_width, im_height = 512, 480
+        # self.rect = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
+        self.im_rect = QtWidgets.QGraphicsRectItem(int(ql_center_width-im_width/2), 
+                                                int(ql_center_height-im_height/2), 
+                                                int(im_width), 
+                                                int(im_height)) # x, y, w, h
+        self.im_rect.setPen(pg.mkPen((255, 255, 255, 255), width=3))
+        self.im_rect.setBrush(pg.mkBrush((255, 255, 255, 0)))
+        self.im_rect.setTransformOriginPoint(self.img.boundingRect().center())
+        # self.rect.setRotation(0) #+ve is anticlockwise and -ve is clockwise
+        self.im_rect.setRotation(-self.image_angle) #+ve is anticlockwise and -ve is clockwise
+        self.graphPane.addItem(self.im_rect)
+
+    def remove_rotate_frame(self):
+        """ Removes rectangle indicating the image rotation. """
+        if hasattr(self,"rect"):
+            self.graphPane.removeItem(self.im_rect)
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
@@ -161,8 +232,10 @@ class CMOSQLWindow(QWidget):
         if self.image_product=="image":
             new_frame = self.reader.collection.image_array()
             new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-10] = 0 # because interp 0s causes tiny artifacts
+            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
             self.update_method = "replace"
+        
+        self.update_method = "integrate" if self.integrate else self.update_method
 
         # update current plotted data with new frame
         self.update_image(existing_frame=self.my_array, new_frame=new_frame)
@@ -177,6 +250,7 @@ class CMOSQLWindow(QWidget):
         self.graphPane.removeItem(self.img)
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
+        # self.plot_pc_region()
         self.update()
 
     def update_image(self, existing_frame, new_frame):
@@ -210,6 +284,8 @@ class CMOSQLWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] = existing_frame[:,:,self.channel[self.image_colour]] + new_frame
         elif self.update_method=="replace":
             self.my_array[:,:,self.channel[self.image_colour]] = new_frame
+        elif self.update_method=="integrate":
+            self.my_array[:,:,self.channel[self.image_colour]] += new_frame
 
         self._turn_pixels_on_and_off()
 
