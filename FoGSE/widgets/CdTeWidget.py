@@ -183,6 +183,14 @@ class CdTeWidget(QWidget):
                                   "Ct Max.":_lc_info["Ct Max."], 
                                   "Ct Min.":_lc_info["Ct Min."]})
         
+        # total_count_rate = self.image.reader.collection.total_count_rate()
+        # self.ctr.update_label(total_count_rate)
+        # self.ctr.update_tool_tip({"Ct/s Now":total_count_rate, 
+        #                           "Ct/s Mean":_lc_info["Ct Mean"], 
+        #                           "Ct/s Median":_lc_info["Ct Median"], 
+        #                           "Ct/s Max.":_lc_info["Ct Max."], 
+        #                           "Ct/s Min.":_lc_info["Ct Min."]})
+        
     def all_fields_from_hk(self):
         """ 
         Update the:
