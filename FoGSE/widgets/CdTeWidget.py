@@ -196,16 +196,20 @@ class CdTeWidget(QWidget):
                 "Ct Min.":np.nanmin(lc_data)}
         
     def _switch2lc(self, event=None):
+        """ Switch from pedestal to lightcurve. """
         self._ped_layout.removeWidget(self.ped) 
         self.ped_layout.removeWidget(self.ped) 
         self._ped_layout.addWidget(self.lc) 
         self.ped_layout.addWidget(self.lc) 
+        self.lc.setStyleSheet("border-width: 0px;")
 
     def _switch2ped(self, event=None):
+        """ Switch from lightcurve to pedestal. """
         self._ped_layout.removeWidget(self.lc) 
         self.ped_layout.removeWidget(self.lc) 
         self._ped_layout.addWidget(self.ped) 
         self.ped_layout.addWidget(self.ped) 
+        self.ped.setStyleSheet("border-width: 0px;")
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -299,7 +303,7 @@ class AllCdTeView(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        
+
         if event is None:
             return 
         
