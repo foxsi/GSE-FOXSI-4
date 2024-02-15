@@ -337,7 +337,7 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
             # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
             print("started listen for downlink\n")
             # sleep so the subprocess can start
-            time.sleep(1)
+            time.sleep(2)
         # connect local socket
         self.unix_local_socket.connect(self.unix_remote_socket_path)
         
