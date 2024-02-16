@@ -438,18 +438,72 @@ def CdTecanisterhkparser(data: bytes):
         status = status_converter[status_raw]
     except KeyError:
         print("Could not parse CdTe canister status")
+        status = status_raw.hex()
         error_flag = True
 
     hv_exec = int.from_bytes(hv_exec_raw, 'big')
     hv_set = int.from_bytes(hv_set_raw, 'big')
     frame_count = int.from_bytes(frame_count_raw, 'big')
 
+    hv_set_converter = {
+        0: "HV = 0 V",
+        1600: "HV = 60 V",
+        2000: "HV = 100 V",
+        3500: "HV = 200 V",
+    }
+
+    hv = hv_set_converter[hv_set]
     parsed_data = {
         "status": status,
         "hv_exec": hv_exec,
-        "hv_set": hv_set,
+        "hv": hv,
         "frame_count": frame_count
     }
     print(parsed_data)
     return parsed_data, error_flag
 
+
+
+def CdTedehkparser(data: bytes):
+    frame_size = 32
+    if len(data) % frame_size != 0:
+        print("CdTecanisterhkparser() expects a input length to be a multiple of", frame_size)
+        error_flag = True
+        return [{},error_flag]
+    
+    status_raw      = data[0     :   0x12]
+    ping_raw        = data[0x0c  :   0x0c+4]
+    temp_raw        = data[0x10  :   0x10+4]
+    cpu_raw         = data[0x14  :   0x14+4]
+    df_raw          = data[0x18  :   0x18+4]
+    unixtime_raw    = data[0x1c  :   0x1c+4]
+    status_converter = {
+        b"\x3c\x3c\x01\x00\x00\x00\x00\x00\x3c\x3c\x3c\x3c": "idle",
+        b"\x3c\x3c\x01\x00\x01\x01\x01\x01\x3c\x3c\x3c\x3c": "init",
+        b"\x3c\x3c\x01\x00\x02\x02\x02\x02\x3c\x3c\x3c\x3c": "standby"
+    }
+
+    status = ""
+    try:
+        status = status_converter[status_raw]
+    except KeyError:
+        print("Could not parse CdTe canister status")
+        status = status_raw.hex()
+        error_flag = True
+
+    ping = [can_ping for can_ping in ping_raw]
+    temp = int.from_bytes(temp_raw, 'big')/1000.0
+    cpu = int.from_bytes(cpu_raw, 'big')
+    df_GB = int.from_bytes(df_raw, 'big')
+    unixtime = int.from_bytes(unixtime_raw, 'big')
+
+    parsed_data = {
+        "status": status,
+        "ping": ping,
+        "temp": temp,
+        "cpu": cpu,
+        "df_GB": df_GB,
+        "unixtime": unixtime
+    }
+    print(parsed_data)
+    return parsed_data, error_flag
