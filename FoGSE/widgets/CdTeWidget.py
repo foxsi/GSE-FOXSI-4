@@ -83,7 +83,7 @@ class CdTeWidget(QWidget):
         self.software_stat = QValueTimeWidget(name="SW Status", 
                                               value="N/A", 
                                               time=2000, 
-                                              condition=[int, float, np.int64], 
+                                              condition=[int, float, np.int64, str], 
                                               border_colour=de_layout_colour,
                                               tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value="N/A"), 
                                                                "ASIC DTH":QValueWidget(name="ASIC DTH", value="N/A"), 
@@ -91,7 +91,7 @@ class CdTeWidget(QWidget):
                                               name_plus="<sup>*</sup>")
         self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
         self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
-        self.hv = QValueRangeWidget(name="HV", value="N/A", condition={"low":0,"high":200}, border_colour=de_layout_colour)
+        self.hv = QValueRangeWidget(name="HV", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
@@ -116,7 +116,7 @@ class CdTeWidget(QWidget):
         # strips
         strips_layout = QtWidgets.QGridLayout()
         strips_layout_colour = "rgb(213, 105, 48)"
-        self.strips = QValueWidget(name="# of det. strips", value="", separator="", border_colour=strips_layout_colour)
+        self.strips = QValueWidget(name="Mean # det. strips", value="", separator="", border_colour=strips_layout_colour)
         self.strips_al = QValueWidget(name="Pt", value="N/A", border_colour=strips_layout_colour)
         self.strips_pt = QValueWidget(name="Al", value="N/A", border_colour=strips_layout_colour)
         strips_layout.addWidget(self.strips, 0, 0, 1, 2) 
@@ -126,8 +126,8 @@ class CdTeWidget(QWidget):
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
         self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        self.frames_t = QValueRangeWidget(name="t", value="N/A", condition={"low":0,"high":127}, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueRangeWidget(name="t-1", value="N/A", condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        self.frames_t = QValueRangeWidget(name="t", value="N/A", condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueRangeWidget(name="t-1", value="N/A", condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
         frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
         frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
@@ -142,7 +142,8 @@ class CdTeWidget(QWidget):
         set_all_spacings(self._value_layout)
 
         self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
-        # self.hk.reader.value_changed_collection.connect(self.all_fields_from_hk)
+        self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
+        self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
 
         ## all widgets together
         # image
@@ -195,11 +196,8 @@ class CdTeWidget(QWidget):
                                   "Ct/s Max.":round(_lc_info["Ct Max."]/delta_time, 1), 
                                   "Ct/s Min.":round(_lc_info["Ct Min."]/delta_time, 1)})
 
-        self.strips_al.update_label(self.image.reader.collection.num_of_al_strips())
-        self.strips_pt.update_label(self.image.reader.collection.num_of_pt_strips())
-
-        # self.frames_t.update_label(...)
-        # self.frames_tm1.update_label(...)
+        self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
+        self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
         
     def all_fields_from_hk(self):
         """ 
@@ -208,13 +206,30 @@ class CdTeWidget(QWidget):
         """
         # ... = self.reader_hk.collection.something()
         # ... = self.reader_de.collection.something()
-        # self.software_stat.update_label(...)
+        self.software_stat.update_label(self.reader_hk.collection.get_status())
         # self.software_stat.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
         # self.ping.update_label(...)
-        # self.hv.update_label(...)
+        self.hv.update_label(self.reader_hk.collection.get_hv_set()) #get_hv_exec
+
+        self.frames_t.update_label(self.reader_hk.collection.get_frame_count())
+        if hasattr(self, "_old_frames_t"):
+            self.frames_tm1.update_label(self._old_frames_t)
+        self._old_frames_t = self.reader_hk.collection.get_frame_count()
+
+    def all_fields_from_de(self):
+        """ 
+        Update the:
+        * count rate field, 
+        """
+        # ... = self.reader_de.collection.something()
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+        # self.de_mode.update_label(...)
+        # self.ping.update_label(...)
         
     def _get_lc_info(self):
         """ To update certain fields, we look to the lightcurve information. """
@@ -302,22 +317,22 @@ class AllCdTeView(QWidget):
         # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
         # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file_pc=cdte0, name=os.path.basename(cdte0), image_angle=-150)
+        f0 = CdTeWidget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=-150)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file_pc=cdte1, name=os.path.basename(cdte1), image_angle=-30)
+        f1 = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=-30)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file_pc=cdte2, name=os.path.basename(cdte2), image_angle=-90)
+        f2 = CdTeWidget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=-90)
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file_pc=cdte3, name=os.path.basename(cdte3), image_angle=+30)
+        f3 = CdTeWidget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=+30)
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)
@@ -409,10 +424,18 @@ if __name__=="__main__":
     # lay.addLayout(_f2, 0, 2, 1, 1)
     # lay.addLayout(_f3, 0, 3, 1, 1)
 
-    cdte0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-    cdte1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-    cdte2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-    cdte3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
+    cdte0 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log", 
+             None, 
+             None)
+    cdte1 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log", 
+             None, 
+             None)
+    cdte2 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log", 
+             None, 
+             None)
+    cdte3 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log", 
+             None, 
+             None)
     
     # w.resize(1000,500)
     w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)

@@ -436,7 +436,7 @@ def CdTecanisterhkparser(data: bytes):
     status = ""
     try:
         status = status_converter[status_raw]
-    except IndexError:
+    except KeyError:
         print("Could not parse CdTe canister status")
         error_flag = True
 

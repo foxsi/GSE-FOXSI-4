@@ -12,8 +12,8 @@ import numpy as np
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
-from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
+from FoGSE.parsers.CdTeparser import CdTecanisterhkparser
+# from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeHKCollection import CdTeHKCollection
 
 
@@ -63,18 +63,14 @@ class CdTeHKReader(ReaderBase):
         # forward=True: reads buffer from the back but doesn't reverse the data 
         try:
             with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
-                iterative_unpack=struct.iter_unpack("<I",f.read_block())
-                datalist=[]
-                for _,data in enumerate(iterative_unpack):
-
-                    datalist.append(data[0])
-            if self._old_data==datalist:
+                data = f.read_block()
+            if self._old_data==data:
                 return self.return_empty() 
         except FileNotFoundError:
             return self.return_empty() 
         
-        self._old_data = datalist
-        return datalist
+        self._old_data = data
+        return data
 
     def raw_2_parsed(self, raw_data):
         """
@@ -94,12 +90,12 @@ class CdTeHKReader(ReaderBase):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            flags, event_df, all_hkdicts = CdTerawdataframe2parser(raw_data) #CdTerawalldata2parser(raw_data)# 
+            parsed_data, error_flag = CdTecanisterhkparser(raw_data) #CdTerawalldata2parser(raw_data)# 
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1]), 'unixtime':np.array([-1])},None)
-        return flags, event_df, all_hkdicts
+            parsed_data, error_flag = ({"status": "N/A","hv_exec": "N/A","hv_set": "N/A","frame_count": "N/A"},None)
+        return parsed_data, error_flag
 
     def parsed_2_collection(self, parsed_data):
         """

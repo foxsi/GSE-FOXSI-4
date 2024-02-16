@@ -26,13 +26,22 @@ class GSEDataDisplay(QWidget):
         QWidget.__init__(self, parent)
 
         newest_folder = newest_data_dir() 
-        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
+        newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
+        newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
-        f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
-                        os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
-                        os.path.join(newest_folder, get_det_file("cdte3_pc.log", instruments)), 
-                        os.path.join(newest_folder, get_det_file("cdte4_pc.log", instruments)))
+        f0 = AllCdTeView((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
+                          os.path.join(newest_folder, get_det_file("cdte1_hk.log", instruments)), 
+                          None), 
+                        (os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
+                          os.path.join(newest_folder, get_det_file("cdte2_hk.log", instruments)), 
+                          None), 
+                        (os.path.join(newest_folder, get_det_file("cdte3_pc.log", instruments)), 
+                          os.path.join(newest_folder, get_det_file("cdte3_hk.log", instruments)), 
+                          None), 
+                        (os.path.join(newest_folder, get_det_file("cdte4_pc.log", instruments)), 
+                          os.path.join(newest_folder, get_det_file("cdte4_hk.log", instruments)), 
+                          None))
         # f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 

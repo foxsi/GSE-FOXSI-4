@@ -741,11 +741,11 @@ class CdTeCollection:
         """ Just return the present total counts for the collection. """
         return self.total_counts()/self.delta_time()
     
-    def num_of_al_strips(self):
+    def mean_num_of_al_strips(self):
         """ Get the total number of Al strips with measured ADC values for the frame"""
-        return np.sum(self.event_dataframe['hitnum_al'])
+        return np.mean(self.event_dataframe['hitnum_al'])
     
-    def num_of_pt_strips(self):
+    def mean_num_of_pt_strips(self):
         """ Get the total number of Pt strips with measured ADC values for the frame"""
-        return np.sum(self.event_dataframe['hitnum_pt'])
+        return np.mean(self.event_dataframe['hitnum_pt'])
     
