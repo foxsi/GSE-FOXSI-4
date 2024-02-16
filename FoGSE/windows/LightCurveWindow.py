@@ -50,7 +50,8 @@ class LightCurve(QWidget):
         self.graphPane.setBackground('w')
         self.graphPane.showGrid(x=True, y=True)
 
-        self.plot_data = np.array([0])
+        self.plot_data_ys = np.array([0])
+        self.plot_data_xs = np.array([0])
         self._remove_first = True
 
         self.plot_line = self.plot(self.graphPane, [], [], 
@@ -68,13 +69,14 @@ class LightCurve(QWidget):
 
     def manage_plotting_ranges(self):
         # plot the newly updated x and ys
-        _no_nans = ~np.isnan(self.plot_data) #avoid plotting nans
-        if len(self.plot_data[_no_nans])>1:
+        _no_nans = ~np.isnan(self.plot_data_ys) #avoid plotting nans
+        if len(self.plot_data_ys[_no_nans])>1:
             #pyqtgraph won't plot 1 data-point and throws an error instead :|
             self.plot_line.clear()
-            _xs = np.arange(len(self.plot_data[_no_nans]))
-            xs = _xs+(self.counter-self.keep_entries) if self.counter>=self.keep_entries else _xs
-            self.plot_line.setData(xs, self.plot_data[_no_nans])
+            # _xs = np.arange(len(self.plot_data_ys[_no_nans]))
+            # _xs = self.plot_data_ys[_no_nans]
+            # xs = _xs+(self.counter-self.keep_entries) if self.counter>=self.keep_entries else _xs
+            self.plot_line.setData(self.plot_data_xs[_no_nans], self.plot_data_ys[_no_nans])
             self.counter += 1
 
     def _remove_first_artificial_point(self):
@@ -86,30 +88,38 @@ class LightCurve(QWidget):
         and if there are at least two real data points, the just remove 
         the artificial one.
         """
-        if self._remove_first and len(self.plot_data)>=3:
+        if self._remove_first and len(self.plot_data_ys)>=3:
             self._remove_first = False
-            self.plot_data = self.plot_data[1:]
+            self.plot_data_ys = self.plot_data_ys[1:]
+            self.plot_data_xs = self.plot_data_xs[1:]
 
-    def add_plot_data(self, new_data):
+    def add_plot_data(self, new_data_y, new_data_x=None):
         """ Adds the new data to the array to be plotted. """
 
         # self.sensor_plot_data_mean_tot.append(new_data)
-        self.plot_data = np.append(self.plot_data, new_data)
+        self.plot_data_ys = np.append(self.plot_data_ys, new_data_y)
+        self.plot_data_xs = np.append(self.plot_data_xs, self.plot_data_xs[-1]+1) if new_data_x is None else np.append(self.plot_data_xs, new_data_x)
 
         self._remove_first_artificial_point()
         
-        if len(self.plot_data)>self.keep_entries:
-            self.plot_data = self.plot_data[-self.keep_entries:]
+        if len(self.plot_data_ys)>self.keep_entries:
+            self.plot_data_ys = self.plot_data_ys[-self.keep_entries:]
+            self.plot_data_xs = self.plot_data_xs[-self.keep_entries:]
 
-        self._minmax = np.array([np.min(self.plot_data), np.max(self.plot_data)])
-        
-        if (not np.isnan(self._minmax[0])):
-            self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(self._minmax[0])*0.95)
-        if (not np.isnan(self._minmax[1])):
-            self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(self._minmax[1])*1.05)
+        self._minmax_y = np.array([np.min(self.plot_data_ys), np.max(self.plot_data_ys)])
+        if (not np.isnan(self._minmax_y[0])):
+            self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(self._minmax_y[0])*0.95)
+        if (not np.isnan(self._minmax_y[1])):
+            self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(self._minmax_y[1])*1.05)
 
-        self._minx = self.counter-self.keep_entries if len(self.plot_data)>=self.keep_entries else 0
-        self.graphPane.plotItem.vb.setLimits(xMin=self._minx, xMax=self.counter+1)
+        self._minmax_x = np.array([np.min(self.plot_data_xs), np.max(self.plot_data_xs)])
+        if (not np.isnan(self._minmax_x[0])):
+            self.graphPane.plotItem.vb.setLimits(xMin=np.nanmin(self._minmax_x[0]))
+        if (not np.isnan(self._minmax_x[1])):
+            self.graphPane.plotItem.vb.setLimits(xMax=np.nanmax(self._minmax_x[1])+1)
+
+        # ay = self.graphPane.getAxis('left')
+        # ay.setTicks([(v, str(v)) for v in [10, 15] ])
 
     def plot(self, graph_widget, x, y, color, plotname='', **kwargs):
         pen = pg.mkPen(color=color, width=5)

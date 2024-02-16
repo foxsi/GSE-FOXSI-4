@@ -723,9 +723,28 @@ class CdTeCollection:
     
     def total_counts(self):
         """ Just return the present total counts for the collection. """
-        return np.sum(self.new_entries)
+        return len(self.event_dataframe)
+    
+    def mean_unixtime(self):
+        """ Get the mean unixtime of the frame. """
+        return np.mean(self.event_dataframe['unixtime'])
+    
+    def delta_time(self):
+        """ Get the delta-t of the frame. """
+        # _unixtime = (np.max(self.event_dataframe['unixtime'])-np.min(self.event_dataframe['unixtime']))
+        # _titime = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
+        # _scale = 1
+        # _time = _unixtime + _scale*_titime
+        return 1
         
     def total_count_rate(self):
         """ Just return the present total counts for the collection. """
-        return self.total_counts()/(1)
+        return self.total_counts()/self.delta_time()
     
+    def num_of_al_strips(self):
+        """ Get the total number of Al strips with measured ADC values for the frame"""
+        return np.sum(self.event_dataframe['hitnum_al'])
+    
+    def num_of_pt_strips(self):
+        """ Get the total number of Pt strips with measured ADC values for the frame"""
+        return np.sum(self.event_dataframe['hitnum_pt'])

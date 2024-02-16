@@ -94,7 +94,7 @@ class CdTeReader(ReaderBase):
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1])},None)
+            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1]), 'unixtime':np.array([-1])},None)
         return flags, event_df, all_hkdicts
 
     def parsed_2_collection(self, parsed_data):

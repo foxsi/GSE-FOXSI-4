@@ -113,20 +113,20 @@ class CdTeWidget(QWidget):
         strips_layout = QtWidgets.QGridLayout()
         strips_layout_colour = "rgb(213, 105, 48)"
         self.strips = QValueWidget(name="# of det. strips", value="", separator="", border_colour=strips_layout_colour)
-        self.strips_al = QValueRangeWidget(name="Pt", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
-        self.strips_pt = QValueRangeWidget(name="Al", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
+        self.strips_al = QValueWidget(name="Pt", value="N/A", border_colour=strips_layout_colour)
+        self.strips_pt = QValueWidget(name="Al", value="N/A", border_colour=strips_layout_colour)
         strips_layout.addWidget(self.strips, 0, 0, 1, 2) 
-        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 1) 
-        strips_layout.addWidget(self.strips_al, 1, 1, 1, 1) 
+        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 2) 
+        strips_layout.addWidget(self.strips_al, 2, 0, 1, 2) 
         # frames
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
         self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        self.frames_t = QValueRangeWidget(name="t", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueRangeWidget(name="t-1", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        self.frames_t = QValueRangeWidget(name="t", value="N/A", condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueRangeWidget(name="t-1", value="N/A", condition={"low":0,"high":127}, border_colour=frames_layout_colour)
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
-        frames_layout.addWidget(self.frames_t, 1, 0, 1, 1) 
-        frames_layout.addWidget(self.frames_tm1, 1, 1, 1, 1)
+        frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
+        frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
         
         
         self._value_layout.addLayout(de_layout) 
@@ -178,18 +178,24 @@ class CdTeWidget(QWidget):
         self.cts.update_label(total_counts)
         _lc_info = self._get_lc_info()
         self.cts.update_tool_tip({"Ct Now":total_counts, 
-                                  "Ct Mean":_lc_info["Ct Mean"], 
-                                  "Ct Median":_lc_info["Ct Median"], 
+                                  "Ct Mean":round(_lc_info["Ct Mean"], 1), 
+                                  "Ct Median":round(_lc_info["Ct Median"], 1), 
                                   "Ct Max.":_lc_info["Ct Max."], 
                                   "Ct Min.":_lc_info["Ct Min."]})
         
-        # total_count_rate = self.image.reader.collection.total_count_rate()
-        # self.ctr.update_label(total_count_rate)
-        # self.ctr.update_tool_tip({"Ct/s Now":total_count_rate, 
-        #                           "Ct/s Mean":_lc_info["Ct Mean"], 
-        #                           "Ct/s Median":_lc_info["Ct Median"], 
-        #                           "Ct/s Max.":_lc_info["Ct Max."], 
-        #                           "Ct/s Min.":_lc_info["Ct Min."]})
+        delta_time = self.image.reader.collection.delta_time()
+        self.ctr.update_label(round(total_counts/delta_time, 1))
+        self.ctr.update_tool_tip({"Ct/s Now":round(total_counts/delta_time, 1), 
+                                  "Ct/s Mean":round(_lc_info["Ct Mean"]/delta_time, 1), 
+                                  "Ct/s Median":round(_lc_info["Ct Median"]/delta_time, 1), 
+                                  "Ct/s Max.":round(_lc_info["Ct Max."]/delta_time, 1), 
+                                  "Ct/s Min.":round(_lc_info["Ct Min."]/delta_time, 1)})
+
+        self.strips_al.update_label(self.image.reader.collection.num_of_al_strips())
+        self.strips_pt.update_label(self.image.reader.collection.num_of_pt_strips())
+
+        # self.frames_t.update_label(...)
+        # self.frames_tm1.update_label(...)
         
     def all_fields_from_hk(self):
         """ 
@@ -206,15 +212,15 @@ class CdTeWidget(QWidget):
         
     def _get_lc_info(self):
         """ To update certain fields, we look to the lightcurve information. """
-        if len(self.lc.graphPane.plot_data)<2:
+        if len(self.lc.graphPane.plot_data_ys)<2:
             return {"Ct Mean":"N/A",
                     "Ct Median":"N/A", 
                     "Ct Max.":"N/A", 
                     "Ct Min.":"N/A"}
-        elif len(self.lc.graphPane.plot_data)==2:
-            lc_data = self.lc.graphPane.plot_data[1:] 
+        elif len(self.lc.graphPane.plot_data_ys)==2:
+            lc_data = self.lc.graphPane.plot_data_ys[1:] 
         else:
-            lc_data = self.lc.graphPane.plot_data
+            lc_data = self.lc.graphPane.plot_data_ys
 
         return {"Ct Mean":np.nanmean(lc_data),
                 "Ct Median":np.nanmedian(lc_data), 

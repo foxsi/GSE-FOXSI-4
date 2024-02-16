@@ -152,7 +152,7 @@ class CdTeWindow(QWidget):
         # self.graphPane= LightCurve(reader=self.reader, name="Counts")
         self.graphPane = LightCurve(reader=self.reader, name="Counts", colour=self.colour)
         self.layoutMain.addWidget(self.graphPane)
-        self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Time (frame #)", ylabel="Counts", title=" ", font_size="10pt", title_font_size="0pt")
+        self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Unixtime", ylabel="Counts", title=" ", font_size="10pt", title_font_size="0pt")
         font=QtGui.QFont("Ariel",10)
         self.graphPane.graphPane.getAxis("bottom").setTickFont(font)
         self.graphPane.graphPane.getAxis("left").setTickFont(font)
@@ -165,7 +165,6 @@ class CdTeWindow(QWidget):
         self.detw, self.deth = 256, 1024
         self.update_aspect(aspect_ratio=2)
         
-
     def add_rotate_frame(self):
         """ A rectangle to indicate image rotation. """
         if self.image_product!="image":
@@ -280,7 +279,7 @@ class CdTeWindow(QWidget):
             self.graphPane.addItem(self.img)
         elif self.image_product in ["lightcurve"]:
             # defined how to add/append onto the new data arrays
-            self.graphPane.add_plot_data(self.reader.collection.total_counts())
+            self.graphPane.add_plot_data(self.reader.collection.total_counts(), new_data_x=self.reader.collection.mean_unixtime())
 
             # plot the newly updated x and ys
             self.graphPane.manage_plotting_ranges()
