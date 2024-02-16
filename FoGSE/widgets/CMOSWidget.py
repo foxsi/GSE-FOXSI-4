@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGr
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCMOSHK import CMOSHKReader
 from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget
@@ -32,11 +33,12 @@ class CMOSWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_ql=None, name="CMOS", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
         reader_pc = CMOSPCReader(datafile=data_file_pc)
         reader_ql = CMOSQLReader(datafile=data_file_ql)
+        self.reader_hk = CMOSHKReader(datafile=data_file_hk)
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -258,6 +260,7 @@ class CMOSWidget(QWidget):
 
     def all_hk_fields(self):
         """ Update the HK QValueWidgets. """
+        # ... = self.reader_hk.collection.something()
         # self.gain_m.update_label(...)
         # self.exp_ql.update_label(...)
         # self.exp_pc.update_label(...)

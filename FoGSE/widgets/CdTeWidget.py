@@ -8,6 +8,8 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCdTeHK import CdTeHKReader
+from FoGSE.read_raw_to_refined.readRawToRefinedDE import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -20,7 +22,7 @@ class CdTeWidget(QWidget):
 
     Parameters
     ----------
-    data_file : `str` 
+    data_file_pc : `str` 
         The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
         Default: None
 
@@ -28,10 +30,12 @@ class CdTeWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, name="CdTe", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file)
+        reader = CdTeReader(datafile=data_file_pc)
+        self.reader_hk = CdTeHKReader(datafile=data_file_hk)
+        self.reader_de = DEReader(datafile=data_file_de)
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -202,6 +206,8 @@ class CdTeWidget(QWidget):
         Update the:
         * count rate field, 
         """
+        # ... = self.reader_hk.collection.something()
+        # ... = self.reader_de.collection.something()
         # self.software_stat.update_label(...)
         # self.software_stat.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
@@ -296,22 +302,22 @@ class AllCdTeView(QWidget):
         # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
         # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-150)
+        f0 = CdTeWidget(data_file_pc=cdte0, name=os.path.basename(cdte0), image_angle=-150)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1), image_angle=-30)
+        f1 = CdTeWidget(data_file_pc=cdte1, name=os.path.basename(cdte1), image_angle=-30)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2), image_angle=-90)
+        f2 = CdTeWidget(data_file_pc=cdte2, name=os.path.basename(cdte2), image_angle=-90)
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3), image_angle=+30)
+        f3 = CdTeWidget(data_file_pc=cdte3, name=os.path.basename(cdte3), image_angle=+30)
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)
@@ -373,22 +379,22 @@ if __name__=="__main__":
     # # datafile = ""
 
     # # `datafile = FILE_DIR+"/../data/cdte.log"`
-    # reader = CdTeFileReader(datafile)#CdTeReader(data_file)
+    # reader = CdTeFileReader(datafile)#CdTeReader(data_file_pc)
     # # reader = CdTeReader(datafile)
     
-    # f0 = CdTeWidget(data_file=datafile)
+    # f0 = CdTeWidget(data_file_pc=datafile)
     # _f0 =QGridLayout()
     # _f0.addWidget(f0, 0, 0)
 
-    # f1 = CdTeWidget(data_file=datafile)
+    # f1 = CdTeWidget(data_file_pc=datafile)
     # _f1 =QGridLayout()
     # _f1.addWidget(f1, 0, 0)
 
-    # f2 = CdTeWidget(data_file=datafile)
+    # f2 = CdTeWidget(data_file_pc=datafile)
     # _f2 =QGridLayout()
     # _f2.addWidget(f2, 0, 0)
 
-    # f3 = CdTeWidget(data_file=datafile)
+    # f3 = CdTeWidget(data_file_pc=datafile)
     # _f3 =QGridLayout()
     # _f3.addWidget(f3, 0, 0)
     
@@ -410,7 +416,7 @@ if __name__=="__main__":
     
     # w.resize(1000,500)
     w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
-    # w = CdTeWidget(data_file=datafile)
+    # w = CdTeWidget(data_file_pc=datafile)
     
     w.show()
     app.exec()

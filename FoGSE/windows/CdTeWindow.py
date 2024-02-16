@@ -279,7 +279,7 @@ class CdTeWindow(QWidget):
             self.graphPane.addItem(self.img)
         elif self.image_product in ["lightcurve"]:
             # defined how to add/append onto the new data arrays
-            self.graphPane.add_plot_data(self.reader.collection.total_counts(), new_data_x=self.reader.collection.mean_unixtime())
+            self.graphPane.add_plot_data(self.reader.collection.total_counts(), new_data_x=self.reader.collection.mean_unixtime(), replace={"this":[0], "with":[np.nan]})
 
             # plot the newly updated x and ys
             self.graphPane.manage_plotting_ranges()

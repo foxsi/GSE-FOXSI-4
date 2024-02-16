@@ -748,3 +748,4 @@ class CdTeCollection:
     def num_of_pt_strips(self):
         """ Get the total number of Pt strips with measured ADC values for the frame"""
         return np.sum(self.event_dataframe['hitnum_pt'])
+    

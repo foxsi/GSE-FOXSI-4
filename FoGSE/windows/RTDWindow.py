@@ -213,7 +213,8 @@ if __name__=="__main__":
     # package top-level
     import os
     DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
-    DATAFILE = "/Users/kris/Desktop/housekeeping.log"
+    # DATAFILE = "/Users/kris/Downloads/housekeeping.log"
+    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/fake_temperatures.txt"
 
     def initiate_gui():
         app = QApplication([])

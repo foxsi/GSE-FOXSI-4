@@ -14,10 +14,10 @@ from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
-from FoGSE.collections.CdTeCollection import CdTeCollection
+from FoGSE.collections.DECollection import DECollection
 
 
-class CdTeReader(ReaderBase):
+class DEReader(ReaderBase):
     """
     Reader for the FOXSI CdTe instrument.
     """
@@ -28,9 +28,13 @@ class CdTeReader(ReaderBase):
         Parsed : human readable
         Collected : organised by intrumentation
         """
+
+        if datafile is None:
+            return
+
         ReaderBase.__init__(self, datafile, parent)
 
-        self.define_buffer_size(size=32_780)#100_000#32_780
+        self.define_buffer_size(size=796)#100_000#32_780
         self.call_interval(100)
 
     def extract_raw_data(self):
@@ -43,9 +47,9 @@ class CdTeReader(ReaderBase):
         `list` :
             Data read from `self.data_file`.
         """
-        return self.extract_raw_data_cdte()
+        return self.extract_raw_data_cdtehk()
     
-    def extract_raw_data_cdte(self):
+    def extract_raw_data_cdtehk(self):
         """
         Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
@@ -113,10 +117,9 @@ class CdTeReader(ReaderBase):
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = CdTeCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
+        col = CdTeHKCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
         # print("Old data time: ",self.old_data_time)
         # print("Newest data time:",col.last_data_time)
         if col.latest_data_time>self.old_data_time:
             self.old_data_time = col.latest_data_time
         return col
-    
