@@ -408,3 +408,48 @@ def CdTerawalldata2parser(datalist):
     flags=[hkflag,eventflag, errorflag]
 
     return flags,df,all_hkdicts
+
+
+
+def CdTecanisterhkparser(data: bytes):
+    frame_size = 796
+    if len(data) % frame_size != 0:
+        print("CdTecanisterhkparser() expects a input length to be a multiple of", frame_size)
+        error_flag = True
+        return [{},error_flag]
+
+    status_raw      = data[0     :   0x12]
+    hv_exec_raw     = data[0x18  :   0x18+4]
+    hv_set_raw      = data[0x1c  :   0x1c+4]
+    frame_count_raw = data[0x318 :   0x318+4]
+
+    status_converter = {
+        b"\x3c\x3c\x01\x00\x00\x00\x00\x00\x3c\x3c\x3c\x3c": "idle",
+        b"\x3c\x3c\x01\x00\x01\x01\x01\x01\x3c\x3c\x3c\x3c": "start",
+        b"\x3c\x3c\x01\x00\x02\x02\x02\x02\x3c\x3c\x3c\x3c": "stop",
+        b"\x3c\x3c\x01\x00\x03\x03\x00\x00\x3c\x3c\x3c\x3c": "HV = 0 V",
+        b"\x3c\x3c\x01\x00\x03\x03\x01\x01\x3c\x3c\x3c\x3c": "HV = 60 V",
+        b"\x3c\x3c\x01\x00\x03\x03\x02\x02\x3c\x3c\x3c\x3c": "HV = 100 V",
+        b"\x3c\x3c\x01\x00\x03\x03\x03\x03\x3c\x3c\x3c\x3c": "HV = 200 V"
+    }
+
+    status = ""
+    try:
+        status = status_converter[status_raw]
+    except IndexError:
+        print("Could not parse CdTe canister status")
+        error_flag = True
+
+    hv_exec = int.from_bytes(hv_exec_raw, 'big')
+    hv_set = int.from_bytes(hv_set_raw, 'big')
+    frame_count = int.from_bytes(frame_count_raw, 'big')
+
+    parsed_data = {
+        "status": status,
+        "hv_exec": hv_exec,
+        "hv_set": hv_set,
+        "frame_count": frame_count
+    }
+    print(parsed_data)
+    return parsed_data, error_flag
+
