@@ -81,7 +81,15 @@ class PowerReader(ReaderBase):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        output, error_flag = adcparser(raw_data)
+        try:
+            output, error_flag = adcparser(raw_data)
+        except ValueError:
+            # no data from parser so pass nothing on with a time of -1
+            print("No data from Powerparser.")
+            output, error_flag = ({'unixtime':None, 
+                                   0:None, 1:None, 2:None, 3:None, 4:None, 5:None, 6:None, 7:None, 
+                                   8:None, 8:None, 10:None, 11:None, 12:None, 13:None, 14:None, 15:None},
+                                   None)
         return output, error_flag
 
     def parsed_2_collection(self, parsed_data):
