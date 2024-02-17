@@ -731,11 +731,10 @@ class CdTeCollection:
     
     def delta_time(self):
         """ Get the delta-t of the frame. """
-        # _unixtime = (np.max(self.event_dataframe['unixtime'])-np.min(self.event_dataframe['unixtime']))
-        # _titime = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
-        # _scale = 1
-        # _time = _unixtime + _scale*_titime
-        return 1
+        # not using_unixtime = (np.max(self.event_dataframe['unixtime'])-np.min(self.event_dataframe['unixtime'])) anymore
+        ti_clock_interval = 1/10.24e6# 10.24e-6 # 10.24 usec -> 10.24 change in `ti`` every usec?`
+        _ti_time = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
+        return _ti_time*ti_clock_interval
         
     def total_count_rate(self):
         """ Just return the present total counts for the collection. """

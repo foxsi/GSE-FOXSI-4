@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 from FoGSE.widgets.CdTeWidget import AllCdTeView
 from FoGSE.widgets.CMOSWidget import AllCMOSView
 from FoGSE.widgets.TimepixWidget import TimepixWidget
+from FoGSE.widgets.RTDWidget import RTDWidget
 
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -27,7 +28,7 @@ class GSEDataDisplay(QWidget):
 
         newest_folder = newest_data_dir() 
         # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
-        newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
+        # newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
         f0 = AllCdTeView((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
@@ -57,11 +58,14 @@ class GSEDataDisplay(QWidget):
         f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
         # f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
+        f3 = RTDWidget(os.path.join(newest_folder, get_det_file("housekeeping_rtd.log", instruments)))
+
         lay = QGridLayout()
 
         lay.addWidget(f0, 0, 0, 3, 12)
         lay.addWidget(f1, 3, 0, 3, 12)
         lay.addWidget(f2, 6, 0, 2, 4)
+        lay.addWidget(f3, 6, 4, 2, 4)
         
         # w.resize(1000,500)
         # _s = 122

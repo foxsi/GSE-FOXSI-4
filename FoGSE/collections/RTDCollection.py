@@ -39,3 +39,20 @@ class RTDCollection:
 
         # collect new data
         self.new_data = self.event.filter(self.new_entries) 
+
+        self.chip1_ids = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8']
+        self.chip2_ids = ['ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
+
+    def chip1_data(self):
+        """Chip 1 data: ti and t0 to t8. """
+        chip1_values = [list(self.new_data["ti"])]
+        for ids1 in self.chip1_ids:
+            chip1_values.append(list(self.new_data[ids1]))
+        return chip1_values
+
+    def chip2_data(self):
+        """Chip 2 data: ti and t9 to t17. """
+        chip2_values = [list(self.new_data["ti"])]
+        for ids2 in self.chip2_ids:
+            chip2_values.append(list(self.new_data[ids2]))
+        return chip2_values

@@ -12,7 +12,6 @@ class CdTeHKCollection:
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
         self.parsed_data, error_flag = parsed_data
-        print("sgfasfdgsd", self.parsed_data)
 
         self.latest_data_time = old_data_time
         
