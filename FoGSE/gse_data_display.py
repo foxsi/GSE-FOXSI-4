@@ -32,16 +32,16 @@ class GSEDataDisplay(QWidget):
 
         f0 = AllCdTeView((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte1_hk.log", instruments)), 
-                          None), 
+                          os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))), 
                         (os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte2_hk.log", instruments)), 
-                          None), 
+                          os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))), 
                         (os.path.join(newest_folder, get_det_file("cdte3_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte3_hk.log", instruments)), 
-                          None), 
+                          os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))), 
                         (os.path.join(newest_folder, get_det_file("cdte4_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte4_hk.log", instruments)), 
-                          None))
+                          os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))))
         # f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 

@@ -80,7 +80,7 @@ class CdTeWidget(QWidget):
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
-        self.software_stat = QValueTimeWidget(name="SW Status", 
+        self.software_stat = QValueTimeWidget(name="SW Stat.", 
                                               value="N/A", 
                                               time=2000, 
                                               condition=[int, float, np.int64, str], 
@@ -90,8 +90,9 @@ class CdTeWidget(QWidget):
                                                                "ASIC Load":QValueWidget(name="ASIC Load", value="N/A")},
                                               name_plus="<sup>*</sup>")
         self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
-        self.hv = QValueRangeWidget(name="HV", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        # self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.ping = QValueWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.hv = QValueCheckWidget(name="HV", value="N/A", condition={"acceptable":[("0 V","rgb(90, 170, 255)"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
@@ -206,7 +207,7 @@ class CdTeWidget(QWidget):
         """
         # ... = self.reader_hk.collection.something()
         # ... = self.reader_de.collection.something()
-        self.software_stat.update_label(self.reader_hk.collection.get_status())
+        # self.software_stat.update_label(self.reader_hk.collection.get_status())
         # self.software_stat.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
@@ -224,12 +225,15 @@ class CdTeWidget(QWidget):
         Update the:
         * count rate field, 
         """
-        # ... = self.reader_de.collection.something()
+        self.software_stat.update_label(self.reader_de.collection.get_status())
         # self.software_stat.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
-        # self.ping.update_label(...)
+        self.ping.update_label(self.reader_de.collection.get_ping())
+    
+        # self.reader_de.collection. methods
+        # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
         
     def _get_lc_info(self):
         """ To update certain fields, we look to the lightcurve information. """

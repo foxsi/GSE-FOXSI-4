@@ -23,7 +23,7 @@ class CdTeHKCollection:
         return self.parsed_data["hv_exec"]
     
     def get_hv_set(self):
-        return self.parsed_data["hv_set"]
+        return self.parsed_data["hv"]
     
     def get_frame_count(self):
         return self.parsed_data["frame_count"]
