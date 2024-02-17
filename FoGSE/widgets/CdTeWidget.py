@@ -37,6 +37,8 @@ class CdTeWidget(QWidget):
         self.reader_hk = CdTeHKReader(datafile=data_file_hk)
         self.reader_de = DEReader(datafile=data_file_de)
 
+        self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
+
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
         self.detw, self.deth = 50, 50
@@ -81,18 +83,18 @@ class CdTeWidget(QWidget):
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
         self.software_stat = QValueTimeWidget(name="SW Stat.", 
-                                              value="N/A", 
-                                              time=2000, 
+                                              value=self._default_qvaluewidget_value, 
+                                              time=4000, 
                                               condition=[int, float, np.int64, str], 
                                               border_colour=de_layout_colour,
-                                              tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value="N/A"), 
-                                                               "ASIC DTH":QValueWidget(name="ASIC DTH", value="N/A"), 
-                                                               "ASIC Load":QValueWidget(name="ASIC Load", value="N/A")},
+                                              tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value=self._default_qvaluewidget_value), 
+                                                               "ASIC DTH":QValueWidget(name="ASIC DTH", value=self._default_qvaluewidget_value), 
+                                                               "ASIC Load":QValueWidget(name="ASIC Load", value=self._default_qvaluewidget_value)},
                                               name_plus="<sup>*</sup>")
-        self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        # self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
-        self.ping = QValueWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
-        self.hv = QValueCheckWidget(name="HV", value="N/A", condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
+        self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        # self.ping = QValueCheckWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.ping = QValueWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.hv = QValueCheckWidget(name="HV", value=self._default_qvaluewidget_value, condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
@@ -101,16 +103,24 @@ class CdTeWidget(QWidget):
         cts_layout = QtWidgets.QGridLayout()
         cts_layout_colour = "rgb(141, 141, 134)"
         self.cts = QValueRangeWidget(name="<span>&#931;</span> Ct", 
-                                     value="N/A", 
+                                     value=self._default_qvaluewidget_value, 
                                      condition={"low":0,"high":np.inf}, 
                                      border_colour=cts_layout_colour,
-                                     tool_tip_values={"Ct Now":"N/A", "Ct Mean":"N/A", "Ct Median":"N/A", "Ct Max.":"N/A", "Ct Min.":"N/A"},
+                                     tool_tip_values={"Ct Now":self._default_qvaluewidget_value, 
+                                                      "Ct Mean":self._default_qvaluewidget_value, 
+                                                      "Ct Median":self._default_qvaluewidget_value, 
+                                                      "Ct Max.":self._default_qvaluewidget_value, 
+                                                      "Ct Min.":self._default_qvaluewidget_value},
                                      name_plus="<sup>*</sup>")
         self.ctr = QValueRangeWidget(name="<span>&#931;</span> Ct/s", 
-                                     value="N/A", 
+                                     value=self._default_qvaluewidget_value, 
                                      condition={"low":0,"high":np.inf}, 
                                      border_colour=cts_layout_colour,
-                                     tool_tip_values={"Ct/s Now":"N/A", "Ct/s Mean":"N/A", "Ct/s Median":"N/A", "Ct/s Max.":"N/A", "Ct/s Min.":"N/A"},
+                                     tool_tip_values={"Ct/s Now":self._default_qvaluewidget_value, 
+                                                      "Ct/s Mean":self._default_qvaluewidget_value, 
+                                                      "Ct/s Median":self._default_qvaluewidget_value, 
+                                                      "Ct/s Max.":self._default_qvaluewidget_value, 
+                                                      "Ct/s Min.":self._default_qvaluewidget_value},
                                      name_plus="<sup>*</sup>")
         cts_layout.addWidget(self.cts, 0, 0, 1, 2) 
         cts_layout.addWidget(self.ctr, 1, 0, 1, 2) 
@@ -118,8 +128,8 @@ class CdTeWidget(QWidget):
         strips_layout = QtWidgets.QGridLayout()
         strips_layout_colour = "rgb(213, 105, 48)"
         self.strips = QValueWidget(name="Mean # det. strips", value="", separator="", border_colour=strips_layout_colour)
-        self.strips_al = QValueWidget(name="Pt", value="N/A", border_colour=strips_layout_colour)
-        self.strips_pt = QValueWidget(name="Al", value="N/A", border_colour=strips_layout_colour)
+        self.strips_al = QValueWidget(name="Pt", value=self._default_qvaluewidget_value, border_colour=strips_layout_colour)
+        self.strips_pt = QValueWidget(name="Al", value=self._default_qvaluewidget_value, border_colour=strips_layout_colour)
         strips_layout.addWidget(self.strips, 0, 0, 1, 2) 
         strips_layout.addWidget(self.strips_pt, 1, 0, 1, 2) 
         strips_layout.addWidget(self.strips_al, 2, 0, 1, 2) 
@@ -127,8 +137,8 @@ class CdTeWidget(QWidget):
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
         self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        self.frames_t = QValueRangeWidget(name="t", value="N/A", condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueRangeWidget(name="t-1", value="N/A", condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
+        self.frames_t = QValueRangeWidget(name="t", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
         frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
         frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
@@ -238,10 +248,10 @@ class CdTeWidget(QWidget):
     def _get_lc_info(self):
         """ To update certain fields, we look to the lightcurve information. """
         if len(self.lc.graphPane.plot_data_ys)<2:
-            return {"Ct Mean":"N/A",
-                    "Ct Median":"N/A", 
-                    "Ct Max.":"N/A", 
-                    "Ct Min.":"N/A"}
+            return {"Ct Mean":self._default_qvaluewidget_value,
+                    "Ct Median":self._default_qvaluewidget_value, 
+                    "Ct Max.":self._default_qvaluewidget_value, 
+                    "Ct Min.":self._default_qvaluewidget_value}
         elif len(self.lc.graphPane.plot_data_ys)==2:
             lc_data = self.lc.graphPane.plot_data_ys[1:] 
         else:

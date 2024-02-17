@@ -69,7 +69,9 @@ class CMOSQLCollection:
         """
         im = self._image
         # first 4 entries in first row are header entries
-        im[0, :4] = np.min(im[0])
+        if len(np.shape(im))==2:
+            im[0, :4] = np.min(im[0])
+        
         return im
     
     def plot_image(self):
@@ -93,8 +95,10 @@ class CMOSQLCollection:
     
     def get_exposure(self):
         """ Return the exposure time of QL image. """
+        print("Do not use CMOSPCCollection's get_exposure, it is wrong I say!")
         return self.exposure_ql
     
     def get_gain(self):
         """ Return the exposure time of QL image. """
+        print("Do not use CMOSPCCollection's get_gain, it is wrong I say!")
         return self.gain_ql

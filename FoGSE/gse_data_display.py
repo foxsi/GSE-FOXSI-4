@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 from FoGSE.widgets.CdTeWidget import AllCdTeView
 from FoGSE.widgets.CMOSWidget import AllCMOSView
 from FoGSE.widgets.TimepixWidget import TimepixWidget
+from FoGSE.widgets.RTDWidget import RTDWidget
 
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -50,16 +51,21 @@ class GSEDataDisplay(QWidget):
         f1 = AllCMOSView(os.path.join(newest_folder, get_det_file("cmos1_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos1_ql.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
-                        os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)))
+                        os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)), 
+                        cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), #"/Users/kris/Downloads/cmos1_hk.log",#
+                        cmos_hk1=os.path.join(newest_folder, get_det_file("cmos2_hk.log", instruments)))
         
         f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
         # f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
+
+        f3 = RTDWidget(os.path.join(newest_folder, get_det_file("housekeeping_rtd.log", instruments)))
 
         lay = QGridLayout()
 
         lay.addWidget(f0, 0, 0, 3, 12)
         lay.addWidget(f1, 3, 0, 3, 12)
         lay.addWidget(f2, 6, 0, 2, 4)
+        lay.addWidget(f3, 6, 4, 2, 4)
         
         # w.resize(1000,500)
         # _s = 122
