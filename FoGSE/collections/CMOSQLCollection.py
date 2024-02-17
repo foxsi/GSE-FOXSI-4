@@ -93,8 +93,10 @@ class CMOSQLCollection:
     
     def get_exposure(self):
         """ Return the exposure time of QL image. """
+        print("Do not use CMOSPCCollection's get_exposure, it is wrong I say!")
         return self.exposure_ql
     
     def get_gain(self):
         """ Return the exposure time of QL image. """
+        print("Do not use CMOSPCCollection's get_gain, it is wrong I say!")
         return self.gain_ql

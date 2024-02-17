@@ -97,13 +97,13 @@ class CMOSWidget(QWidget):
                                              style_sheet_string=self._layout_style("white", "white"), 
                                              grid=True)
         self.gain_m = QValueRangeWidget(name="Gain Mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.exp_ql = QValueRangeWidget(name="QL Exp.", value="N/A", condition={"low":2,"high":np.inf}, border_colour=exp_layout_colour)
-        self.exp_pc = QValueRangeWidget(name="PC Exp.", value="N/A", condition={"low":2,"high":np.inf}, border_colour=exp_layout_colour)
-        self.rn = QValueRangeWidget(name="Repeat \"n\"", value="N/A", condition={"low":2,"high":15}, border_colour=exp_layout_colour)
-        self.rN = QValueRangeWidget(name="Repeat \"N\"", value="N/A", condition={"low":2,"high":15}, border_colour=exp_layout_colour)
-        self.gain_e = QValueRangeWidget(name="Gain Even", value="N/A", condition={"low":2,"high":15}, border_colour=exp_layout_colour)
-        self.gain_o = QValueRangeWidget(name="Gain Odd", value="N/A", condition={"low":2,"high":15}, border_colour=exp_layout_colour)
-        self.ncapture = QValueRangeWidget(name="NCapture", value="N/A", condition={"low":2,"high":15}, border_colour=exp_layout_colour)
+        self.exp_ql = QValueRangeWidget(name="QL Exp.", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.exp_pc = QValueRangeWidget(name="PC Exp.", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.rn = QValueRangeWidget(name="Repeat \"n\"", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.rN = QValueRangeWidget(name="Repeat \"N\"", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.gain_e = QValueRangeWidget(name="Gain Even", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.gain_o = QValueRangeWidget(name="Gain Odd", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.ncapture = QValueRangeWidget(name="NCapture", value="N/A", condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
         self._exp_layout.addWidget(self.gain_m, 0, 0, 1, 2) 
         self._exp_layout.addWidget(self.exp_ql, 2, 1, 1, 2) 
         self._exp_layout.addWidget(self.exp_pc, 2, 3, 1, 2) 
@@ -122,14 +122,14 @@ class CMOSWidget(QWidget):
                                              style_sheet_string=self._layout_style("white", "white"), 
                                              grid=True)
         self.init = QValueRangeWidget(name="Init", value="N/A", condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.train = QValueRangeWidget(name="Training", value="N/A", condition={"low":2,"high":15}, border_colour=operation_layout_colour)
-        self.setting = QValueRangeWidget(name="Setting", value="N/A", condition={"low":2,"high":15}, border_colour=operation_layout_colour)
-        self.start = QValueRangeWidget(name="Start", value="N/A", condition={"low":2,"high":15}, border_colour=operation_layout_colour)
-        self.stop = QValueRangeWidget(name="Stop", value="N/A", condition={"low":2,"high":15}, border_colour=operation_layout_colour)
-        self.stop2start = QValueRangeWidget(name="Start->Stop", value="N/A", condition={"low":2,"high":15}, border_colour=operation_layout_colour)
-        self.software = QValueRangeWidget(name="Software", 
+        self.train = QValueRangeWidget(name="Training", value="N/A", condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
+        self.setting = QValueRangeWidget(name="Setting", value="N/A", condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
+        self.start = QValueRangeWidget(name="Start", value="N/A", condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
+        self.stop = QValueRangeWidget(name="Stop", value="N/A", condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
+        self.stop2start = QValueRangeWidget(name="Start->Stop", value="N/A", condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
+        self.software = QValueRangeWidget(name="SW Stat.", 
                                           value="N/A", 
-                                          condition={"low":2,"high":15}, 
+                                          condition={"low":0,"high":np.inf}, 
                                           border_colour=operation_layout_colour,
                                           tool_tip_values={"Linetime":QValueWidget(name="Linetime", value="N/A"), 
                                                            "Linetime @ pps":QValueWidget(name="Linetime @ pps", value="N/A"), 
@@ -200,6 +200,7 @@ class CMOSWidget(QWidget):
 
         self.ql.reader.value_changed_collection.connect(self.all_ql_fields)
         self.pc.reader.value_changed_collection.connect(self.all_pc_fields)
+        self.reader_hk.value_changed_collection.connect(self.all_hk_fields)
 
         ## all widgets together
         # image
@@ -249,50 +250,56 @@ class CMOSWidget(QWidget):
         * gain field, 
         * exposure
         """
-        self.exp_ql.update_label(self.ql.reader.collection.get_exposure())
+        # self.exp_ql.update_label(self.ql.reader.collection.get_exposure())
+        pass
 
     def all_pc_fields(self):
         """ 
         Update the:
         * count rate field, 
         """
-        self.exp_pc.update_label(self.pc.reader.collection.get_exposure())
+        # self.exp_pc.update_label(self.pc.reader.collection.get_exposure())
+        self.ph_w.update_label(self.pc.reader.collection.get_whole_photon_rate())
+        # self.ph_p.update_label(...)
 
     def all_hk_fields(self):
         """ Update the HK QValueWidgets. """
+
+        # other methods of self.reader_hk.collection
+        # get_error_time, get_error_flag, get_error_training, get_data_validity, get_data_size_QL, get_data_size_PC
+
         # ... = self.reader_hk.collection.something()
-        # self.gain_m.update_label(...)
-        # self.exp_ql.update_label(...)
-        # self.exp_pc.update_label(...)
-        # self.rn.update_label(...)
-        # self.rN.update_label(...)
-        # self.gain_e.update_label(...)
-        # self.gain_o.update_label(...)
-        # self.ncapture.update_label(...)
+        self.gain_m.update_label(self.reader_hk.collection.get_gain_mode())
+        self.exp_ql.update_label(self.reader_hk.collection.get_exposureQL())
+        self.exp_pc.update_label(self.reader_hk.collection.get_exposurePC())
+        self.rn.update_label(self.reader_hk.collection.get_repeat_n())
+        self.rN.update_label(self.reader_hk.collection.get_repeat_N())
+        self.gain_e.update_label(self.reader_hk.collection.get_gain_even())
+        self.gain_o.update_label(self.reader_hk.collection.get_gain_odd())
+        self.ncapture.update_label(self.reader_hk.collection.get_ncapture())
 
-        # self.init.update_label(...)
-        # self.train.update_label(...)
-        # self.setting.update_label(...)
-        # self.start.update_label(...)
-        # self.stop.update_label(...)
+        self.init.update_label(self.reader_hk.collection.get_cmos_init())
+        self.train.update_label(self.reader_hk.collection.get_cmos_training())
+        self.setting.update_label(self.reader_hk.collection.get_cmos_setting())
+        self.start.update_label(self.reader_hk.collection.get_cmos_start())
+        self.stop.update_label(self.reader_hk.collection.get_cmos_stop())
         # self.stop2start.update_label(...)
-        # self.software.update_label(...)
-        # self.software.update_tool_tip({"Linetime":..., 
-        #                                "Linetime @ pps":..., 
-        #                                "QL DL Read Pointer":..., 
-        #                                "PC DL Read Pointer":...})
+        self.software.update_label(self.reader_hk.collection.get_software_status())
+        self.software.update_tool_tip({"Linetime":self.reader_hk.collection.get_line_time(), 
+                                       "Linetime @ pps":self.reader_hk.collection.get_line_time_at_pps(), 
+                                       "QL DL Read Pointer":self.reader_hk.collection.get_read_pointer_position_QL(), 
+                                       "PC DL Read Pointer":self.reader_hk.collection.get_read_pointer_position_PC()})
 
-        # self.fpga_temp.update_label(...)
-        # self.sensor_temp.update_label(...)
+        self.fpga_temp.update_label(round(self.reader_hk.collection.get_fpga_temp(),1))
+        self.sensor_temp.update_label(round(self.reader_hk.collection.get_sensor_temp(),1))
 
-        # self.ph_w.update_label(...)
-        # self.ph_p.update_label(...)
-
-        # self.cpu.update_label(...)
-        # self.mem.update_label(...)
+        self.cpu.update_label(self.reader_hk.collection.get_cpu_load_average())
+        self.mem.update_label(self.reader_hk.collection.get_remaining_disk_size())
 
         # self.expxx.update_label(...)
         # self.exp192.update_label(...)
+
+        self.pointer.update_label(self.reader_hk.collection.get_write_pointer_position_store_data())
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -338,7 +345,7 @@ class CMOSWidget(QWidget):
         self.resize(new_size)
 
 class AllCMOSView(QWidget):
-    def __init__(self, cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1):
+    def __init__(self, cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1, cmos_hk0=None, cmos_hk1=None):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
@@ -351,12 +358,12 @@ class AllCMOSView(QWidget):
         # data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
         # data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
 
-        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, name=os.path.basename(cmos_pc0), image_angle=180)
+        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, name=os.path.basename(cmos_pc1), image_angle=180)
+        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
