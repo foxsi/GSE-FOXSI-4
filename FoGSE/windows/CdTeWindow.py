@@ -54,7 +54,6 @@ class CdTeWindow(QWidget):
 
         self.name = name
         self.integrate = integrate
-        self.name = self.name+": Integrated" if self.integrate else self.name
         self.colour = colour
 
         # decide how to read the data
@@ -66,6 +65,10 @@ class CdTeWindow(QWidget):
             self.reader = reader
         else:
             print("How do I read the CdTe data?")
+
+        _pos = self.name_to_position(self.name)
+        self.name = self.name+f": pos#{_pos}"
+        self.name = self.name+": Integrated" if self.integrate else self.name
 
         # make this available everywhere, incase a rotation is specified for the image
         self.image_angle = image_angle
@@ -97,6 +100,17 @@ class CdTeWindow(QWidget):
             # self.remove_rotate_frame()
             self.remove_box_signal.emit()
         return super(CdTeWindow, self).eventFilter(obj, event)
+    
+    def name_to_position(self, data_file):
+        """ CdTe detector focal plane position from file name. """
+        for key, item in self.det_and_pos_mapping().items():
+            if key in data_file:
+                return item
+        return "??"
+    
+    def det_and_pos_mapping(self):
+        """ CdTe detectors and their focal plane position mapping. """
+        return {"cdte1":5, "cdte2":3, "cdte3":4, "cdte4":2}
         
     def setup_2d(self):
         """ Set up for 2D plotting products. """
