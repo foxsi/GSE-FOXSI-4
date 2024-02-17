@@ -55,7 +55,7 @@ class QValueWidget(QWidget):
     window.show()
     app.exec()
     """
-    def __init__(self, name, value, condition=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", parent=None, **kwargs):
+    def __init__(self, name, value, condition=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", loud=False, parent=None, **kwargs):
         """ 
         Constructs the widget and adds the latest plotted data to the widget.
 
@@ -138,6 +138,7 @@ class QValueWidget(QWidget):
         self.condition = self.check_condition_input(condition)
         self.tool_tip_value_info = tool_tip_values
         self.name_plus = name_plus
+        self.loud = loud
 
         # set main layout for widget
         self.layout = QGridLayout()
@@ -162,15 +163,6 @@ class QValueWidget(QWidget):
         # QToolTip.setFont(QFont('SansSerif', 20))
         self._last_event_pos = None
         self.setup_tool_tip()
-        
-    # def event(self,event):
-    #     # if event.type() == QEvent.ToolTip:
-    #     #     self._last_event_pos = event.globalPos()
-    #     #     return True
-    #     # elif event.type() == QEvent.Leave:
-    #     #     self._last_event_pos = None
-    #     #     QToolTip.hideText()
-    #     return QWidget.event(self,event)
     
     def check_condition_input(self, condition):
         """ 
@@ -321,9 +313,10 @@ class QValueWidget(QWidget):
 
     def unexpected(self, **kwargs):
         """ Run if unexpected value is caught. """
-        print(f"Unexpected entry for {self.name}.")
-        for key, val in kwargs.items():
-            print(f"{key}: {val}")
+        if self.loud:
+            print(f"Unexpected entry for {self.name}.")
+            for key, val in kwargs.items():
+                print(f"{key}: {val}")
 
 class QValueRangeWidget(QValueWidget):
     """

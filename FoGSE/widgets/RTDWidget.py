@@ -33,7 +33,7 @@ class RTDWidget(QWidget):
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 950, 500
+        self.detw, self.deth = 700, 500
         self.setGeometry(100,100,self.detw, self.deth)
         # self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth

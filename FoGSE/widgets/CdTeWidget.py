@@ -84,7 +84,7 @@ class CdTeWidget(QWidget):
         de_layout_colour = "rgb(53, 108, 117)"
         self.software_stat = QValueTimeWidget(name="SW Stat.", 
                                               value=self._default_qvaluewidget_value, 
-                                              time=2000, 
+                                              time=4000, 
                                               condition=[int, float, np.int64, str], 
                                               border_colour=de_layout_colour,
                                               tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value=self._default_qvaluewidget_value), 

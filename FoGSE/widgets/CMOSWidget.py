@@ -12,7 +12,7 @@ from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSHK import CMOSHKReader
 from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
-from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueChangeWidget, QValueTimeWidget
+from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueChangeWidget, QValueTimeWidget, QValueCheckWidget, QValueMultiRangeWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
@@ -98,14 +98,14 @@ class CMOSWidget(QWidget):
                                              panel_name="exp_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), 
                                              grid=True)
-        self.gain_m = QValueRangeWidget(name="Gain Mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.exp_ql = QValueRangeWidget(name="QL Exp.", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.exp_pc = QValueRangeWidget(name="PC Exp.", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.rn = QValueRangeWidget(name="Repeat \"n\"", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.rN = QValueRangeWidget(name="Repeat \"N\"", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.gain_e = QValueRangeWidget(name="Gain Even", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.gain_o = QValueRangeWidget(name="Gain Odd", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
-        self.ncapture = QValueRangeWidget(name="NCapture", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=exp_layout_colour)
+        self.gain_m = QValueCheckWidget(name="Gain Mode", value=self._default_qvaluewidget_value, condition={"acceptable":[(2,"white")]}, border_colour=exp_layout_colour)
+        self.exp_ql = QValueRangeWidget(name="QL Exp.", value=self._default_qvaluewidget_value, condition={"low":1,"high":192}, border_colour=exp_layout_colour)
+        self.exp_pc = QValueRangeWidget(name="PC Exp.", value=self._default_qvaluewidget_value, condition={"low":1,"high":192}, border_colour=exp_layout_colour)
+        self.rn = QValueCheckWidget(name="Repeat \"n\"", value=self._default_qvaluewidget_value, condition={"acceptable":[(50,"white")]}, border_colour=exp_layout_colour)
+        self.rN = QValueCheckWidget(name="Repeat \"N\"", value=self._default_qvaluewidget_value, condition={"acceptable":[(1,"white")]}, border_colour=exp_layout_colour)
+        self.gain_e = QValueCheckWidget(name="Gain Even", value=self._default_qvaluewidget_value, condition={"acceptable":[(3,"white")]}, border_colour=exp_layout_colour)
+        self.gain_o = QValueCheckWidget(name="Gain Odd", value=self._default_qvaluewidget_value, condition={"acceptable":[(3,"white")]}, border_colour=exp_layout_colour)
+        self.ncapture = QValueCheckWidget(name="NCapture", value=self._default_qvaluewidget_value, condition={"acceptable":[(65534,"white")]}, border_colour=exp_layout_colour) 
         self._exp_layout.addWidget(self.gain_m, 0, 0, 1, 2) 
         self._exp_layout.addWidget(self.exp_ql, 2, 1, 1, 2) 
         self._exp_layout.addWidget(self.exp_pc, 2, 3, 1, 2) 
@@ -123,21 +123,21 @@ class CMOSWidget(QWidget):
                                              panel_name="operation_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), 
                                              grid=True)
-        self.init = QValueRangeWidget(name="Init", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.train = QValueRangeWidget(name="Training", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.setting = QValueRangeWidget(name="Setting", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.start = QValueRangeWidget(name="Start", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.stop = QValueRangeWidget(name="Stop", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
+        self.init = QValueRangeWidget(name="Init", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
+        self.train = QValueRangeWidget(name="Training", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
+        self.setting = QValueRangeWidget(name="Setting", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
+        self.start = QValueRangeWidget(name="Start", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
+        self.stop = QValueRangeWidget(name="Stop", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
         self.stop2start = QValueRangeWidget(name="Init->Stop", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
         self.software = QValueTimeWidget(name="SW Stat.", 
                                               value=self._default_qvaluewidget_value, 
-                                              time=2000, 
+                                              time=4000, 
                                               condition=[int, float, np.int64, str], 
                                           border_colour=operation_layout_colour,
                                           tool_tip_values={"Linetime":QValueWidget(name="Linetime", value=self._default_qvaluewidget_value), 
                                                            "Linetime @ pps":QValueWidget(name="Linetime @ pps", value=self._default_qvaluewidget_value), 
-                                                           "QL DL Read Pointer":QValueWidget(name="QL DL Read Pointer", value=self._default_qvaluewidget_value), 
-                                                           "PC DL Read Pointer":QValueWidget(name="PC DL Read Pointer", value=self._default_qvaluewidget_value)},
+                                                           "QL DL Read Pointer":QValueChangeWidget(name="QL DL Read Pointer", value=self._default_qvaluewidget_value), 
+                                                           "PC DL Read Pointer":QValueChangeWidget(name="PC DL Read Pointer", value=self._default_qvaluewidget_value)},
                                           name_plus="<sup>*</sup>")
         self._operation_layout.addWidget(self.init, 0, 0, 1, 2) 
         self._operation_layout.addWidget(self.train, 0, 2, 1, 2) 
@@ -158,8 +158,8 @@ class CMOSWidget(QWidget):
         self._temp_layout = self.layout_bkg(main_layout=temp_layout, 
                                              panel_name="temp_panel", 
                                              style_sheet_string=self._layout_style("white", temp_layout_colour))
-        self.fpga_temp = QValueRangeWidget(name="FPGA T", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=temp_layout_colour)
-        self.sensor_temp = QValueRangeWidget(name="Sensor T", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=temp_layout_colour)
+        self.fpga_temp = QValueRangeWidget(name="FPGA T", value=self._default_qvaluewidget_value, condition={"low":-np.inf,"high":np.inf}, border_colour=temp_layout_colour)
+        self.sensor_temp = QValueRangeWidget(name="Sensor T", value=self._default_qvaluewidget_value, condition={"low":-np.inf,"high":np.inf}, border_colour=temp_layout_colour)
         self._temp_layout.addWidget(self.fpga_temp) 
         self._temp_layout.addWidget(self.sensor_temp) 
         set_all_spacings(self._temp_layout)
@@ -183,8 +183,10 @@ class CMOSWidget(QWidget):
         self._comp_layout = self.layout_bkg(main_layout=comp_layout, 
                                              panel_name="comp_panel", 
                                              style_sheet_string=self._layout_style("white", comp_layout_colour))
-        self.cpu = QValueRangeWidget(name="CPU Load Ave.", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=comp_layout_colour)
-        self.mem = QValueRangeWidget(name="Disk Space", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=comp_layout_colour)
+        cpu_cond = {"range1":[0,60,"white"], "range2":[60,100,"red"], "other":"orange", "error":"orange"}
+        disk_cond = {"range1":[20,100,"white"], "range2":[0,20,"red"], "other":"orange", "error":"orange"}
+        self.cpu = QValueMultiRangeWidget(name="CPU Load Ave.", value=self._default_qvaluewidget_value, condition=cpu_cond, border_colour=comp_layout_colour)
+        self.mem = QValueMultiRangeWidget(name="Disk Space", value=self._default_qvaluewidget_value, condition=disk_cond, border_colour=comp_layout_colour)
         self._comp_layout.addWidget(self.cpu) 
         self._comp_layout.addWidget(self.mem)
         set_all_spacings(self._comp_layout)
@@ -270,6 +272,7 @@ class CMOSWidget(QWidget):
 
         # other methods of self.reader_hk.collection
         # get_error_time, get_error_flag, get_error_training, get_data_validity, get_data_size_QL, get_data_size_PC
+        # print("ds",self.reader_hk.collection.get_data_size_PC())
 
         # ... = self.reader_hk.collection.something()
         self.gain_m.update_label(self.reader_hk.collection.get_gain_mode())

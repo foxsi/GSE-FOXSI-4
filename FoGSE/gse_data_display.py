@@ -52,7 +52,7 @@ class GSEDataDisplay(QWidget):
                         os.path.join(newest_folder, get_det_file("cmos1_ql.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)), 
-                        cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), 
+                        cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), #"/Users/kris/Downloads/cmos1_hk.log",#
                         cmos_hk1=os.path.join(newest_folder, get_det_file("cmos2_hk.log", instruments)))
         
         f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
