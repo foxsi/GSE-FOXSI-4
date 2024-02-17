@@ -173,25 +173,68 @@ class TimepixWidget(QWidget):
         self.setLayout(global_layout)
 
     def all_fields(self):
-        """ 
-        Update the:
-        * count rate field, 
-        """
-        self.mtot.update_label(self.lc.reader.collection.get_mean_tot())
-        self.mtot.update_tool_tip({"Mean ToT Now":"N/A", "Mean ToT Mean":"N/A", "Mean ToT Median":"N/A", "Mean ToT Max.":"N/A", "Mean ToT Min.":"N/A"})
-
-        self.flx.update_label(self.lc.reader.collection.get_flux())
-        self.flgs.update_label(self.lc.reader.collection.get_flags())
-
-        # self.bt1.update_label(self.lc.reader.collection.board_temp1())
-        # self.bt1.update_tool_tip({"Board T1":5, "Board T2":100})
+        """ Update the QValueWidgets. """
+        # t1 = self.lc.reader.collection.board_temp1()
+        # self.bt1.update_label(t1)
+        # self.bt1.update_tool_tip({"Board T1":t1, "Board T2":...})
 
         # need to update all keys
-        # self.asic0_i.update_tool_tip({"ASIC0 I":0, "ASIC0 V":5, "ASIC1 I":40, "ASIC1 V":1500, "ASIC2 I":100, "ASIC2 V":5, "ASIC3 I":0, "ASIC3 V":5000})
+        # self.asic0_i.update_label(...)
+        # self.asic0_i.update_tool_tip({"ASIC0 I":..., 
+        #                               "ASIC0 V":..., 
+        #                               "ASIC1 I":..., 
+        #                               "ASIC1 V":..., 
+        #                               "ASIC2 I":..., 
+        #                               "ASIC2 V":..., 
+        #                               "ASIC3 I":..., 
+        #                               "ASIC3 V":...})
 
-        # self.fpga_v1.update_tool_tip("FPGA V1":6, "FPGA V2":7)
+        # self.fpga_v1.update_label(...)
+        # self.fpga_v1.update_tool_tip("FPGA V1":..., "FPGA V2":...)
+
+        # self.fpga_t.update_label(...)
 
         # self.health.update_tool_tip({"Health":6, "RPi Remaining Storage":7)
+
+        mtot = self.lc.reader.collection.get_mean_tot()
+        mtot_extra = self._get_lc_info(self.lc.mean_tot)
+        self.mtot.update_label(mtot)
+        self.mtot.update_tool_tip({"Mean ToT Now":mtot, 
+                                   "Mean ToT Mean":round(mtot_extra["Mean"], 1), 
+                                   "Mean ToT Median":round(mtot_extra["Median"], 1), 
+                                   "Mean ToT Max.":mtot_extra["Max."], 
+                                   "Mean ToT Min.":mtot_extra["Min."]})
+
+        flx = self.lc.reader.collection.get_flux()
+        flx_extra = self._get_lc_info(self.lc.flux)
+        self.flx.update_label(flx)
+        self.flx.update_tool_tip({"Flux Now":flx, 
+                                  "Flux Mean":round(flx_extra["Mean"], 1), 
+                                  "Flux Median":round(flx_extra["Median"], 1), 
+                                  "Flux Max.":flx_extra["Max."], 
+                                  "Flux Min.":flx_extra["Min."]})
+
+        self.flgs.update_label(self.lc.reader.collection.get_flags())
+
+        # self.health.update_label(...)
+        # self.health.update_tool_tip("Health":..., "RPi Remaining Storage":...)
+
+    def _get_lc_info(self, lc_plot):
+        """ To update certain fields, we look to the lightcurve information. """
+        if len(lc_plot.plot_data_ys)<2:
+            return {"Mean":"N/A",
+                    "Median":"N/A", 
+                    "Max.":"N/A", 
+                    "Min.":"N/A"}
+        elif len(lc_plot.plot_data_ys)==2:
+            lc_data = lc_plot.plot_data_ys[1:] 
+        else:
+            lc_data = lc_plot.plot_data_ys
+
+        return {"Mean":np.nanmean(lc_data),
+                "Median":np.nanmedian(lc_data), 
+                "Max.":np.nanmax(lc_data), 
+                "Min.":np.nanmin(lc_data)}
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """

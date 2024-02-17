@@ -8,6 +8,8 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCdTeHK import CdTeHKReader
+from FoGSE.read_raw_to_refined.readRawToRefinedDE import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -20,7 +22,7 @@ class CdTeWidget(QWidget):
 
     Parameters
     ----------
-    data_file : `str` 
+    data_file_pc : `str` 
         The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
         Default: None
 
@@ -28,10 +30,12 @@ class CdTeWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, name="CdTe", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file)
+        reader = CdTeReader(datafile=data_file_pc)
+        self.reader_hk = CdTeHKReader(datafile=data_file_hk)
+        self.reader_de = DEReader(datafile=data_file_de)
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -76,18 +80,19 @@ class CdTeWidget(QWidget):
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
-        self.software_stat = QValueTimeWidget(name="SW Status", 
+        self.software_stat = QValueTimeWidget(name="SW Stat.", 
                                               value="N/A", 
                                               time=2000, 
-                                              condition=[int, float, np.int64], 
+                                              condition=[int, float, np.int64, str], 
                                               border_colour=de_layout_colour,
                                               tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value="N/A"), 
                                                                "ASIC DTH":QValueWidget(name="ASIC DTH", value="N/A"), 
                                                                "ASIC Load":QValueWidget(name="ASIC Load", value="N/A")},
                                               name_plus="<sup>*</sup>")
         self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
-        self.hv = QValueRangeWidget(name="HV", value="N/A", condition={"low":0,"high":200}, border_colour=de_layout_colour)
+        # self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.ping = QValueWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.hv = QValueCheckWidget(name="HV", value="N/A", condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
@@ -112,21 +117,21 @@ class CdTeWidget(QWidget):
         # strips
         strips_layout = QtWidgets.QGridLayout()
         strips_layout_colour = "rgb(213, 105, 48)"
-        self.strips = QValueWidget(name="# of det. strips", value="", separator="", border_colour=strips_layout_colour)
-        self.strips_al = QValueRangeWidget(name="Pt", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
-        self.strips_pt = QValueRangeWidget(name="Al", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
+        self.strips = QValueWidget(name="Mean # det. strips", value="", separator="", border_colour=strips_layout_colour)
+        self.strips_al = QValueWidget(name="Pt", value="N/A", border_colour=strips_layout_colour)
+        self.strips_pt = QValueWidget(name="Al", value="N/A", border_colour=strips_layout_colour)
         strips_layout.addWidget(self.strips, 0, 0, 1, 2) 
-        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 1) 
-        strips_layout.addWidget(self.strips_al, 1, 1, 1, 1) 
+        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 2) 
+        strips_layout.addWidget(self.strips_al, 2, 0, 1, 2) 
         # frames
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
         self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        self.frames_t = QValueRangeWidget(name="t", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueRangeWidget(name="t-1", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        self.frames_t = QValueRangeWidget(name="t", value="N/A", condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueRangeWidget(name="t-1", value="N/A", condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
-        frames_layout.addWidget(self.frames_t, 1, 0, 1, 1) 
-        frames_layout.addWidget(self.frames_tm1, 1, 1, 1, 1)
+        frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
+        frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
         
         
         self._value_layout.addLayout(de_layout) 
@@ -138,7 +143,8 @@ class CdTeWidget(QWidget):
         set_all_spacings(self._value_layout)
 
         self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
-        # self.hk.reader.value_changed_collection.connect(self.all_fields_from_hk)
+        self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
+        self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
 
         ## all widgets together
         # image
@@ -178,43 +184,68 @@ class CdTeWidget(QWidget):
         self.cts.update_label(total_counts)
         _lc_info = self._get_lc_info()
         self.cts.update_tool_tip({"Ct Now":total_counts, 
-                                  "Ct Mean":_lc_info["Ct Mean"], 
-                                  "Ct Median":_lc_info["Ct Median"], 
+                                  "Ct Mean":round(_lc_info["Ct Mean"], 1), 
+                                  "Ct Median":round(_lc_info["Ct Median"], 1), 
                                   "Ct Max.":_lc_info["Ct Max."], 
                                   "Ct Min.":_lc_info["Ct Min."]})
         
-        # total_count_rate = self.image.reader.collection.total_count_rate()
-        # self.ctr.update_label(total_count_rate)
-        # self.ctr.update_tool_tip({"Ct/s Now":total_count_rate, 
-        #                           "Ct/s Mean":_lc_info["Ct Mean"], 
-        #                           "Ct/s Median":_lc_info["Ct Median"], 
-        #                           "Ct/s Max.":_lc_info["Ct Max."], 
-        #                           "Ct/s Min.":_lc_info["Ct Min."]})
+        delta_time = self.image.reader.collection.delta_time()
+        self.ctr.update_label(round(total_counts/delta_time, 1))
+        self.ctr.update_tool_tip({"Ct/s Now":round(total_counts/delta_time, 1), 
+                                  "Ct/s Mean":round(_lc_info["Ct Mean"]/delta_time, 1), 
+                                  "Ct/s Median":round(_lc_info["Ct Median"]/delta_time, 1), 
+                                  "Ct/s Max.":round(_lc_info["Ct Max."]/delta_time, 1), 
+                                  "Ct/s Min.":round(_lc_info["Ct Min."]/delta_time, 1)})
+
+        self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
+        self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
         
     def all_fields_from_hk(self):
         """ 
         Update the:
         * count rate field, 
         """
-        # self.software_stat.update_label(...)
+        # ... = self.reader_hk.collection.something()
+        # ... = self.reader_de.collection.something()
+        # self.software_stat.update_label(self.reader_hk.collection.get_status())
         # self.software_stat.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
         # self.ping.update_label(...)
-        # self.hv.update_label(...)
+        self.hv.update_label(self.reader_hk.collection.get_hv_set()) #get_hv_exec
+
+        self.frames_t.update_label(self.reader_hk.collection.get_frame_count())
+        if hasattr(self, "_old_frames_t"):
+            self.frames_tm1.update_label(self._old_frames_t)
+        self._old_frames_t = self.reader_hk.collection.get_frame_count()
+
+    def all_fields_from_de(self):
+        """ 
+        Update the:
+        * count rate field, 
+        """
+        self.software_stat.update_label(self.reader_de.collection.get_status())
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+        # self.de_mode.update_label(...)
+        self.ping.update_label(self.reader_de.collection.get_ping())
+    
+        # self.reader_de.collection. methods
+        # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
         
     def _get_lc_info(self):
         """ To update certain fields, we look to the lightcurve information. """
-        if len(self.lc.graphPane.plot_data)<2:
+        if len(self.lc.graphPane.plot_data_ys)<2:
             return {"Ct Mean":"N/A",
                     "Ct Median":"N/A", 
                     "Ct Max.":"N/A", 
                     "Ct Min.":"N/A"}
-        elif len(self.lc.graphPane.plot_data)==2:
-            lc_data = self.lc.graphPane.plot_data[1:] 
+        elif len(self.lc.graphPane.plot_data_ys)==2:
+            lc_data = self.lc.graphPane.plot_data_ys[1:] 
         else:
-            lc_data = self.lc.graphPane.plot_data
+            lc_data = self.lc.graphPane.plot_data_ys
 
         return {"Ct Mean":np.nanmean(lc_data),
                 "Ct Median":np.nanmedian(lc_data), 
@@ -290,22 +321,22 @@ class AllCdTeView(QWidget):
         # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
         # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-150)
+        f0 = CdTeWidget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=-150)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1), image_angle=-30)
+        f1 = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=-30)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2), image_angle=-90)
+        f2 = CdTeWidget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=-90)
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3), image_angle=+30)
+        f3 = CdTeWidget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=+30)
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)
@@ -367,22 +398,22 @@ if __name__=="__main__":
     # # datafile = ""
 
     # # `datafile = FILE_DIR+"/../data/cdte.log"`
-    # reader = CdTeFileReader(datafile)#CdTeReader(data_file)
+    # reader = CdTeFileReader(datafile)#CdTeReader(data_file_pc)
     # # reader = CdTeReader(datafile)
     
-    # f0 = CdTeWidget(data_file=datafile)
+    # f0 = CdTeWidget(data_file_pc=datafile)
     # _f0 =QGridLayout()
     # _f0.addWidget(f0, 0, 0)
 
-    # f1 = CdTeWidget(data_file=datafile)
+    # f1 = CdTeWidget(data_file_pc=datafile)
     # _f1 =QGridLayout()
     # _f1.addWidget(f1, 0, 0)
 
-    # f2 = CdTeWidget(data_file=datafile)
+    # f2 = CdTeWidget(data_file_pc=datafile)
     # _f2 =QGridLayout()
     # _f2.addWidget(f2, 0, 0)
 
-    # f3 = CdTeWidget(data_file=datafile)
+    # f3 = CdTeWidget(data_file_pc=datafile)
     # _f3 =QGridLayout()
     # _f3.addWidget(f3, 0, 0)
     
@@ -397,14 +428,22 @@ if __name__=="__main__":
     # lay.addLayout(_f2, 0, 2, 1, 1)
     # lay.addLayout(_f3, 0, 3, 1, 1)
 
-    cdte0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-    cdte1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-    cdte2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-    cdte3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
+    cdte0 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log", 
+             None, 
+             None)
+    cdte1 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log", 
+             None, 
+             None)
+    cdte2 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log", 
+             None, 
+             None)
+    cdte3 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log", 
+             None, 
+             None)
     
     # w.resize(1000,500)
     w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
-    # w = CdTeWidget(data_file=datafile)
+    # w = CdTeWidget(data_file_pc=datafile)
     
     w.show()
     app.exec()
