@@ -3,12 +3,14 @@ First go at a full GSE (data viewing only).
 """
 import os
 
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.widgets.CdTeWidget import AllCdTeView
 from FoGSE.widgets.CMOSWidget import AllCMOSView
 from FoGSE.widgets.TimepixWidget import TimepixWidget
 from FoGSE.widgets.RTDWidget import RTDWidget
+from FoGSE.widgets.PowerWidget import PowerWidget
 
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -60,12 +62,16 @@ class GSEDataDisplay(QWidget):
 
         f3 = RTDWidget(os.path.join(newest_folder, get_det_file("housekeeping_rtd.log", instruments)))
 
+        f4 = PowerWidget(os.path.join(newest_folder, get_det_file("housekeeping_pow.log", instruments)))
+        # f4 = PowerWidget("/Users/kris/Downloads/housekeeping_pow.log")
+
         lay = QGridLayout()
 
         lay.addWidget(f0, 0, 0, 3, 12)
         lay.addWidget(f1, 3, 0, 3, 12)
         lay.addWidget(f2, 6, 0, 2, 4)
         lay.addWidget(f3, 6, 4, 2, 4)
+        lay.addWidget(f4, 6, 7, 2, 5)
         
         # w.resize(1000,500)
         # _s = 122
