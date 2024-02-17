@@ -8,7 +8,7 @@ the RTDs
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.Powerparser import rtdparser
+from FoGSE.parsers.Powerparser import adcparser
 from FoGSE.collections.PowerCollection import PowerCollection
 
 
@@ -25,7 +25,7 @@ class PowerReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
 
-        self.define_buffer_size(size=84)
+        self.define_buffer_size(size=38)
         self.call_interval(100)
 
     def extract_raw_data(self):
@@ -81,8 +81,8 @@ class PowerReader(ReaderBase):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        data, errors = rtdparser(file_raw=raw_data)
-        return data, errors
+        output, error_flag = adcparser(raw_data)
+        return output, error_flag
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -101,8 +101,8 @@ class PowerReader(ReaderBase):
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = PowerCollection(parsed_data, self.old_data_time)
-        if col.last_data_time>self.old_data_time:
-            self.old_data_time = col.last_data_time
-        if not hasattr(self,"data_start_time"):
-            self.data_start_time = col.event['ti'][0]
+        # if col.last_data_time>self.old_data_time:
+        #     self.old_data_time = col.last_data_time
+        # if not hasattr(self,"data_start_time"):
+        #     self.data_start_time = col.output['unixtime'][0]
         return col

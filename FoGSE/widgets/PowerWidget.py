@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-# from FoGSE.read_raw_to_refined.readRawToRefinedPower import PowerReader
+from FoGSE.read_raw_to_refined.readRawToRefinedPower import PowerReader
 # from FoGSE.windows.PowerWindow import PowerWindow
-from FoGSE.widgets.QValueWidget import QValueWidget
+from FoGSE.widgets.QValueWidget import QValueWidget, QValueMultiRangeWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
@@ -27,7 +27,7 @@ class PowerWidget(QWidget):
     def __init__(self, data_file=None, name="Power", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        # self.reader_power = PowerReader(datafile=data_file)
+        self.reader_power = PowerReader(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -46,24 +46,42 @@ class PowerWidget(QWidget):
         self._first_layout = self.layout_bkg(main_layout=first_layout, 
                                              panel_name="first_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-
-        self.p0 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p1 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p2 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p3 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p4 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p5 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p6 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p7 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p8 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p9 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p10 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p11 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p12 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p13 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p14 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
-        self.p15 = QValueWidget(name="Board T1", value=self._default_qvaluewidget_value, border_colour=first_layout_colour)
         
+        _off = [-0.05, 0.05, "white"]
+        p0_cond = {"range1":_off, "range2":[24,32,"green"], "other":"orange", "error":"orange"}
+        p1_cond = {"range1":_off, "range2":[5.5,6,"green"], "other":"orange", "error":"orange"}
+        p2_cond = {"range1":_off, "range2":[12,13,"green"], "other":"orange", "error":"orange"}
+        p3_cond = {"range1":_off, "range2":[5,5.5,"green"], "other":"orange", "error":"orange"}
+        p4_cond = {"range1":_off, "range2":[0.1,3,"green"], "other":"orange", "error":"orange"}
+        p5_cond = {"range1":_off, "range2":[0,20,"green"], "other":"orange", "error":"orange"}
+        p6_cond = {"range1":_off, "range2":[0,20,"green"], "other":"orange", "error":"orange"}
+        p7_cond = {"range1":_off, "range2":[0,20,"green"], "other":"orange", "error":"orange"}
+        p8_cond = {"range1":_off, "range2":[0,20,"green"], "other":"orange", "error":"orange"}
+        p9_cond = {"range1":_off, "range2":[0.2,0.4,"green"], "other":"orange", "error":"orange"}
+        p10_cond = {"range1":_off, "range2":[0.1,0.2,"green"], "other":"orange", "error":"orange"}
+        p11_cond = {"range1":_off, "range2":[0.1,0.2,"green"], "other":"orange", "error":"orange"}
+        p12_cond = {"range1":_off, "range2":[0.1,0.2,"green"], "other":"orange", "error":"orange"}
+        p13_cond = {"range1":_off, "range2":[0.1,0.2,"green"], "other":"orange", "error":"orange"}
+        p14_cond = {"range1":_off, "range2":[0.2,0.4,"green"], "other":"orange", "error":"orange"}
+        p15_cond = {"range1":_off, "range2":[0.2,0.4,"green"], "other":"orange", "error":"orange"}
+
+        self.p0 = QValueMultiRangeWidget(name="28 V", value=self._default_qvaluewidget_value, condition=p0_cond, border_colour=first_layout_colour)
+        self.p1 = QValueMultiRangeWidget(name="5.5 V", value=self._default_qvaluewidget_value, condition=p1_cond, border_colour=first_layout_colour)
+        self.p2 = QValueMultiRangeWidget(name="12 V", value=self._default_qvaluewidget_value, condition=p2_cond, border_colour=first_layout_colour)
+        self.p3 = QValueMultiRangeWidget(name="5 V", value=self._default_qvaluewidget_value, condition=p3_cond, border_colour=first_layout_colour)
+        self.p4 = QValueMultiRangeWidget(name="Reg. [A]", value=self._default_qvaluewidget_value, condition=p4_cond, border_colour=first_layout_colour)
+        self.p5 = QValueMultiRangeWidget(name="SAAS 12 V [A]", value=self._default_qvaluewidget_value, condition=p5_cond, border_colour=first_layout_colour)
+        self.p6 = QValueMultiRangeWidget(name="SAAS 5 V [A]", value=self._default_qvaluewidget_value, condition=p6_cond, border_colour=first_layout_colour)
+        self.p7 = QValueMultiRangeWidget(name="TimP 12 V [A]", value=self._default_qvaluewidget_value, condition=p7_cond, border_colour=first_layout_colour)
+        self.p8 = QValueMultiRangeWidget(name="TimP 5 V [A]", value=self._default_qvaluewidget_value, condition=p8_cond, border_colour=first_layout_colour)
+        self.p9 = QValueMultiRangeWidget(name="DE [A]", value=self._default_qvaluewidget_value, condition=p9_cond, border_colour=first_layout_colour)
+        self.p10 = QValueMultiRangeWidget(name="CdTe1 [A]", value=self._default_qvaluewidget_value, condition=p10_cond, border_colour=first_layout_colour)
+        self.p11 = QValueMultiRangeWidget(name="CdTe2 [A]", value=self._default_qvaluewidget_value, condition=p11_cond, border_colour=first_layout_colour)
+        self.p12 = QValueMultiRangeWidget(name="CdTe3 [A]", value=self._default_qvaluewidget_value, condition=p12_cond, border_colour=first_layout_colour)
+        self.p13 = QValueMultiRangeWidget(name="CdTe4 [A]", value=self._default_qvaluewidget_value, condition=p13_cond, border_colour=first_layout_colour)
+        self.p14 = QValueMultiRangeWidget(name="CMOS1 [A]", value=self._default_qvaluewidget_value, condition=p14_cond, border_colour=first_layout_colour)
+        self.p15 = QValueMultiRangeWidget(name="CMOS2 [A]", value=self._default_qvaluewidget_value, condition=p15_cond, border_colour=first_layout_colour)
+
         self._first_layout.addWidget(self.p0, 0, 0, 1, 2) 
         self._first_layout.addWidget(self.p1, 0, 2, 1, 2) 
         self._first_layout.addWidget(self.p2, 0, 4, 1, 2) 
@@ -88,7 +106,7 @@ class PowerWidget(QWidget):
         set_all_spacings(first_layout)
         # set_all_spacings(self._second_layout)
 
-        # self.reader_power.value_changed_collection.connect(self.all_fields)
+        self.reader_power.value_changed_collection.connect(self.all_fields)
 
         ## all widgets together
         # lc
@@ -119,22 +137,22 @@ class PowerWidget(QWidget):
     def all_fields(self):
         """ Update the QValueWidgets. """
         
-        self.p0.update_label(self.reader_power.collection.something())
-        self.p1.update_label(self.reader_power.collection.something())
-        self.p2.update_label(self.reader_power.collection.something())
-        self.p3.update_label(self.reader_power.collection.something())
-        self.p4.update_label(self.reader_power.collection.something())
-        self.p5.update_label(self.reader_power.collection.something())
-        self.p6.update_label(self.reader_power.collection.something())
-        self.p7.update_label(self.reader_power.collection.something())
-        self.p8.update_label(self.reader_power.collection.something())
-        self.p9.update_label(self.reader_power.collection.something())
-        self.p10.update_label(self.reader_power.collection.something())
-        self.p11.update_label(self.reader_power.collection.something())
-        self.p12.update_label(self.reader_power.collection.something())
-        self.p13.update_label(self.reader_power.collection.something())
-        self.p14.update_label(self.reader_power.collection.something())
-        self.p15.update_label(self.reader_power.collection.something())
+        self.p0.update_label(round(self.reader_power.collection.get_p0(),3))
+        self.p1.update_label(round(self.reader_power.collection.get_p1(),3))
+        self.p2.update_label(round(self.reader_power.collection.get_p2(),3))
+        self.p3.update_label(round(self.reader_power.collection.get_p3(),3))
+        self.p4.update_label(round(self.reader_power.collection.get_p4(),3))
+        self.p5.update_label(round(self.reader_power.collection.get_p5(),3))
+        self.p6.update_label(round(self.reader_power.collection.get_p6(),3))
+        self.p7.update_label(round(self.reader_power.collection.get_p7(),3))
+        self.p8.update_label(round(self.reader_power.collection.get_p8(),3))
+        self.p9.update_label(round(self.reader_power.collection.get_p9(),3))
+        self.p10.update_label(round(self.reader_power.collection.get_p10(),3))
+        self.p11.update_label(round(self.reader_power.collection.get_p11(),3))
+        self.p12.update_label(round(self.reader_power.collection.get_p12(),3))
+        self.p13.update_label(round(self.reader_power.collection.get_p13(),3))
+        self.p14.update_label(round(self.reader_power.collection.get_p14(),3))
+        self.p15.update_label(round(self.reader_power.collection.get_p15(),3))
 
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):

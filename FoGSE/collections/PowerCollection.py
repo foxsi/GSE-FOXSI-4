@@ -35,33 +35,61 @@ class PowerCollection:
     
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
-        self.error, self.data = parsed_data
+        self.output, self.error_flag = parsed_data
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time
-        if self.data["unixtime"][-1] > self.last_data_time:
-            self.last_data_time = self.data["unixtime"][-1]
 
-        # if not self.new_array():
-        #     self._image = self.empty()
-
-    def empty(self):
-        """ Define what an empty return should be. """
-        return np.zeros((16,))
+    def get_unixtime(self):
+        return self.output["unixtime"]
     
-    def new_array(self):
-        """ Check if the array is new or a repeat. """
-        if self.data["unixtime"][-1] > self.last_data_time:
-            return True
-        return False
+    def get_p0(self):
+        return self.output[0]
     
-    def image_array(self):
-        """
-        Method to return the image array of the parser output.
-
-        Returns
-        -------
-        `np.ndarray` :
-            The image array.
-        """
-        return self._image
+    def get_p1(self):
+        return self.output[1]
+    
+    def get_p2(self):
+        return self.output[2]
+    
+    def get_p3(self):
+        return self.output[3]
+    
+    def get_p3(self):
+        return self.output[3]
+    
+    def get_p4(self):
+        return self.output[4]
+    
+    def get_p5(self):
+        return self.output[5]
+    
+    def get_p6(self):
+        return self.output[6]
+    
+    def get_p7(self):
+        return self.output[7]
+    
+    def get_p8(self):
+        return self.output[8]
+    
+    def get_p9(self):
+        return self.output[9]
+    
+    def get_p10(self):
+        return self.output[10]
+    
+    def get_p11(self):
+        return self.output[11]
+    
+    def get_p12(self):
+        return self.output[12]
+    
+    def get_p13(self):
+        return self.output[13]
+    
+    def get_p14(self):
+        return self.output[14]
+    
+    def get_p15(self):
+        return self.output[15]

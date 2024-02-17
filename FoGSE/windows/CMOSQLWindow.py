@@ -52,6 +52,9 @@ class CMOSQLWindow(QWidget):
 
         self.name = name
         self.integrate = integrate
+
+        _pos = self.name_to_position(self.name)
+        self.name = self.name+f": pos#{_pos}"
         self.name = self.name+": Integrated" if self.integrate else self.name
         self.colour = colour
 
@@ -88,9 +91,6 @@ class CMOSQLWindow(QWidget):
         self.add_rotate_frame()
         # self.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover)
 
-    def mouseMoveEvent(self, event):
-        print('Mouse coords: ( %d : %d )' % (event.x(), event.y()))
-
     def eventFilter(self, obj, event):
         # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
         if event.type() == QtCore.QEvent.Type.Enter:
@@ -102,6 +102,17 @@ class CMOSQLWindow(QWidget):
             # self.remove_rotate_frame()
             self.remove_box_signal.emit()
         return super(CMOSQLWindow, self).eventFilter(obj, event)
+    
+    def name_to_position(self, data_file):
+        """ CMOS detector focal plane position from name. """
+        for key, item in self.det_and_pos_mapping().items():
+            if key in data_file:
+                return item
+        return "??"
+    
+    def det_and_pos_mapping(self):
+        """ CMOS detectors and their focal plane position mapping. """
+        return {"cmos1":0, "cmos2":1}
         
     def setup_2d(self):
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
