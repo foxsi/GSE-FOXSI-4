@@ -1,7 +1,6 @@
 import sys, typing, logging, math
 import numpy as np
 from PyQt6 import QtCore, QtWidgets, QtGui
-from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
 import pyqtgraph as pg
 

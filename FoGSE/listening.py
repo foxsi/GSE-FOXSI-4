@@ -5,21 +5,23 @@ import json
 import queue
 import math
 import time
+import ipaddress
+import struct
 from datetime import datetime
 
 # todo: migrate this inside systems.json
 
 DOWNLINK_TYPE_ENUM = {
-    "pc":       0x00,
-    "ql":       0x01,
-    "tpx":      0x02,
-    "hk":       0x10,
-    "pow":      0x11,
-    "temp":     0x12,
-    "intro":    0x13,
-    "stat":     0x14,
-    "err":      0x15,
-    "none":     0xff
+    "pc":   0x00,
+    "ql":   0x01,
+    "tpx":  0x02,
+    "hk":   0x10,
+    "pow":  0x11,
+    "rtd":  0x12,
+    "intro":0x13,
+    "stat": 0x14,
+    "err":  0x15,
+    "none": 0xff
 }
 
 
@@ -129,7 +131,7 @@ class LogFileManager:
 
         npackets = int.from_bytes(raw_data[1:3], byteorder='big')
         ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
-        print(ipacket, npackets)
+        # print(ipacket, npackets)
         if ipacket <= npackets:
             # add this packet to the queue, mark it as queued
             this_index = (ipacket - 1)*self.payload_len
@@ -217,7 +219,7 @@ class Listener():
                                                              json_dict)
 
             if self.local_system_config is None or \
-                    self.remote_system_config is None:
+                    self.remote_system_config is None:  
                 print("can't access system in provided JSON!")
                 raise RuntimeError
 
@@ -266,28 +268,63 @@ class Listener():
                 if os.path.exists(self.unix_socket_path):
                     raise RuntimeError
 
-            self.local_address = self.local_system_config["ethernet_interface"]["address"]
-            self.local_port = self.local_system_config["ethernet_interface"]["port"]
-            self.local_endpoint = (self.local_address, self.local_port)
+            self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            self.local_recv_port = self.local_system_config["ethernet_interface"]["port"]
+            self.local_recv_endpoint = (self.local_recv_address, self.local_recv_port)
+            # todo: populate these correctly from JSON
+            self.local_send_address = self.local_system_config["ethernet_interface"]["address"]
+            self.local_send_port = self.local_system_config["ethernet_interface"]["port"]
+            self.local_send_endpoint = (self.local_send_address, self.local_send_port)
 
             self.remote_address = self.remote_system_config["ethernet_interface"]["address"]
-            self.remote_port = self.local_port
+            self.remote_port = self.local_recv_port
             self.remote_endpoint = (self.remote_address, self.remote_port)
 
             self.unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             self.unix_socket.bind(self.unix_socket_path)
             self.unix_socket.settimeout(0.01)
+
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
+            
+            self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.local_send_socket.bind(("192.168.1.118", 9999))
+            self.local_send_socket.connect(self.remote_endpoint)
 
-            self.local_socket = socket.socket(
-                socket.AF_INET, socket.SOCK_DGRAM)
-            self.local_socket.bind(self.local_endpoint)
-            self.local_socket.connect(self.remote_endpoint)
-            self.local_socket.settimeout(0.01)
+            # setup UDP interface
+            ip = ipaddress.IPv4Address(self.local_recv_address)
+            if ip.is_multicast:
+                print("got multicast address")
+                # open the socket for standard use
+                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+                self.local_recv_socket.bind(('224.0.0.118', 9999))
+                
+                group = socket.inet_aton('224.0.0.118')
+                interface = socket.inet_aton('192.168.1.119')
+
+                print("group: ", group)
+                print("interface: ", interface)
+                mreq = struct.pack('4sl', group, int.from_bytes(interface, byteorder='big'))
+                self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            
+            else:
+                print("got unicast address")
+                # open the socket one way
+                self.local_recv_socket = self.local_send_socket
+                # self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                # self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                # self.local_recv_socket.bind(self.local_recv_endpoint)
+            
+            self.local_recv_socket.settimeout(0.1)
+            self.local_send_socket.settimeout(1.0)
             print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                  self.local_endpoint[0] + ":" + str(self.local_endpoint[1]))
+                  self.local_recv_endpoint[0] + ":" + str(self.local_recv_endpoint[1]))
 
+            print("sending uplink on Ethernet datagram socket at:\t",
+                  self.local_send_endpoint[0] + ":" + str(self.local_send_endpoint[1]))
+            
             self._uplink_message_queue = queue.Queue()
 
             self.print()
@@ -300,7 +337,8 @@ class Listener():
     def __del__(self):
         # close sockets
         self.unix_socket.close()
-        self.local_socket.close()
+        self.local_recv_socket.close()
+        self.local_send_socket.close()
         # remove the unix socket file
         # os.remove(self.unix_socket_path)
 
@@ -339,7 +377,7 @@ class Listener():
         file.
         """
         try:
-            data, sender = self.local_socket.recvfrom(4096)
+            data, sender = self.local_recv_socket.recvfrom(4096)
             # print("logging", len(data), "bytes")
             if len(data) < 8:
                 return
@@ -349,8 +387,11 @@ class Listener():
                 print("got unloggable packet with header: ", data[:8].hex())
                 self.write_to_catch(data)
                 return
+            except Exception as e:
+                print("other error: ", e)
                 # todo: dump this in a aggregate log
         except socket.timeout:
+            print("read timed out")
             return
 
     def _run_log(self):
@@ -360,35 +401,38 @@ class Listener():
         Delegates logging of Ethernet raw data to `self.read_local_socket_to_log()`
         and queueing of Unix socket commands to `self.read_unix_socket_to_queue()`.
         """
-        with self.local_socket:
-            while True:
-                self.read_unix_socket_to_queue()
-                # handle any queued requests to uplink commands:
-                while self._uplink_message_queue.qsize() > 0:
-                    # apparently queues are thread safe.
+        # with self.unix_socket:
+        while True:
+            self.read_unix_socket_to_queue()
+            # handle any queued requests to uplink commands:
+            while self._uplink_message_queue.qsize() > 0:
+                # apparently queues are thread safe.
 
-                    # pop command from the front of the list (FIFO):
-                    message = []
-                    try:
-                        message = self._uplink_message_queue.get(block=False)
-                    except queue.Empty:
-                        print("uplink queue already empty!")
+                # pop command from the front of the list (FIFO):
+                message = []
+                try:
+                    message = self._uplink_message_queue.get(block=False)
+                except queue.Empty:
+                    print("uplink queue already empty!")
 
-                    # expect all `command` to be <system> <command> `int` pairs
-                    try:
-                        if len(message) == 2:
-                            print(message)
-                            self.local_socket.sendall(bytes(message))
-                            print("transmitted " +
-                                  str(message) + " to Formatter.")
-                        else:
-                            print("found bad uplink command in queue! discarding.")
-                    except:
-                        print("couldn't send uplink command! ignoring.")
-                        continue
+                # expect all `command` to be <system> <command> `int` pairs
+                try:
+                    if len(message) == 2:
+                        print(message)
+                        print(self.local_send_socket.getsockname())
+                        print(self.local_send_socket.getpeername())
+                        self.local_send_socket.sendall(bytes(message))
+                        print("transmitted " +
+                                str(message) + " to Formatter.")
+                    else:
+                        print("found bad uplink command in queue! discarding.")
+                except Exception as e:
+                    print("couldn't send uplink command! ignoring.")
+                    print("\tException:",e)
+                    continue
 
-                self.read_local_socket_to_log()
-                time.sleep(0.01)
+            self.read_local_socket_to_log()
+            time.sleep(0.01)
 
     def get_system_dict(self, name: str, json_dict: dict):
         """

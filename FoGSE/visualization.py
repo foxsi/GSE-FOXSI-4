@@ -2,7 +2,6 @@ import sys, typing, logging, math, json
 import numpy as np
 from collections import namedtuple
 from PyQt6 import QtCore, QtWidgets, QtGui
-from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog, QSlider
 import pyqtgraph as pg
 
@@ -77,10 +76,16 @@ class GlobalCommandPanel(QWidget):
         self.system_combo_box = QComboBox()
         self.command_label = QLabel("Command")
         self.command_combo_box = QComboBox()
-        self.args_label = QLabel("Argument")
-        self.command_args_text = QLineEdit()
+        # self.args_label = QLabel("Argument")
+        # self.command_args_text = QLineEdit()
         self.send_label = QLabel("")
         self.command_send_button = QPushButton("Send command")
+
+        self._raw, self._check = "Raw: ", "Check: "
+        self.system_label_raw = QLabel(self._raw)
+        self.system_label_raw_check = QLabel(self._check)
+        self.command_label_raw = QLabel(self._raw)
+        self.command_label_raw_check = QLabel(self._check)
 
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
@@ -101,25 +106,45 @@ class GlobalCommandPanel(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
+            self.system_label_raw,
+            2,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
+            self.system_label_raw_check,
+            3,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
             self.command_label,
-            0,1,1,1,
+            0,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
             self.command_combo_box,
-            1,1,1,1,
+            1,1,1,2
+        )
+        self.command_combo_box.setMinimumWidth(270)
+        self.grid_layout.addWidget(
+            self.command_label_raw,
+            2,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
-            self.args_label,
-            0,2,1,1,
+            self.command_label_raw_check,
+            3,1,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.grid_layout.addWidget(
-            self.command_args_text,
-            1,2,1,1,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
+        # self.grid_layout.addWidget(
+        #     self.args_label,
+        #     0,2,1,1,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.grid_layout.addWidget(
+        #     self.command_args_text,
+        #     1,2,1,1,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
         self.grid_layout.addWidget(
             self.send_label,
             0,3,1,1,
@@ -146,17 +171,17 @@ class GlobalCommandPanel(QWidget):
         # hook up callbacks
         self.system_combo_box.activated.connect(self.systemComboBoxClicked)
         self.command_combo_box.activated.connect(self.commandComboBoxClicked)
-        self.command_args_text.returnPressed.connect(self.commandArgsEdited)
+        # self.command_args_text.returnPressed.connect(self.commandArgsEdited)
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
 
         # disable downstream command pieces (until selection is made)
         self.command_combo_box.setEnabled(False)
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
     
     def systemComboBoxClicked(self, events):
         self.command_combo_box.setEnabled(False)
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
 
         cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentText())
@@ -164,22 +189,28 @@ class GlobalCommandPanel(QWidget):
         
         # start working command with address of selected system
         self._working_command = []
-        self._working_command.append(self.cmddeck.get_system_by_name(self.system_combo_box.currentText()).addr)
+        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentText())
+        self._working_command.append(sys.addr)
         # todo: if adding delimiters, do it here.
 
         self.command_combo_box.clear()
         self.command_combo_box.addItems(names)
         self.command_combo_box.setEnabled(True)
 
+        self.system_label_raw.setText(f"{self._raw}{sys.addr}")
+        self.system_label_raw_check.setText(f"{self._check}{self.cmddeck.get_system_by_addr(sys.addr).name}")
+        self.command_label_raw.setText(f"{self._raw}")
+        self.command_label_raw_check.setText(f"{self._check}")
+
     def commandComboBoxClicked(self, events):
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        sys_addr = self.cmddeck.get_system_by_name(self.system_combo_box.currentText()).addr
+        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentText())
         cmd = self.cmddeck.get_command_for_system(self.system_combo_box.currentText(), self.command_combo_box.currentText())
 
         # add cmd bitstring to working command
         # self._working_command.append(cmd.hex)
-        self._working_command = [sys_addr,cmd.hex]
+        self._working_command = [sys.addr,cmd.hex]
 
         if cmd.arg_len > 0:
             # self.command_args_text.setEnabled(True)
@@ -188,9 +219,13 @@ class GlobalCommandPanel(QWidget):
         else:
             self.command_send_button.setEnabled(True)
 
+        self.command_label_raw.setText(f"{self._raw}{cmd.hex}")
+        self.command_label_raw_check.setText(f"{self._check}{self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name}")
+        
+
     def commandArgsEdited(self):
         # todo: some arg validation
-        text = self.command_args_text.text()
+        # text = self.command_args_text.text()
 
         # add arg to working command
         self._working_command.append(int(text, 10))
@@ -210,7 +245,7 @@ class GlobalCommandPanel(QWidget):
         # todo: log file setup, open, plus the actual logging
 
         self.command_combo_box.setEnabled(False)
-        self.command_args_text.setEnabled(False)
+        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
 
 
@@ -675,7 +710,6 @@ class DetectorPlotView(QWidget):
         # set up the plot:
         self.graphPane = pg.PlotWidget(self)
         self.spacing = 20
-        self.name = name
         self.label = "Plot"
         self.formatter_if = formatter_if
 
@@ -697,16 +731,16 @@ class DetectorPlotView(QWidget):
         self.modalStartPlotDataButton.setIconSize(QtCore.QSize(32,32))
         self.modalStartPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
 
-        self.modalStopPlotDataButton = QPushButton("", self)
+        # self.modalStopPlotDataButton = QPushButton("", self)
         self.modalStopPlotDataButton.setIcon(QtGui.QIcon("./assets/icon_pause_col_bg.svg"))
         self.modalStopPlotDataButton.setFixedSize(32,32)
         self.modalStopPlotDataButton.setIconSize(QtCore.QSize(32,32))
         self.modalStopPlotDataButton.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;}")
 
-        self.plotADCButton = QRadioButton("Plot in ADC bin", self)
-        self.plotADCButton.setChecked(True)
-        self.plotEnergyButton = QRadioButton("Plot in energy bin", self)
-        self.plotStyleButton = QPushButton("Plot style", self)
+        # self.plotADCButton = QRadioButton("Plot in ADC bin", self)
+        # self.plotADCButton.setChecked(True)
+        # self.plotEnergyButton = QRadioButton("Plot in energy bin", self)
+        # self.plotStyleButton = QPushButton("Plot style", self)
 
         # self.temperatureLabel = QLabel("Temperature (ºC):", self)
         # self.voltageLabel = QLabel("Voltage (mV):", self)
@@ -720,77 +754,77 @@ class DetectorPlotView(QWidget):
         self.globalLayout = QHBoxLayout()
 
         # organize layout
-        self.layoutLeftTop = QVBoxLayout()
+        # self.layoutLeftTop = QVBoxLayout()
         # self.layoutLeftTop.addWidget(
         #     self.popout_button,
         #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
         # )
-        self.layoutLeftTop.addStretch(self.spacing)
+        # self.layoutLeftTop.addStretch(self.spacing)
 
-        self.layoutLeftBottom = QVBoxLayout()
-        self.layoutLeftBottom.addWidget(
-            self.temperatureLabel,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftBottom.addWidget(
-            self.voltageLabel,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftBottom.addWidget(
-            self.currentLabel,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftBottom.addStretch(self.spacing)
+        # self.layoutLeftBottom = QVBoxLayout()
+        # self.layoutLeftBottom.addWidget(
+        #     self.temperatureLabel,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutLeftBottom.addWidget(
+        #     self.voltageLabel,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutLeftBottom.addWidget(
+        #     self.currentLabel,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutLeftBottom.addStretch(self.spacing)
 
         self.layoutRightTop = QVBoxLayout()
         self.layoutRightTop.addWidget(
             self.popout_button,
             alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.layoutRightTop.addWidget(
-            self.plotADCButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutRightTop.addWidget(
-            self.plotEnergyButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutRightTop.addWidget(
-            self.plotStyleButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutRightTop.addStretch(self.spacing)
+        # self.layoutRightTop.addWidget(
+        #     self.plotADCButton,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutRightTop.addWidget(
+        #     self.plotEnergyButton,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutRightTop.addWidget(
+        #     self.plotStyleButton,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutRightTop.addStretch(self.spacing)
 
-        self.layoutLeftTop.addWidget(
-            self.modalStartPlotDataButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.layoutLeftTop.addWidget(
-            self.modalStopPlotDataButton,
-            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
-        )
+        # self.layoutLeftTop.addWidget(
+        #     self.modalStartPlotDataButton,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
+        # self.layoutLeftTop.addWidget(
+        #     self.modalStopPlotDataButton,
+        #     alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop
+        # )
         
-        self.layoutRightBottom = QVBoxLayout()
-        self.layoutLeftTop.addStretch(self.spacing)
+        # self.layoutRightBottom = QVBoxLayout()
+        # self.layoutLeftTop.addStretch(self.spacing)
 
-        self.layoutLeft = QVBoxLayout()
-        self.layoutLeft.addLayout(self.layoutLeftTop)
-        self.layoutLeft.addLayout(self.layoutLeftBottom)
+        # self.layoutLeft = QVBoxLayout()
+        # self.layoutLeft.addLayout(self.layoutLeftTop)
+        # self.layoutLeft.addLayout(self.layoutLeftBottom)
 
         self.layoutRight = QVBoxLayout()
         self.layoutRight.addLayout(self.layoutRightTop)
-        self.layoutRight.addLayout(self.layoutRightBottom)
+        # self.layoutRight.addLayout(self.layoutRightBottom)
 
         self.layoutCenter = QVBoxLayout()
         self.layoutCenter.addWidget(self.graphPane)
         self.layoutCenter.addSpacing(self.spacing)
 
         # self.graphPane.setMinimumSize(QtCore.QSize(150,100))
-        self.graphPane.setMinimumSize(QtCore.QSize(300,200))
+        self.graphPane.setMinimumSize(QtCore.QSize(250,200))
         self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QHBoxLayout()
-        self.layoutMain.addLayout(self.layoutLeft)
+        # self.layoutMain.addLayout(self.layoutLeft)
         self.layoutMain.addLayout(self.layoutCenter)
         self.layoutMain.addLayout(self.layoutRight)
 
@@ -799,150 +833,150 @@ class DetectorPlotView(QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.setLayout(self.globalLayout)
         
-        # connect to callbacks
-        self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
-        self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
-        self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
-        self.modalStartPlotDataButton.clicked.connect(self.startPlotUpdate)
-        self.modalStopPlotDataButton.clicked.connect(self.stopPlotUpdate)
+        # # connect to callbacks
+        # self.plotADCButton.clicked.connect(self.plotADCButtonClicked)
+        # self.plotEnergyButton.clicked.connect(self.plotEnergyButtonClicked)
+        # self.plotStyleButton.clicked.connect(self.plotStyleButtonClicked)
+        # self.modalStartPlotDataButton.clicked.connect(self.startPlotUpdate)
+        # self.modalStopPlotDataButton.clicked.connect(self.stopPlotUpdate)
 
-        # set file to listen for that has the data in it
-        self.data_file = "foxsi.txt"
-        # update plot every 100 ms
-        self.callInterval = 100
-        # read 50,000 bytes from the end of `self.data_file` at a time
-        self.bufferSize = 50_000
+        # # set file to listen for that has the data in it
+        # self.data_file = "foxsi.txt"
+        # # update plot every 100 ms
+        # self.callInterval = 100
+        # # read 50,000 bytes from the end of `self.data_file` at a time
+        # self.bufferSize = 50_000
 
-    def plotADCButtonClicked(self, events):
-        logging.debug("plotting in ADC space")
+    # def plotADCButtonClicked(self, events):
+    #     logging.debug("plotting in ADC space")
     
-    def plotEnergyButtonClicked(self, events):
-        logging.debug("plotting in energy space")
+    # def plotEnergyButtonClicked(self, events):
+    #     logging.debug("plotting in energy space")
 
-    def plotStyleButtonClicked(self, events):
-        logging.debug("changing plot style")
+    # def plotStyleButtonClicked(self, events):
+    #     logging.debug("changing plot style")
 
-    def startPlotUpdate(self):
-        """
-        Called when the `modalStartPlotDataButton` button is pressed.
+    # def startPlotUpdate(self):
+    #     """
+    #     Called when the `modalStartPlotDataButton` button is pressed.
         
-        This starts a QTimer which calls `self.update_plot_data` with a cycle every `self.callInterval` 
-        milliseconds. 
+    #     This starts a QTimer which calls `self.update_plot_data` with a cycle every `self.callInterval` 
+    #     milliseconds. 
 
-        [1] https://doc.qt.io/qtforpython/PySide6/QtCore/QTimer.html
-        """
+    #     [1] https://doc.qt.io/qtforpython/PySide6/QtCore/QTimer.html
+    #     """
 
-        logging.debug("starting to plot data")
+    #     logging.debug("starting to plot data")
 
-        # define what happens to GUI buttons and start call timer
-        self.modalStartPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: green;}')
-        self.modalStopPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: black;}')
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(self.callInterval) # fastest is every millisecond here, with a value of 1
-        self.timer.timeout.connect(self.update_plot_data) # call self.update_plot_data every cycle
-        self.timer.start()
+    #     # define what happens to GUI buttons and start call timer
+    #     self.modalStartPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: green;}')
+    #     self.modalStopPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: black;}')
+    #     self.timer = QtCore.QTimer()
+    #     self.timer.setInterval(self.callInterval) # fastest is every millisecond here, with a value of 1
+    #     self.timer.timeout.connect(self.update_plot_data) # call self.update_plot_data every cycle
+    #     self.timer.start()
 
-        logging.debug("data is plotting")
+    #     logging.debug("data is plotting")
 
-    def stopPlotUpdate(self):
-        """
-        Called when the `modalStopPlotDataButton` button is pressed.
+    # def stopPlotUpdate(self):
+    #     """
+    #     Called when the `modalStopPlotDataButton` button is pressed.
         
-        This stops a QTimer set by `self.start_plot_update`. 
-        """
+    #     This stops a QTimer set by `self.start_plot_update`. 
+    #     """
 
-        logging.debug("stopping the data from plotting")
-        self.modalStartPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: black;}')
-        self.modalStopPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: red;}')
-        self.timer.stop()
-        logging.debug("data stopped from plotting")
+    #     logging.debug("stopping the data from plotting")
+    #     self.modalStartPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: black;}')
+    #     self.modalStopPlotDataButton.setStyleSheet('QPushButton {background-color: white; color: red;}')
+    #     self.timer.stop()
+    #     logging.debug("data stopped from plotting")
 
-    def update_plot_data(self):
-        """Method has to be here to give `startPlotUpdate` method something to call."""
-        pass
+    # def update_plot_data(self):
+    #     """Method has to be here to give `startPlotUpdate` method something to call."""
+    #     pass
 
-    def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
-        """
-        Method just to easily set the x, y-label andplot title without having to write all lines below again 
-        and again.
+    # def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
+    #     """
+    #     Method just to easily set the x, y-label andplot title without having to write all lines below again 
+    #     and again.
 
-        [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
+    #     [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
 
-        arameters
-        ----------
-        graph_widget : `PyQt6 PlotWidget`
-            The widget for the labels
+    #     arameters
+    #     ----------
+    #     graph_widget : `PyQt6 PlotWidget`
+    #         The widget for the labels
 
-        xlabel, ylabel, title : `str`
-            The strings relating to each label to be set.
-        """
+    #     xlabel, ylabel, title : `str`
+    #         The strings relating to each label to be set.
+    #     """
 
-        graph_widget.setTitle(title)
+    #     graph_widget.setTitle(title)
 
-        # Set label for both axes
-        graph_widget.setLabel('bottom', xlabel)
-        graph_widget.setLabel('left', ylabel)
+    #     # Set label for both axes
+    #     graph_widget.setLabel('bottom', xlabel)
+    #     graph_widget.setLabel('left', ylabel)
 
-    def check_file_exists(self):
-        """
-        Method to check if the file that should have the data does indeed exist.
+    # def check_file_exists(self):
+    #     """
+    #     Method to check if the file that should have the data does indeed exist.
 
-        Returns
-        -------
-        `bool` :
-            Boolean where True means `self.data_file` does exist and False means it does not.
-        """
-        if not os.path.exists(self.data_file):
-            return False # empty x, y
-        return True
+    #     Returns
+    #     -------
+    #     `bool` :
+    #         Boolean where True means `self.data_file` does exist and False means it does not.
+    #     """
+    #     if not os.path.exists(self.data_file):
+    #         return False # empty x, y
+    #     return True
     
-    def check_enough_data(self, lines):
-        """
-        Method to check if there is enough data in the file to continue.
+    # def check_enough_data(self, lines):
+    #     """
+    #     Method to check if there is enough data in the file to continue.
 
-        Parameters
-        ----------
-        lines : list of strings
-            The lines from the content of `self.data_file` obtained using 
-            `FoGSE.readBackwards.BackwardsReader`.
+    #     Parameters
+    #     ----------
+    #     lines : list of strings
+    #         The lines from the content of `self.data_file` obtained using 
+    #         `FoGSE.readBackwards.BackwardsReader`.
 
-        Returns
-        -------
-        `bool` :
-            Boolean where True means there is enough data to plot and False means there is not.
-        """
-        if (lines==[]) or (len(lines)<3):
-            return False # empty x, y
-        return True
+    #     Returns
+    #     -------
+    #     `bool` :
+    #         Boolean where True means there is enough data to plot and False means there is not.
+    #     """
+    #     if (lines==[]) or (len(lines)<3):
+    #         return False # empty x, y
+    #     return True
     
-    def extract_data(self):
-        """
-        Method to extract the data from `self.data_file` and return the desired data.
+    # def extract_data(self):
+    #     """
+    #     Method to extract the data from `self.data_file` and return the desired data.
 
-        Returns
-        -------
-        `tuple` :
-            (x, y) The new x and y coordinates read from `self.data_file`.
-        """
-        # read the file `self.bufferSize` bytes from the end and extract the lines
-        # forward=True: reads buffer from the back but doesn't reverse the data 
-        with BackwardsReader(file=self.data_file, blksize=self.bufferSize, forward=True) as f:
-            lines = f.readlines()
+    #     Returns
+    #     -------
+    #     `tuple` :
+    #         (x, y) The new x and y coordinates read from `self.data_file`.
+    #     """
+    #     # read the file `self.bufferSize` bytes from the end and extract the lines
+    #     # forward=True: reads buffer from the back but doesn't reverse the data 
+    #     with BackwardsReader(file=self.data_file, blksize=self.bufferSize, forward=True) as f:
+    #         lines = f.readlines()
 
-        # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
-        if not self.check_enough_data(lines):
-            return self.return_empty() # empty x, y
+    #     # check we got a sufficient amount of data from the file (need less han 3 because we data[1:-1] later)
+    #     if not self.check_enough_data(lines):
+    #         return self.return_empty() # empty x, y
 
-        # got the data from file, now format for new_x and new_y
-        data = [l.split(b' ') for l in lines]
+    #     # got the data from file, now format for new_x and new_y
+    #     data = [l.split(b' ') for l in lines]
 
-        # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
-        data = data[1:-1] 
+    #     # to be sure I have full lines! Think of something better later, buffer size may have cut first/last line
+    #     data = data[1:-1] 
         
-        # extract the x and y data into two arrays
-        data = np.array(data, dtype=float)
+    #     # extract the x and y data into two arrays
+    #     data = np.array(data, dtype=float)
 
-        return self.choose_data(data_array=data)
+    #     return self.choose_data(data_array=data)
 
 
 class DetectorPlotView1D(DetectorPlotView):
@@ -1693,7 +1727,7 @@ class DetectorPopout(QWidget):
         # allow the window to close
         event.accept()
 
-import FoGSE.windows.CdTewindow as wcdte
+import FoGSE.windows.CdTeWindow as wcdte
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 import os
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))

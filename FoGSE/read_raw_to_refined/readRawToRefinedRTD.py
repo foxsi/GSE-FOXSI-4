@@ -26,7 +26,7 @@ class RTDReader(ReaderBase):
         ReaderBase.__init__(self, datafile, parent)
 
         self.define_buffer_size(size=84)
-        self.call_interval(1_000)
+        self.call_interval(100)
 
     def extract_raw_data(self):
         """

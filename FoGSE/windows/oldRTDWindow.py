@@ -4,16 +4,15 @@ A demo to walk through an existing RTD raw file.
 
 import numpy as np
 
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget, QHBoxLayout
 import pyqtgraph as pg
 
 from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
 from FoGSE.demos.readRawToRefined_fake_rtd import RTDFileReader
-from FoGSE.visualization import DetectorPlotView
 
     
-class RTDWindow(DetectorPlotView):
+class RTDWindow(QWidget):
     """
     An individual window to display RTD data read from a file.
 
@@ -28,9 +27,18 @@ class RTDWindow(DetectorPlotView):
         The reader already given a file.
         Default: None
     """
-    def __init__(self, data_file=None, reader=None, parent=None, name="RTD"):
+    def __init__(self, data_file=None, reader=None, name="RTD", parent=None):
 
-        DetectorPlotView.__init__(self, parent, name)
+        QWidget.__init__(self, parent)
+        self.graphPane = pg.PlotWidget(self)
+        self.graphPane.setMinimumSize(QtCore.QSize(250,250))
+        self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+
+        self.layoutMain = QHBoxLayout()
+        self.layoutMain.addWidget(self.graphPane)
+        self.setLayout(self.layoutMain)
+
+        self.name = name
 
         # decide how to read the data
         if data_file is not None:
@@ -53,7 +61,7 @@ class RTDWindow(DetectorPlotView):
         self.chip2_layout.addWidget(
             self.graphPane_chip2
         )
-        self.layoutCenter.addLayout(self.chip2_layout)
+        self.layoutMain.addLayout(self.chip2_layout)
 
         self.graphPane_chip1.setBackground('w')
         self.graphPane_chip1.showGrid(x=True, y=True)
@@ -68,8 +76,8 @@ class RTDWindow(DetectorPlotView):
         self.temp_sensors_chip1 = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8']
         self.temp_sensors_chip2 = ['ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
 
-        self.temp_sensor_names_chip1 = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8']
-        self.temp_sensor_names_chip2 = ['Formatter Pi CPU', 'Formatter SPMU-001 FPGA', 'DE Pi CPU', 'DE Pi SPMU-001 FPGA', 'Housekeeping microcontroller', 'Power 12 V regulator', 'Power 5 V regulator', 'Power 5.5 V regulator', 'CdTe canister 1 FPGA']
+        self.temp_sensor_names_chip1 = ['LN2', 'POS2', 'POS3', 'POS4', 'POS5', '5.5 V', 'MICRO', '???', 'TIMEPIX']
+        self.temp_sensor_names_chip2 = ['OPTIC PLATE', 'A FRONT', 'A BACK', 'B FRONT', 'C FRONT', 'C BACK', 'D FRONT', 'D MIDDLE', 'D BACK']
         self.colors_chip1       = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple']
         self.colors_chip2       = ['k', 'g', 'r',    'darkCyan',    'b',    'pink',    'darkGreen','darkGray', 'purple']
 
@@ -85,8 +93,8 @@ class RTDWindow(DetectorPlotView):
             self.sensor_plots_chip2[t] = self.plot(self.graphPane_chip2, [0,0], [0,0], color=self.colors_chip2[c], plotname=n)
 
         # set title and labels
-        self.set_labels(self.graphPane_chip1, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="Chip 1: RTD Temperatures")
-        self.set_labels(self.graphPane_chip2, xlabel="Time (UNIX)", ylabel="Temperature (C)", title="Chip 2: RTD Temperatures")
+        self.set_labels(self.graphPane_chip1, xlabel="Time (UNIX)", ylabel="Temperature (C)", title=f"{self.name}: Chip 1: RTD Temperatures")
+        self.set_labels(self.graphPane_chip2, xlabel="Time (UNIX)", ylabel="Temperature (C)", title=f"{self.name}: Chip 2: RTD Temperatures")
 
         self.reader.value_changed_collection.connect(self.update_plot)
 
@@ -105,7 +113,7 @@ class RTDWindow(DetectorPlotView):
         """
         
         new_data = self.reader.collection.new_data
-        print(new_data)
+        # print(new_data)
         if len(new_data['ti'])==0:
             return
         
@@ -205,7 +213,8 @@ if __name__=="__main__":
     # package top-level
     import os
     DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
-    DATAFILE = "/Users/kris/Desktop/housekeeping.log"
+    # DATAFILE = "/Users/kris/Downloads/housekeeping.log"
+    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/fake_temperatures.txt"
 
     def initiate_gui():
         app = QApplication([])

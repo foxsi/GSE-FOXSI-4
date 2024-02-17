@@ -191,25 +191,27 @@ def CdTerawdataframe2parser(datalist):
 
         elif(tmpdata == 0x02):#//10
             print("eventframestart")
-            framedata=datalist[nlist:nlist+framewordsize+1]
+            
+            if(nlist+framewordsize>nlist_max):
+                    print("************Caution: STOP in PROCESSING EVENT DATA, LAST FRAME is BROKEN***********************",nlist,nlist_max)
+                    errorflag=True
+                    break
+            framedata=datalist[nlist:nlist+framewordsize]
+            
             nlist+=framewordsize
             #print(hex(framedata[0]),hex(framedata[framewordsize-1]),hex(framedata[framewordsize-2]),len(framedata))
             
-            try:
-                #frameword size is fixed. 
-                #the last word of the event data frame should be 0x2301FFFF. If not, break.
-                if( not((framedata[framewordsize-1] == 0x2301FFFF))):
-                    errorflag=True
-                    print("************ERROR: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT************")
-                    break
-                else:
-                    #the Second word from the last of the event data frame should be UNIXTIME.
-                    unixtime =  framedata[framewordsize-2]
-                    framedataok = True
-            except IndexError:
-                # to test full files being artificially split-up  - kris
-                print("A non-full frame was encountered.")
+            #frameword size is fixed. 
+            #the last word of the event data frame should be 0x2301FFFF. If not, break.
+            if( not((framedata[framewordsize-1] == 0x2301FFFF))):
+                errorflag=True
+                print("************CAUTION: FRAME DATA STRUCTURE( OF THE END) IS NOT CORRECT, LAST FRAME is BROKEN*************")
                 break
+
+            else:
+                #the Second word from the last of the event data frame should be UNIXTIME.
+                unixtime =  framedata[framewordsize-2]
+                framedataok = True
 
             if(framedataok):
                 j=0
@@ -328,52 +330,62 @@ def CdTerawdataframe2parser(datalist):
                                 
                                 #k: kth ASIC
                                 k= iasic + idchain * numofasicperdaisychains;
-
-                                
+                                #print(k,iasic, idchain)
                                 if(k==0):
                                     array_chflag=[]
                                     array_adccmn=[]
                                     array_index=[]
                                     array_cmn=[]
-
+                                    
                                 array_chflag.append([chflag[0],chflag[1],chflag[2]])
                                 array_cmn_ex[k] =statistics.median(adc)
+                                array_ref[k] = ref
+                                array_hitnum[k] = hitnum
+
 
                                 if(k==0):
                                     array_adccmn.append([])
                                     array_index.append([])
                                     array_cmn.append([])
-                                    for i in range(noofch):
+                                    
+                                    for i in range(hitnum):
                                         array_adccmn[0].append(adc[i]-cmn)
                                         array_index[0].append(index[i])
                                     array_cmn[0].append(cmn)
 
                                 elif(k==1):
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[0].append(adc[i]-cmn)
                                         array_index[0].append(index[i]+64)
                                     array_cmn[0].append(cmn)
+                                    if(array_hitnum[0]+array_hitnum[1]<noofch*2):
+                                        for i in range(noofch*2-(array_hitnum[0]+array_hitnum[1])):
+                                            array_adccmn[0].append(0)
+                                            array_index[0].append(128)
 
                                 elif(k==2):
                                     array_adccmn.append([])
                                     array_index.append([])
                                     array_cmn.append([])
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[1].append(adc[i]-cmn)
                                         array_index[1].append(index[i])
                                     array_cmn[1].append(cmn)
 
                                 elif(k==3):
-                                    for i in range(noofch):
+                                    for i in range(hitnum):
                                         array_adccmn[1].append(adc[i]-cmn)
                                         array_index[1].append(index[i]+64)
                                     array_cmn[1].append(cmn)
+                                    if(array_hitnum[2]+array_hitnum[3]<noofch*2):
+                                        for i in range(noofch*2-(array_hitnum[2]+array_hitnum[3])):
+                                            array_adccmn[1].append(0)
+                                            array_index[1].append(128)
 
                                 #if (eventid == 1):
                                     #print(iasic,idchain,k,i, array_index,array_adccmn)
 
-                                array_ref[k] = ref
-                                array_hitnum[k] = hitnum
+                                
 
                             if (bitoffset % 32 != 0):
                                 bitoffset += (32 - bitoffset % 32)
@@ -386,6 +398,7 @@ def CdTerawdataframe2parser(datalist):
 
                     Lti.append(ti)
                     #print(unixtime)
+                    #print(array_adccmn[0],len(array_adccmn[0]))
                     Lunixtime.append(unixtime)
                     Llivetime.append(livetime)
                     Ladccmn_al.append(array_adccmn[1])
@@ -406,26 +419,6 @@ def CdTerawdataframe2parser(datalist):
     if(eventflag and hkflag):
         errorflag = True
         print("CAUTION!! : INPUT DATA IS FRAME DATA? BOTH HK AND EVENT DATA ARE FOUND")
-
-    # #the process for an data frame is finished.
-    # df  = pl.DataFrame(
-    #     {
-    #        "ti":np.array(Lti,dtype=np.uint32),
-    #         "unixtime":np.array(Lunixtime,dtype=np.uint32),
-    #         "livetime":np.array(Llivetime,dtype=np.uint32),
-    #         "adc_cmn_al":np.array(Ladccmn_al,dtype=np.int16),
-    #         "adc_cmn_pt":np.array(Ladccmn_pt,dtype=np.int16),
-    #         "cmn_al":np.array(Lcmn_al,dtype=np.uint16),
-    #         "cmn_pt":np.array(Lcmn_pt,dtype=np.uint16),
-    #         "index_al":np.array(Lindex_al,dtype=np.uint8),
-    #         "index_pt":np.array(Lindex_pt,dtype=np.uint8),
-    #         "hitnum_al":np.array(Lhitnum_al,dtype=np.uint8),
-    #         "hitnum_pt":np.array(Lhitnum_pt,dtype=np.uint8),
-    #         "flag_pseudo":np.array(Lflag_pseudo,dtype=np.uint8),
-    #         #"all_adc":np.array(all_array_adc,dtype=np.uint8),
-    #         #"all_index":np.array(all_array_index,dtype=np.uint8),
-    #     }
-    # )
 
     evt_num = len(Lti)
     dt = np.dtype({'names':('ti', 'unixtime', 'livetime', 'adc_cmn_al', 'adc_cmn_pt', 'cmn_al', 'cmn_pt', 'index_al', 'index_pt', 'hitnum_al', 'hitnum_pt', 'flag_pseudo'),

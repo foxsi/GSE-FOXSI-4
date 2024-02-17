@@ -8,7 +8,8 @@ setuptools.setup(
     install_requires=[
             "numpy", 
             "PyQt6", 
-            "pyqtgraph"
+            "pyqtgraph",
+            "scipy"
         ],
     packages=setuptools.find_packages(),
     zip_safe=False
