@@ -289,13 +289,15 @@ class QValueWidget(QWidget):
 
         # get mouse position in the coordinated of the widget (TL is (0,0), BR is (width,length))
         _mouse_pos  = self.mapFromGlobal(QtGui.QCursor.pos()) 
-        # remove the tooltip to force it to shut off if looking at it while it changes
-        QToolTip.hideText()
 
         # want to check is the local mouse position is still in the widget
         if (0<=_mouse_pos.x()<=self.geometry().width()) and (0<=_mouse_pos.y()<=self.geometry().height()):
             _s = "\n".join(_tool_tip_str_list) # new label
             QToolTip.setFont(QtGui.QFont("",15)) # make sure tooltip font size is set at least
+
+            # remove the tooltip to force it to shut off if looking at it while it changes
+            QToolTip.hideText()
+
             QToolTip.showText(self.mapToGlobal(_mouse_pos),f"<p style='white-space:pre'>{_s}</p>") # show new tool tip info
         else:
             self.full_string_tool_tip("\n".join(_tool_tip_str_list))
@@ -809,6 +811,8 @@ class test(QWidget):
         l.addWidget(self.value4, 1, 2) # widget, -y, x
         self.value5 = QValueTimeWidget(name="Another1", value=50, time=200, condition=[int, float, np.int64])
         l.addWidget(self.value5, 0, 2) # widget, -y, x
+        self.value5 = QValueTimeWidget(name="Another1", value=50, time=800, condition=[int, float, np.int64])
+        l.addWidget(self.value5, 2, 2) # widget, -y, x
         self.value6 = QValueRangeWidget(name="YetAnother", 
                                        value=6, 
                                        condition={"low":2,"high":15},
