@@ -55,7 +55,7 @@ class QValueWidget(QWidget):
     window.show()
     app.exec()
     """
-    def __init__(self, name, value, condition=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", parent=None, **kwargs):
+    def __init__(self, name, value, condition=None, border_colour="grey", separator=" : ", tool_tip_values=None, name_plus="", loud=False, parent=None, **kwargs):
         """ 
         Constructs the widget and adds the latest plotted data to the widget.
 
@@ -138,6 +138,7 @@ class QValueWidget(QWidget):
         self.condition = self.check_condition_input(condition)
         self.tool_tip_value_info = tool_tip_values
         self.name_plus = name_plus
+        self.loud = loud
 
         # set main layout for widget
         self.layout = QGridLayout()
@@ -162,15 +163,6 @@ class QValueWidget(QWidget):
         # QToolTip.setFont(QFont('SansSerif', 20))
         self._last_event_pos = None
         self.setup_tool_tip()
-        
-    # def event(self,event):
-    #     # if event.type() == QEvent.ToolTip:
-    #     #     self._last_event_pos = event.globalPos()
-    #     #     return True
-    #     # elif event.type() == QEvent.Leave:
-    #     #     self._last_event_pos = None
-    #     #     QToolTip.hideText()
-    #     return QWidget.event(self,event)
     
     def check_condition_input(self, condition):
         """ 
@@ -253,7 +245,7 @@ class QValueWidget(QWidget):
                 colour = val.condition_colour(val.value)
                 val = val.value
             colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
-            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key:10}{self.separator}{val:8}</span>")
+            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{val}</span>")
 
         self.full_string_tool_tip("\n".join(_tool_tip_str_list))
 
@@ -285,7 +277,7 @@ class QValueWidget(QWidget):
             else:
                 colour = val.condition_colour(new_values[key])
             colour = "black" if colour in ["white", "rgb(255,255,255)", "rgba(255,255,255,255)"] else colour
-            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key:10}{self.separator}{new_values[key]:8}</span>")
+            _tool_tip_str_list.append(f"<span style='color:{colour}'>{key}{self.separator}{new_values[key]}</span>")
 
         # get mouse position in the coordinated of the widget (TL is (0,0), BR is (width,length))
         _mouse_pos  = self.mapFromGlobal(QtGui.QCursor.pos()) 
@@ -321,9 +313,10 @@ class QValueWidget(QWidget):
 
     def unexpected(self, **kwargs):
         """ Run if unexpected value is caught. """
-        print(f"Unexpected entry for {self.name}.")
-        for key, val in kwargs.items():
-            print(f"{key}: {val}")
+        if self.loud:
+            print(f"Unexpected entry for {self.name}.")
+            for key, val in kwargs.items():
+                print(f"{key}: {val}")
 
 class QValueRangeWidget(QValueWidget):
     """
@@ -787,6 +780,80 @@ class QValueTimeWidget(QValueWidget):
         self.update_counter = (self.update_counter + 1)%1024 
 
         return "white"
+    
+
+class QValueChangeWidget(QValueWidget):
+    """
+    A widget to be added to a GUI to display values and their status.
+
+    To just check if the value being displayed is changing or not. If changing
+    then goes with white, else red.
+
+    Example
+    -------
+    class test(QWidget):
+        \""" A test widget class to use QValueWidget. \"""
+        def __init__(self, parent=None):
+            \""" Initialise a grid on a widget and add different iterations of the QValueWidget widget. \"""
+            QWidget.__init__(self,parent)
+
+            # define layout
+            l = QGridLayout()
+
+            # create value widget and add it to the layout
+            self.value = QValueChangeWidget(name="Other", value=9, condition={"acceptable":[(1,"white"), ("the","red")])
+            l.addWidget(self.value, 0, 0) # widget, -y, x
+
+            # actually display the layout
+            self.setLayout(l)
+
+            # test the changing values
+            self.timer = QTimer()
+            self.timer.setInterval(1000) # fastest is every millisecond here
+            self.timer.timeout.connect(self.cycle_values) # call self.update_plot_data every cycle
+            self.timer.start()
+
+        def cycle_values(self):
+            \""" Add new data, update widget.\"""
+            r = np.random.randint(20, size=1)
+            self.value.update_label(r[0])
+
+    # for testing
+    app = QApplication([])
+    window = test()
+    window.show()
+    app.exec()
+    """
+    def __init__(self, name, value, condition=None, parent=None, **kwargs):
+        """ 
+        Constructs the widget and adds the latest plotted data to the widget.
+        
+        Parameters
+        ----------
+        name : `str`
+                The name to display for `value`.
+
+        value : any
+                The initial value to be displayed for the widget.
+
+        condition : NoneType
+                None
+        """
+        QValueWidget.__init__(self, name, value, condition=condition, parent=parent, **kwargs)
+    
+    def check_condition_input(self, condition):
+        return
+    
+    def condition_colour(self, value):
+        """ Returns the widget colour for the value being displayed. """
+        if not hasattr(self, "_old_value"):
+            self._old_value = value
+            return "white"
+        
+        if value==self._old_value:
+            return "red"
+        self._old_value = value
+        return "white"
         
 
 class test(QWidget):
@@ -819,6 +886,8 @@ class test(QWidget):
                                        tool_tip_values={"mean?":"N/A", "max?":"N/A"},
                                        name_plus="<sup>*</sup>")
         l.addWidget(self.value6, 2, 0) # widget, -y, x
+        self.value7 = QValueChangeWidget(name="blah", value=6)
+        l.addWidget(self.value7, 2, 1)
                                       
         
         # actually display the layout
@@ -840,6 +909,8 @@ class test(QWidget):
         self.value3.update_label(rr[0])
         self.value4.update_label(r[3])
         self.value5.update_label(r[3])
+        a = r[3] if r[3]<10 else 10
+        self.value7.update_label(a)
 
         self.value6.update_label(r[0])
         self.value6.update_tool_tip({"mean?":r[2], "max?":r[1]})

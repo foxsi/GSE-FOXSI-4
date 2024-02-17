@@ -4,17 +4,18 @@
 ### Updated Nov. 1st, 2023
 ### Updated Feb. 2nd, 2024
 ### Updated Feb. 2nd, 2024
-
+### Updated Feb. 16th, 2024
 
 # CC = Conmmand Confirmation : 160  B
-# HK = House Keeping         : 176  B  ### Size changed (Feb. 2, 2024)
+# HK = House Keeping         : 376  B  ### Size changed (Feb. 16, 2024)
 # QL = Quick Look data       : 481 kB
 # PC = Photon counting data  : 577 kB
 
-# CC and HK data are downlinked together at 336 B
+# CC and HK data are downlinked together at 536 B   ### Size changed (Feb. 16, 2024)
 
 
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 
 # Each data has 4B
@@ -88,7 +89,7 @@ QLPC_indices = {
 
 
 # get int values from input data. 
-# data has 336B(CC+HK), 481kB(QL), or 577kB(PC)
+# data has 536B(CC+HK), 481kB(QL), or 577kB(PC)
 def toInt(data, index):
     return int.from_bytes(data[index:index+bytesize], byteorder='little')
 
@@ -96,58 +97,58 @@ def toInt(data, index):
 
 ##### Commnads Confermation 160 B #####
 
-def exposureParameters(data336B):
-    gain_mode = toInt(data336B, CC_indices['gain_mode'])
-    exposureQL = toInt(data336B, CC_indices['exposureQL'])
-    exposurePC = toInt(data336B, CC_indices['exposurePC'])
-    repeat_N = toInt(data336B, CC_indices['repeat_N'])
-    repeat_n = toInt(data336B, CC_indices['repeat_n'])
-    gain_even = toInt(data336B, CC_indices['gain_even'])
-    gain_odd = toInt(data336B, CC_indices['gain_odd'])
-    ncapture = toInt(data336B, CC_indices['ncapture'])
+def exposureParameters(data536B):
+    gain_mode = toInt(data536B, CC_indices['gain_mode'])
+    exposureQL = toInt(data536B, CC_indices['exposureQL'])
+    exposurePC = toInt(data536B, CC_indices['exposurePC'])
+    repeat_N = toInt(data536B, CC_indices['repeat_N'])
+    repeat_n = toInt(data536B, CC_indices['repeat_n'])
+    gain_even = toInt(data536B, CC_indices['gain_even'])
+    gain_odd = toInt(data536B, CC_indices['gain_odd'])
+    ncapture = toInt(data536B, CC_indices['ncapture'])
     return gain_mode, exposureQL, exposurePC, repeat_N, repeat_n, gain_even, gain_odd, ncapture
 
-def operateCMOS(data336B):
-    cmos_init = toInt(data336B, CC_indices['cmos_init'])
-    cmos_training = toInt(data336B, CC_indices['cmos_training'])
-    cmos_setting = toInt(data336B, CC_indices['cmos_setting'])
-    cmos_start =  toInt(data336B, CC_indices['cmos_start'])
-    cmos_stop = toInt(data336B, CC_indices['cmos_stop'])
+def operateCMOS(data536B):
+    cmos_init = toInt(data536B, CC_indices['cmos_init'])
+    cmos_training = toInt(data536B, CC_indices['cmos_training'])
+    cmos_setting = toInt(data536B, CC_indices['cmos_setting'])
+    cmos_start =  toInt(data536B, CC_indices['cmos_start'])
+    cmos_stop = toInt(data536B, CC_indices['cmos_stop'])
     return cmos_init, cmos_training, cmos_setting, cmos_start, cmos_stop
 
-def ping(data336B):
-    ping = toInt(data336B, CC_indices['ping'])
+def ping(data536B):
+    ping = toInt(data536B, CC_indices['ping'])
     return ping
 
-def discreteCommands(data336B):
-    enable_double_command = toInt(data336B, CC_indices['enable_double_command'])
-    remove_all_data =  toInt(data336B, CC_indices['remove_all_data'])
-    reboot =  toInt(data336B, CC_indices['reboot'])
-    shutdown =  toInt(data336B, CC_indices['shutdown'])
+def discreteCommands(data536B):
+    enable_double_command = toInt(data536B, CC_indices['enable_double_command'])
+    remove_all_data =  toInt(data536B, CC_indices['remove_all_data'])
+    reboot =  toInt(data536B, CC_indices['reboot'])
+    shutdown =  toInt(data536B, CC_indices['shutdown'])
     return enable_double_command, remove_all_data, reboot, shutdown
 
 
-##### House keeping data 352B #####
+##### House keeping data 376B #####
 
-def time(data336B):
-    line_time = toInt(data336B, HK_indices['line_time'])
-    line_time_at_pps = toInt(data336B, HK_indices['line_time_at_pps'])
+def time(data536B):
+    line_time = toInt(data536B, HK_indices['line_time'])
+    line_time_at_pps = toInt(data536B, HK_indices['line_time_at_pps'])
     return line_time, line_time_at_pps
 
-def cpu(data336B):
-    cpu_load_average = toInt(data336B, HK_indices['cpu_load_average'])
+def cpu(data536B):
+    cpu_load_average = toInt(data536B, HK_indices['cpu_load_average'])
     return cpu_load_average                             
 
-def disk(data336B):
-    remaining_disk_size = toInt(data336B, HK_indices['remaining_disk_size'])
+def disk(data536B):
+    remaining_disk_size = toInt(data536B, HK_indices['remaining_disk_size'])
     return remaining_disk_size
 
-def softFpgaStatus(data336B):
-    software_status = toInt(data336B, HK_indices['software_status'])
-    error_time = toInt(data336B, HK_indices['error_time'])
-    error_flag = toInt(data336B, HK_indices['error_flag'])
-    error_training = toInt(data336B, HK_indices['error_training'])
-    data_validity = toInt(data336B, HK_indices['data_validity'])
+def softFpgaStatus(data536B):
+    software_status = toInt(data536B, HK_indices['software_status'])
+    error_time = toInt(data536B, HK_indices['error_time'])
+    error_flag = toInt(data536B, HK_indices['error_flag'])
+    error_training = toInt(data536B, HK_indices['error_training'])
+    data_validity = toInt(data536B, HK_indices['data_validity'])
     return software_status, error_time, error_flag, error_training, data_validity
 
 
@@ -174,38 +175,39 @@ def fpgaTemp(data4B):
     fpga_temp = twosComplementToDecimal(bin(value))/(2**4)
     return fpga_temp
 
-def temperature(data336B):
-    sensor_temp = sensorTemp(data336B[HK_indices['sensor_temp']:HK_indices['sensor_temp']+bytesize])
-    fpga_temp = fpgaTemp(data336B[HK_indices['fpga_temp']:HK_indices['fpga_temp']+bytesize])
+def temperature(data536B):
+    sensor_temp = sensorTemp(data536B[HK_indices['sensor_temp']:HK_indices['sensor_temp']+bytesize])
+    fpga_temp = fpgaTemp(data536B[HK_indices['fpga_temp']:HK_indices['fpga_temp']+bytesize])
     return sensor_temp, fpga_temp
 
 
-def currentExposureParameters(data336B):
-    gain_mode = toInt(data336B, HK_indices['gain_mode'])
-    exposureQL = toInt(data336B, HK_indices['exposureQL'])
-    exposurePC = toInt(data336B, HK_indices['exposurePC'])
-    repeat_N = toInt(data336B, HK_indices['repeat_N'])
-    repeat_n = toInt(data336B, HK_indices['repeat_n'])
-    gain_even = toInt(data336B, HK_indices['gain_even'])
-    gain_odd = toInt(data336B, HK_indices['gain_odd'])
-    ncapture = toInt(data336B, HK_indices['ncapture'])
+def currentExposureParameters(data536B):
+    gain_mode = toInt(data536B, HK_indices['gain_mode'])
+    exposureQL = toInt(data536B, HK_indices['exposureQL'])
+    exposurePC = toInt(data536B, HK_indices['exposurePC'])
+    repeat_N = toInt(data536B, HK_indices['repeat_N'])
+    repeat_n = toInt(data536B, HK_indices['repeat_n'])
+    gain_even = toInt(data536B, HK_indices['gain_even'])
+    gain_odd = toInt(data536B, HK_indices['gain_odd'])
+    ncapture = toInt(data536B, HK_indices['ncapture'])
     return gain_mode, exposureQL, exposurePC, repeat_N, repeat_n, gain_even, gain_odd, ncapture
 
-def downlinkData(data336B):
-    write_pointer_position_store_data = toInt(data336B, HK_indices['write_pointer_position_store_data'])
-    read_pointer_position_QL = toInt(data336B, HK_indices['read_pointer_position_QL'])
-    data_size_QL = toInt(data336B, HK_indices['data_size_QL'])
-    read_pointer_position_PC = toInt(data336B, HK_indices['read_pointer_position_PC'])
-    data_size_PC = toInt(data336B, HK_indices['data_size_PC'])
+def downlinkData(data536B):
+    write_pointer_position_store_data = toInt(data536B, HK_indices['write_pointer_position_store_data'])
+    read_pointer_position_QL = toInt(data536B, HK_indices['read_pointer_position_QL'])
+    data_size_QL = toInt(data536B, HK_indices['data_size_QL'])
+    read_pointer_position_PC = toInt(data536B, HK_indices['read_pointer_position_PC'])
+    data_size_PC = toInt(data536B, HK_indices['data_size_PC'])
     return write_pointer_position_store_data, read_pointer_position_QL, data_size_QL, read_pointer_position_PC, data_size_PC
 
 
-# # for check -----------
-# with open('data336B_test.bin', 'rb') as file:
-#     data = file.read()
-# gain_mode, exposureQL, exposurePC, repeat_N, repeat_n, gain_even, gain_odd, ncapture = exposureParameters(data)
-# print(hex(gain_mode), exposureQL, exposurePC, hex(ncapture))
-# # ---------------------
+# for check -----------
+if __name__ == "__main__":
+    with open('data536B_test.bin', 'rb') as file:
+        data = file.read()
+    gain_mode, exposureQL, exposurePC, repeat_N, repeat_n, gain_even, gain_odd, ncapture = exposureParameters(data)
+    print(hex(gain_mode), exposureQL, exposurePC, hex(ncapture))
+# ---------------------
 
 
 ##### QL data 481kB #####
@@ -234,6 +236,21 @@ def QLimageData(data481kB):
 
     return linetime, gain, exposureQL, np.reshape(pixels, (height,width))
 
+# for check ---------------
+if __name__ == "__main__":
+    with open('/Users/riko/Desktop/QL_check_downlink_new.dat', 'rb') as file:
+        QLdata = file.read()
+    linetime, gain, exposureQL, image = QLimageData(QLdata)
+
+    plt.imshow(image, cmap='gray')
+    plt.title('QL Image')
+    plt.colorbar()
+    plt.show()
+
+# image.save("testQL.png")
+
+# ---------------------------
+
 ##### End of QL #####
 
 
@@ -252,5 +269,16 @@ def PCimageData(data577kB):
     pixels = np.array([float(value) for value in decimal_list])
 
     return linetime, gain, exposurePC, np.reshape(pixels, (height,width))
+
+# for check ---------------
+if __name__ == "__main__":
+    with open('/Users/riko/Desktop/PC_check_downlink_new.dat', 'rb') as file:
+        PCdata = file.read()
+
+    linetime, gain, exposurePC, pixels = PCimageData(PCdata)
+    PCimage = Image.fromarray(np.uint8(pixels))
+    PCimage.save("testPC.png")
+
+# ---------------------------
 
 ##### End of PC #####

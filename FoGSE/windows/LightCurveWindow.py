@@ -58,7 +58,7 @@ class LightCurve(QWidget):
                                    color=colour, plotname=name, symbol="+", 
                                    symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255))
 
-        self.keep_entries = 30 # entries
+        self.keep_entries = 60 # entries
 
         # Disable interactivity
         self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
@@ -107,7 +107,7 @@ class LightCurve(QWidget):
                 print("`replace` 'this' and 'with' keys do not have lists the same length.")
 
             for t, w in zip(replace["this"],replace["with"]):
-                self.plot_data_ys[self.plot_data_ys==t] = w
+                self.plot_data_ys[np.where(self.plot_data_ys==t)] = w
 
     def add_plot_data(self, new_data_y, new_data_x=None, replace=None):
         """ Adds the new data to the array to be plotted. """
