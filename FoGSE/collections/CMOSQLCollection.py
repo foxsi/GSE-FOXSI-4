@@ -69,7 +69,9 @@ class CMOSQLCollection:
         """
         im = self._image
         # first 4 entries in first row are header entries
-        im[0, :4] = np.min(im[0])
+        if len(np.shape(im))==2:
+            im[0, :4] = np.min(im[0])
+        
         return im
     
     def plot_image(self):

@@ -738,6 +738,8 @@ class CdTeCollection:
         
     def total_count_rate(self):
         """ Just return the present total counts for the collection. """
+        if self.delta_time()==0:
+            return np.inf
         return self.total_counts()/self.delta_time()
     
     def mean_num_of_al_strips(self):
