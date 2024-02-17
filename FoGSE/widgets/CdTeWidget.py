@@ -92,7 +92,7 @@ class CdTeWidget(QWidget):
         self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
         # self.ping = QValueCheckWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
         self.ping = QValueWidget(name="Ping", value="N/A", condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
-        self.hv = QValueCheckWidget(name="HV", value="N/A", condition={"acceptable":[("0 V","rgb(90, 170, 255)"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
+        self.hv = QValueCheckWidget(name="HV", value="N/A", condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
