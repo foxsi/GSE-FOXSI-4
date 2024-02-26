@@ -52,22 +52,19 @@ class LightCurve(QWidget):
 
         # self.graphPane.setBackground('w')
         # self.graphPane.showGrid(x=True, y=True)
-        self._plot_ref = None
 
         self.plot_data_ys = np.array([0]).astype(float)
         self.plot_data_xs = np.array([0]).astype(float)
         self._remove_first = True
 
-        # self.plot_line = self.plot(self.graphPane, [], [], 
-        #                            color=colour, plotname=name, symbol="+", 
-        #                            symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255))
-        plot_refs = self.graphPane.axes.plot(self.plot_data_xs, self.plot_data_ys, colour, marker="o", ms=6)
-        self._plot_ref = plot_refs[0]
+        self.plot_line = self.plot(self.graphPane, [], [], 
+                                   color=colour, plotname=name, symbol="+", 
+                                   symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255))
 
         self.keep_entries = 60 # entries
 
         # Disable interactivity
-        # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
+        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
 
         self.setLayout(self.layoutMain)
         
@@ -78,9 +75,8 @@ class LightCurve(QWidget):
         _no_nans = ~np.isnan(self.plot_data_ys) #avoid plotting nans
         if len(self.plot_data_ys[_no_nans])>1:
             #pyqtgraph won't plot 1 data-point and throws an error instead :|
-            # self.plot_line.clear()
-            # self.plot_line.setData(self.plot_data_xs[_no_nans], self.plot_data_ys[_no_nans])
-            self.plot(self, self.plot_data_xs[_no_nans], self.plot_data_ys[_no_nans])
+            self.plot_line.clear()
+            self.plot_line.setData(self.plot_data_xs[_no_nans], self.plot_data_ys[_no_nans])
             self.counter += 1
 
     def _remove_first_artificial_point(self):
@@ -121,8 +117,7 @@ class LightCurve(QWidget):
 
         # self.sensor_plot_data_mean_tot.append(new_data)
         self.plot_data_ys = np.append(self.plot_data_ys, new_data_y)
-        # self.plot_data_xs = np.append(self.plot_data_xs, self.plot_data_xs[-1]+1) if new_data_x is None else np.append(self.plot_data_xs, new_data_x)
-        self.plot_data_xs = np.arange(len(self.plot_data_ys)) if new_data_x is None else np.append(self.plot_data_xs, new_data_x)
+        self.plot_data_xs = np.append(self.plot_data_xs, self.plot_data_xs[-1]+1) if new_data_x is None else np.append(self.plot_data_xs, new_data_x)
 
         self._remove_first_artificial_point()
         self._replace_values(replace)
@@ -132,20 +127,16 @@ class LightCurve(QWidget):
             self.plot_data_xs = self.plot_data_xs[-self.keep_entries:]
 
         self._minmax_y = np.array([np.nanmin(self.plot_data_ys), np.nanmax(self.plot_data_ys)])
-        # self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(self._minmax_y[0])*0.95)
-        # self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(self._minmax_y[1])*1.05)
-        self.graphPane.axes.set_ylim([np.nanmin(self._minmax_y[0])*0.95, np.nanmax(self._minmax_y[1])*1.05])
+        self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(self._minmax_y[0])*0.95)
+        self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(self._minmax_y[1])*1.05)
 
         self._minmax_x = np.array([np.nanmin(self.plot_data_xs), np.nanmax(self.plot_data_xs)])
-        # self.graphPane.plotItem.vb.setLimits(xMin=np.nanmin(self._minmax_x[0]))
-        # self.graphPane.plotItem.vb.setLimits(xMax=np.nanmax(self._minmax_x[1])+1)
-        self.graphPane.axes.set_xlim([np.nanmin(self._minmax_x[0]), np.nanmax(self._minmax_x[1])+1])
+        self.graphPane.plotItem.vb.setLimits(xMin=np.nanmin(self._minmax_x[0]))
+        self.graphPane.plotItem.vb.setLimits(xMax=np.nanmax(self._minmax_x[1])+1)
 
-    def plot(self, graph_widget, x, y, color="r", plotname='', **kwargs):
-        # pen = pg.mkPen(color=color, width=5)
-        # return graph_widget.plot(x, y, name=plotname, pen=pen, **kwargs)
-        graph_widget._plot_ref.set_data(x, y)
-        self.graphPane.draw()
+    def plot(self, graph_widget, x, y, color, plotname='', **kwargs):
+        pen = pg.mkPen(color=color, width=5)
+        return graph_widget.plot(x, y, name=plotname, pen=pen, **kwargs)
 
     def set_labels(self, graph_widget, xlabel="", ylabel="", title="", font_size="20pt", title_font_size="25pt"):
         """
@@ -162,13 +153,13 @@ class LightCurve(QWidget):
         xlabel, ylabel, title : `str`
             The strings relating to each label to be set.
         """
-        # if title_font_size!="0pt":
-        #     graph_widget.axes.set_title(title, color='k', size=title_font_size)
+        if title_font_size!="0pt":
+            graph_widget.setTitle(title, color='k', size=title_font_size)
 
         # Set label for both axes
         styles = {'color':'k', 'font-size':font_size, 'padding-top': '5px', 'padding-right': '5px', 'display': 'block'} 
-        graph_widget.axes.set_xlabel(xlabel)#, **styles)
-        graph_widget.axes.set_ylabel(ylabel)#, **styles)
+        graph_widget.setLabel('bottom', xlabel, **styles)
+        graph_widget.setLabel('left', ylabel, **styles)
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """

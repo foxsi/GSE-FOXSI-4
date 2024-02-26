@@ -168,10 +168,10 @@ class CdTeWindow(QWidget):
         self.layoutMain.addWidget(self.graphPane)
         self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Unixtime", ylabel="Counts", title=" ", font_size="10pt", title_font_size="0pt")
         font=QtGui.QFont("Ariel",10)
-        self.graphPane.graphPane.getAxis("bottom").setTickFont(font)
-        self.graphPane.graphPane.getAxis("left").setTickFont(font)
-        self.graphPane.graphPane.getAxis('left').textWidth = 0
-        self.graphPane.graphPane.getAxis('bottom').textHeight = 0
+        # self.graphPane.graphPane.getAxis("bottom").setTickFont(font)
+        # self.graphPane.graphPane.getAxis("left").setTickFont(font)
+        # self.graphPane.graphPane.getAxis('left').textWidth = 0
+        # self.graphPane.graphPane.getAxis('bottom').textHeight = 0
         # self.graphPane.graphPane.getAxis('left')._updateWidth()
         # self.graphPane.graphPane.getAxis('bottom')._updateWidth()
         self.graphPane.detw, self.graphPane.deth = 2, 1
@@ -218,8 +218,8 @@ class CdTeWindow(QWidget):
         """
         if self.image_product in ["image", "spectrogram"]:
             self.graphPane.getViewBox().setBackgroundColor(colour)
-        elif self.image_product in ["lightcurve"]:
-            self.graphPane.graphPane.getViewBox().setBackgroundColor(colour)
+        # elif self.image_product in ["lightcurve"]:
+        #     self.graphPane.graphPane.getViewBox().setBackgroundColor(colour)
         
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
