@@ -1,11 +1,10 @@
-import socket
+import socket, ipaddress, serial
 import os
 import sys
 import json
 import queue
 import math
 import time
-import ipaddress
 import struct
 from datetime import datetime
 
@@ -47,7 +46,7 @@ class LogFileManager:
     width. 
     """
 
-    def __init__(self, filepath: str, system: int, data: int, queue_len: int,
+    def __init__(self, filepath: str, system: int, data: int, frame_len: int,
                  payload_len: int):
         """
         Construct a new instance of `LogFileManager`.
@@ -67,7 +66,7 @@ class LogFileManager:
             the raw packet header. See `DOWNLINK_TYPE_ENUM` for a list of 
             detected raw data types.
 
-        queue_len : int
+        frame_len : int
             The number off received bytes per complete frame.
 
         payload_len : int
@@ -95,13 +94,13 @@ class LogFileManager:
 
         self.system = system
         self.data = data
-        self.queue_len = queue_len
+        self.frame_len = frame_len
         self.payload_len = payload_len
-        self.queue = bytearray(self.queue_len)
-        self.queued = [0]*math.ceil(self.queue_len/self.payload_len)
+        self.frame = bytearray(self.frame_len)
+        self.queued = [0]*math.ceil(self.frame_len/self.payload_len)
 
         print("payload len:\t", self.payload_len)
-        print("queue len:\t", self.queue_len)
+        print("frame len:\t", self.frame_len)
         print("queued len:\t", len(self.queued))
 
     def enqueue(self, raw_data: bytearray):
@@ -131,14 +130,21 @@ class LogFileManager:
 
         npackets = int.from_bytes(raw_data[1:3], byteorder='big')
         ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
-        # print(ipacket, npackets)
+
         if ipacket <= npackets:
             # add this packet to the queue, mark it as queued
-            this_index = (ipacket - 1)*self.payload_len
-            distance = len(raw_data[8:])
-            self.queue[this_index:(this_index + distance)] = raw_data[8:]
-            # print(ipacket, this_index, distance)
-            self.queued[ipacket - 1] = 1
+            
+            if self.queued[0]:
+                # if the first element in the frame is there (so CdTe doesn't get bad frames)
+                if self.queued[ipacket - 1]:
+                    # if this element already exists in the packet
+                    print("for",raw_data[0],"overwritten by",ipacket-1,"queued:",self.queued)
+                    self.write()
+                    self.add_to_frame(raw_data)
+                    return True
+            
+            self.add_to_frame(raw_data)
+                
             if all(entry == 1 for entry in self.queued):
                 self.write()
                 return True
@@ -148,14 +154,29 @@ class LogFileManager:
             print("Logging got bad packet number: ", ipacket, " for max index ", npackets)
             raise KeyError
 
+    def add_to_frame(self, packet:bytearray):
+        npackets = int.from_bytes(packet[1:3], byteorder='big')
+        ipacket = int.from_bytes(packet[3:5], byteorder='big')
+        this_index = (ipacket - 1)*self.payload_len
+        distance = min(len(packet[8:]), self.frame_len)
+        self.frame[this_index:(this_index + distance)] = packet[8:]
+        # if ipacket == npackets == 1:
+        #     print("singleton frame:")
+        #     print(packet[:8])
+        #     print("packet length",len(packet))
+        #     print(self.frame)
+        #     print(ipacket, this_index, distance)
+        self.queued[ipacket - 1] = 1
+        # print(self.queued)
+                
     def write(self):
         """
         Writes data in `self.queue` to `self.file`, then refreshes queue.
         """
-        self.file.write(self.queue)
+        self.file.write(self.frame)
         self.file.flush()
-        print("wrote " + str(len(self.queue)) + " bytes to " + self.filepath)
-        self.queue = bytearray(self.queue_len)
+        print("wrote " + str(len(self.frame)) + " bytes to " + self.filepath)
+        self.frame = bytearray(self.frame_len)
         self.queued = [0]*len(self.queued)
 
 
@@ -217,9 +238,12 @@ class Listener():
                                                             json_dict)
             self.remote_system_config = self.get_system_dict(remote_system,
                                                              json_dict)
+            self.uplink_system_config = self.get_system_dict("uplink",
+                                                             json_dict)
 
             if self.local_system_config is None or \
-                    self.remote_system_config is None:  
+                    self.remote_system_config is None or \
+                        self.uplink_system_config is None:  
                 print("can't access system in provided JSON!")
                 raise RuntimeError
 
@@ -267,8 +291,26 @@ class Listener():
             except OSError:
                 if os.path.exists(self.unix_socket_path):
                     raise RuntimeError
+                
+            try:
+                self.uplink_port_path = self.local_system_config["logger_interface"]["uplink_device"]
+                
+                self.uplink_port = serial.Serial(
+                    self.uplink_port_path,
+                    baudrate=self.uplink_system_config["uart_interface"]["baud_rate"],
+                    timeout=1
+                )
+                print("opened uplink serial port at",self.uplink_port_path)
+            except:
+                print("could not open uplink serial port at",self.uplink_port_path)
 
-            self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            try:
+                self.mcast_group = self.local_system_config["ethernet_interface"]["mcast_group"]
+                self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            except KeyError:
+                self.mcast_group = None
+                self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            
             self.local_recv_port = self.local_system_config["ethernet_interface"]["port"]
             self.local_recv_endpoint = (self.local_recv_address, self.local_recv_port)
             # todo: populate these correctly from JSON
@@ -282,7 +324,7 @@ class Listener():
 
             self.unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             self.unix_socket.bind(self.unix_socket_path)
-            self.unix_socket.settimeout(0.01)
+            self.unix_socket.settimeout(0.001)
 
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
@@ -292,38 +334,37 @@ class Listener():
             self.local_send_socket.connect(self.remote_endpoint)
 
             # setup UDP interface
-            ip = ipaddress.IPv4Address(self.local_recv_address)
-            if ip.is_multicast:
+            if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
                 print("got multicast address")
                 # open the socket for standard use
                 self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-                self.local_recv_socket.bind(('224.0.0.118', 9999))
-                
-                group = socket.inet_aton('224.0.0.118')
-                interface = socket.inet_aton('192.168.1.119')
+                self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
+                mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
 
-                print("group: ", group)
-                print("interface: ", interface)
-                mreq = struct.pack('4sl', group, int.from_bytes(interface, byteorder='big'))
+                # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
                 self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                    self.mcast_group + ":" + str(self.local_recv_port))
             
             else:
-                print("got unicast address")
-                # open the socket one way
-                self.local_recv_socket = self.local_send_socket
-                # self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                # self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                # self.local_recv_socket.bind(self.local_recv_endpoint)
+                # listen on a unicast socket
+                self.local_recv_socket = socket.socket(
+                    socket.AF_INET, socket.SOCK_DGRAM)
+                self.local_recv_socket.bind((self.local_recv_address, self.local_port))
+                self.local_recv_socket.connect(self.remote_endpoint)
+                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                    self.local_recv_address + ":" + str(self.local_recv_port))
             
-            self.local_recv_socket.settimeout(0.1)
-            self.local_send_socket.settimeout(1.0)
-            print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                  self.local_recv_endpoint[0] + ":" + str(self.local_recv_endpoint[1]))
+            self.local_recv_socket.settimeout(0.01)
+            self.local_send_socket.settimeout(0.001)
+            # print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+            #       self.local_recv_endpoint[0] + ":" + str(self.local_recv_endpoint[1]))
 
-            print("sending uplink on Ethernet datagram socket at:\t",
-                  self.local_send_endpoint[0] + ":" + str(self.local_send_endpoint[1]))
+            print("sending uplink on serial port at:\t",
+                  self.uplink_port_path)
             
             self._uplink_message_queue = queue.Queue()
 
@@ -377,7 +418,7 @@ class Listener():
         file.
         """
         try:
-            data, sender = self.local_recv_socket.recvfrom(4096)
+            data, sender = self.local_recv_socket.recvfrom(2048)
             # print("logging", len(data), "bytes")
             if len(data) < 8:
                 return
@@ -391,7 +432,7 @@ class Listener():
                 print("other error: ", e)
                 # todo: dump this in a aggregate log
         except socket.timeout:
-            print("read timed out")
+            # print("read timed out")
             return
 
     def _run_log(self):
@@ -419,20 +460,20 @@ class Listener():
                 try:
                     if len(message) == 2:
                         print(message)
-                        print(self.local_send_socket.getsockname())
-                        print(self.local_send_socket.getpeername())
-                        self.local_send_socket.sendall(bytes(message))
+                        # print(self.local_send_socket.getsockname())
+                        # print(self.local_send_socket.getpeername())
+                        # self.local_send_socket.sendall(bytes(message))
+                        self.uplink_port.write(bytes(message))
                         print("transmitted " +
-                                str(message) + " to Formatter.")
+                                str(message) + " to Formatter on", self.local_send_endpoint[0], ":", self.local_send_endpoint[1])
                     else:
                         print("found bad uplink command in queue! discarding.")
                 except Exception as e:
                     print("couldn't send uplink command! ignoring.")
                     print("\tException:",e)
                     continue
-
             self.read_local_socket_to_log()
-            time.sleep(0.01)
+            # time.sleep(0.01)
 
     def get_system_dict(self, name: str, json_dict: dict):
         """

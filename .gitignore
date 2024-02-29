@@ -138,4 +138,6 @@ dmypy.json
 .vscode/
 
 # log files
-log/*
+logs/*
+
+backup*/
