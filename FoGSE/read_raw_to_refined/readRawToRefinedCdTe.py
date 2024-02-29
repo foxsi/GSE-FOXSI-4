@@ -8,6 +8,7 @@ Can read:
 
 import struct
 import numpy as np
+import os
 
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
@@ -16,6 +17,17 @@ from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
 
+import json
+from FoGSE.utils import get_system_dict
+
+FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+json_config_file = FILE_DIR+"/../../foxsi4-commands/systems.json"
+with open(json_config_file, "r") as json_config:
+    json_dict = json.load(json_config)
+
+    BYTES = int(get_system_dict("cdte1",json_dict)["spacewire_interface"]["ring_buffer_interface"]["pc"]["ring_frame_size_bytes"], 16)
+
+# {"cdte_pc":["cdte1", "spacewire_interface", "ring_buffer_interface", "pc", "ring_frame_size_bytes"]}
 
 class CdTeReader(ReaderBase):
     """
@@ -29,8 +41,9 @@ class CdTeReader(ReaderBase):
         Collected : organised by intrumentation
         """
         ReaderBase.__init__(self, datafile, parent)
+        print(BYTES)
 
-        self.define_buffer_size(size=32_780)#100_000#32_780
+        self.define_buffer_size(size=BYTES)#100_000#32_780
         self.call_interval(100)
 
     def extract_raw_data(self):
