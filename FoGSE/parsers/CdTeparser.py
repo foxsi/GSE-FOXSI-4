@@ -434,7 +434,7 @@ def CdTecanisterhkparser(data: bytes):
         b"\x5a\x5a\x01\x00\x03\x03\x03\x03\x5a\x5a\x5a\x5a": "HV = 200 V",
         b"\x5a\x5a\x01\x00\x06\x06\x06\x06\x5a\x5a\x5a\x5a": "DAQ param update",
         b"\x5a\x5a\x01\x00\x07\x07\x07\x07\x5a\x5a\x5a\x5a": "ASIC param update",
-        b"\x5a\x5a\x01\x00\x05\x05\x05\x05\x5a\x5a\x5a\x5a": "ended",
+        b"\x5a\x5a\x01\x00\x05\x05\x05\x05\x5a\x5a\x5a\x5a": "ended"
     }
 
     status = ""
@@ -475,7 +475,7 @@ def CdTedehkparser(data: bytes):
         error_flag = True
         return [{},error_flag]
     
-    status_raw      = data[0     :   0x12]
+    status_raw      = data[0     :   0x0c]
     ping_raw        = data[0x0c  :   0x0c+4]
     temp_raw        = data[0x10  :   0x10+4]
     cpu_raw         = data[0x14  :   0x14+4]
