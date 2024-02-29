@@ -29,6 +29,19 @@ from PyQt6.QtWidgets import QWidget
 # for example `from FoGSE.parsers.CdTeparser import CdTerawalldata2parser`
 # for example from `FoGSE.collections.CdTeCollection import CdTeCollection`
 
+# import json
+# from FoGSE.utils import get_system_dict
+# FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+# json_config_file = FILE_DIR+"/../../foxsi4-commands/systems.json"
+# with open(json_config_file, "r") as json_config:
+#     json_dict = json.load(json_config)
+
+#     BYTES = int(get_system_dict("cdte1",json_dict)["spacewire_interface"]["ring_buffer_interface"]["pc"]["ring_frame_size_bytes"], 16)
+
+# # {"cdte_pc":["cdte1", "spacewire_interface", "ring_buffer_interface", "pc", "ring_frame_size_bytes"]}
+
+def get_frame_size():
+    pass
 
 class ReaderBase(QWidget):
     """
@@ -65,7 +78,7 @@ class ReaderBase(QWidget):
 
         # default is update plot every 100 ms
         self.call_interval()
-        # read 50,000 bytes from the end of `self.data_file` at a time
+        # read 25,000 bytes from the end of `self.data_file` at a time
         self.define_buffer_size(size=25_000)
 
         self.setup_and_start_timer()
