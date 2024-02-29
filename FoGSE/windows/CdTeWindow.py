@@ -10,6 +10,7 @@ import pyqtgraph as pg
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
+from FoGSE.windows.LightCurveWindow import LightCurve
 from FoGSE.windows.images import rotatation
 
 
@@ -29,27 +30,31 @@ class CdTeWindow(QWidget):
         Default: None
 
     plotting_product : `str`
-        String to determine whether an "image" and or "spectrogram" should be shown.
+        String to determine whether an "image", "spectrogram", or "lightcurve" 
+        should be shown.
         Default: "image"
     """
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", parent=None):
+    add_box_signal = QtCore.pyqtSignal()
+    remove_box_signal = QtCore.pyqtSignal()
+
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", parent=None):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
-        self.graphPane = pg.PlotWidget()
+        # self.graphPane = pg.PlotWidget()
         # self.graphPane.setMinimumSize(QtCore.QSize(200,100)) # was 250,250
         # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
 
         self.layoutMain = QGridLayout()
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
-        self.layoutMain.addWidget(self.graphPane)
+        # self.layoutMain.addWidget(self.graphPane)
         self.setLayout(self.layoutMain)
 
         self.name = name
         self.integrate = integrate
-        self.name = self.name+": Integrated" if self.integrate else self.name
+        self.colour = colour
 
         # decide how to read the data
         if data_file is not None:
@@ -61,12 +66,18 @@ class CdTeWindow(QWidget):
         else:
             print("How do I read the CdTe data?")
 
+        _pos = self.name_to_position(self.name)
+        self.name = self.name+f": pos#{_pos}"
+        self.name = self.name+": Integrated" if self.integrate else self.name
+
         # make this available everywhere, incase a rotation is specified for the image
         self.image_angle = image_angle
             
         self.image_product = plotting_product
         if self.image_product in ["image", "spectrogram"]:
             self.setup_2d()
+        elif self.image_product in ["lightcurve"]:
+            self.setup_1d()
         else:
             print("Nothing else is set-up yet.")
 
@@ -76,8 +87,37 @@ class CdTeWindow(QWidget):
         # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
 
         self.update_background(colour=(10,40,80,100))#colour="white"
+
+        self.add_rotate_frame()
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
+        if event.type() == QtCore.QEvent.Type.Enter:
+            # self.add_rotate_frame()
+            self.add_box_signal.emit()
+        elif event.type() == QtCore.QEvent.Type.Leave:
+            # self.remove_rotate_frame()
+            self.remove_box_signal.emit()
+        return super(CdTeWindow, self).eventFilter(obj, event)
+    
+    def name_to_position(self, data_file):
+        """ CdTe detector focal plane position from file name. """
+        for key, item in self.det_and_pos_mapping().items():
+            if key in data_file:
+                return item
+        return "??"
+    
+    def det_and_pos_mapping(self):
+        """ CdTe detectors and their focal plane position mapping. """
+        return {"cdte1":5, "cdte2":3, "cdte3":4, "cdte4":2}
         
     def setup_2d(self):
+        """ Set up for 2D plotting products. """
+
+        self.graphPane = pg.PlotWidget()
+        self.layoutMain.addWidget(self.graphPane)
+
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
         self.colour_mode = "rgba"
         self.channel = {"red":0, "green":1, "blue":2}
@@ -119,7 +159,49 @@ class CdTeWindow(QWidget):
         self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
         self.graphPane.addItem(self.img)
 
-        self.set_image_colour("green")
+        self.set_image_colour(self.colour)
+
+    def setup_1d(self):
+        """ Set up for 1D plotting products. """
+        # self.graphPane= LightCurve(reader=self.reader, name="Counts")
+        self.graphPane = LightCurve(reader=self.reader, name="Counts", colour=self.colour)
+        self.layoutMain.addWidget(self.graphPane)
+        self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Unixtime", ylabel="Counts", title=" ", font_size="10pt", title_font_size="0pt")
+        font=QtGui.QFont("Ariel",10)
+        self.graphPane.graphPane.getAxis("bottom").setTickFont(font)
+        self.graphPane.graphPane.getAxis("left").setTickFont(font)
+        self.graphPane.graphPane.getAxis('left').textWidth = 0
+        self.graphPane.graphPane.getAxis('bottom').textHeight = 0
+        # self.graphPane.graphPane.getAxis('left')._updateWidth()
+        # self.graphPane.graphPane.getAxis('bottom')._updateWidth()
+        self.graphPane.detw, self.graphPane.deth = 2, 1
+        self.graphPane.aspect_ratio = self.graphPane.detw/self.graphPane.deth
+        self.detw, self.deth = 256, 1024
+        self.update_aspect(aspect_ratio=2)
+        
+    def add_rotate_frame(self):
+        """ A rectangle to indicate image rotation. """
+        if self.image_product!="image":
+            return
+        
+        ql_center_width, ql_center_height = int(self.detw/2),int(self.deth/2)
+        im_width, im_height = 128, 128
+        # self.rect = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
+        self.im_rect = QtWidgets.QGraphicsRectItem(int(ql_center_width-im_width/2), 
+                                                int(ql_center_height-im_height/2), 
+                                                int(im_width), 
+                                                int(im_height)) # x, y, w, h
+        self.im_rect.setPen(pg.mkPen((255, 255, 255, 255), width=3))
+        self.im_rect.setBrush(pg.mkBrush((255, 255, 255, 0)))
+        self.im_rect.setTransformOriginPoint(self.img.boundingRect().center())
+        # self.rect.setRotation(0) #+ve is anticlockwise and -ve is clockwise
+        self.im_rect.setRotation(-self.image_angle) #+ve is anticlockwise and -ve is clockwise
+        self.graphPane.addItem(self.im_rect)
+
+    def remove_rotate_frame(self):
+        """ Removes rectangle indicating the image rotation. """
+        if hasattr(self,"rect") and (self.image_product=="image"):
+            self.graphPane.removeItem(self.im_rect)
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
@@ -134,8 +216,11 @@ class CdTeWindow(QWidget):
               colour=\"white\"
               etc.
         """
-        self.graphPane.getViewBox().setBackgroundColor(colour)
-    
+        if self.image_product in ["image", "spectrogram"]:
+            self.graphPane.getViewBox().setBackgroundColor(colour)
+        elif self.image_product in ["lightcurve"]:
+            self.graphPane.graphPane.getViewBox().setBackgroundColor(colour)
+        
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
         self.aspect_ratio = aspect_ratio
@@ -168,39 +253,50 @@ class CdTeWindow(QWidget):
         *`update_image` to define how the new image affects the current one,
         *`process_data` to perform any last steps before updating the plot.
         """
-        
-        # get the new frame
-        if self.image_product=="image":
-            new_frame = self.reader.collection.image_array(area_correction=False)[:,::-1]
-            new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
-            self.update_method = "fade"
-        elif self.image_product=="spectrogram":
-            new_frame = self.reader.collection.spectrogram_array(remap=True, 
-                                                                  nan_zeros=False, 
-                                                                  cmn_sub=False).T
-            print("Min/max CdTe frame1",np.min(new_frame),np.max(new_frame))
-            _new_frame_gt0 = new_frame[new_frame>0]
-            _new_frame_cap = np.median(_new_frame_gt0) + 2*np.std(_new_frame_gt0)
-            new_frame[new_frame>_new_frame_cap] = _new_frame_cap
-            print("New Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
-            self.update_method = "replace"
+        if self.image_product in ["image", "spectrogram"]:
+            # get the new frame
+            if self.image_product=="image":
+                new_frame = self.reader.collection.image_array(area_correction=False)[:,::-1]
+                new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
+                # import matplotlib.pyplot as plt
+                # plt.figure()
+                # plt.hist(new_frame)
+                # plt.xlim([-10,50])
+                # plt.show()
+                # new_frame[new_frame<0] = 0 # because interp 0s causes tiny artifacts
+                self.update_method = "fade"
+            elif self.image_product=="spectrogram":
+                new_frame = self.reader.collection.spectrogram_array(remap=True, 
+                                                                    nan_zeros=False, 
+                                                                    cmn_sub=False).T
+                print("Min/max CdTe frame1",np.min(new_frame),np.max(new_frame))
+                _new_frame_gt0 = new_frame[new_frame>0]
+                _new_frame_cap = np.median(_new_frame_gt0) + 2*np.std(_new_frame_gt0)
+                new_frame[new_frame>_new_frame_cap] = _new_frame_cap
+                print("New Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
+                self.update_method = "replace"
 
-        self.update_method = "integrate" if self.integrate else self.update_method
+            self.update_method = "integrate" if self.integrate else self.update_method
 
-        # update current plotted data with new frame
-        self.update_image(existing_frame=self.my_array, new_frame=new_frame)
-        
-        # define self.qImageDetails for this particular image product
-        self.process_data()
+            # update current plotted data with new frame
+            self.update_image(existing_frame=self.my_array, new_frame=new_frame)
+            
+            # define self.qImageDetails for this particular image product
+            self.process_data()
 
-        # # new image
-        q_image = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
+            # # new image
+            q_image = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
 
-        # faster long term to remove pervious frame and replot new one
-        self.graphPane.removeItem(self.img)
-        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
-        self.graphPane.addItem(self.img)
+            # faster long term to remove pervious frame and replot new one
+            self.graphPane.removeItem(self.img)
+            self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
+            self.graphPane.addItem(self.img)
+        elif self.image_product in ["lightcurve"]:
+            # defined how to add/append onto the new data arrays
+            self.graphPane.add_plot_data(self.reader.collection.total_counts(), new_data_x=self.reader.collection.mean_unixtime(), replace={"this":[0], "with":[np.nan]})
+
+            # plot the newly updated x and ys
+            self.graphPane.manage_plotting_ranges()
 
         self.update()
 
@@ -220,7 +316,7 @@ class CdTeWindow(QWidget):
         new_frame : `numpy.ndarray`
             This is a 2D array of the new image frame created from the latest data of shape (`self.deth`,`self.detw`).
         """
-
+        
         # if new_frame is a list then it's empty and so no new frame, make all 0s
         if isinstance(new_frame,list): 
             new_frame = np.zeros((self.deth, self.detw))
@@ -302,9 +398,11 @@ class CdTeWindow(QWidget):
         """
     
         # make sure every colour (axis=2) is normalised between 0--255
-        norm = np.max(self.my_array, axis=(0,1))
+        norm = np.quantile(self.my_array, 0.99, axis=(0,1))
+        # norm = np.max(self.my_array, axis=(0,1))
         norm[norm==0] = 1 # can't divide by 0
         uf = self.max_val*self.my_array//norm
+        uf[uf>self.max_val] = self.max_val
 
         # allow this all to be looked at if need be
         self.qImageDetails = [uf.astype(self.numpy_format), self.detw, self.deth, self.cformat]

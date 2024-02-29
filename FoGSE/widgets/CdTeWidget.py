@@ -8,8 +8,10 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCdTeHK import CdTeHKReader
+from FoGSE.read_raw_to_refined.readRawToRefinedDE import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
-from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget
+from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
@@ -20,7 +22,7 @@ class CdTeWidget(QWidget):
 
     Parameters
     ----------
-    data_file : `str` 
+    data_file_pc : `str` 
         The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
         Default: None
 
@@ -28,15 +30,18 @@ class CdTeWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file=None, name="CdTe", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file)
+        reader = CdTeReader(datafile=data_file_pc)
+        self.reader_hk = CdTeHKReader(datafile=data_file_hk)
+        self.reader_de = DEReader(datafile=data_file_de)
+
+        self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
         self.detw, self.deth = 50, 50
-        # self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
@@ -44,8 +49,6 @@ class CdTeWidget(QWidget):
         image_layout = QtWidgets.QGridLayout()
         ped_layout = QtWidgets.QGridLayout()
         value_layout = QtWidgets.QVBoxLayout()
-        # image_layout.setColumnStretch(0,1)
-        # image_layout.setRowStretch(0,1)
 
         self.panels = dict() # for all the background panels
         
@@ -55,14 +58,8 @@ class CdTeWidget(QWidget):
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
-        # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
-        # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
-        
-        # image_layout.addWidget(self.image)
-        # self._image_layout.setColumnStretch(0, 1)
-        # self._image_layout.setRowStretch(0, 1)
 
         ## for CdTe pedestal
         # widget for displaying the automated recommendation
@@ -70,146 +67,112 @@ class CdTeWidget(QWidget):
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
         self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
-        # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
-        # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.lc = CdTeWindow(reader=reader, plotting_product="lightcurve", name="")
         self.ped.setStyleSheet("border-width: 0px;")
         self._ped_layout.addWidget(self.ped) 
-        # self._ped_layout.setColumnStretch(0, 1)
-        # self._ped_layout.setRowStretch(0, 1)
+        self.ped_layout = ped_layout
+
+        self.ped.mousePressEvent = self._switch2lc
+        self.lc.mousePressEvent = self._switch2ped
 
         # status values
         self._value_layout = self.layout_bkg(main_layout=value_layout, 
                                              panel_name="value_panel", 
                                              style_sheet_string=self._layout_style("white", "white"))
-        # self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf})
-        # self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf})
-        # self.cts = QValueRangeWidget(name="Ct (ct)", value="N/A", condition={"low":0,"high":np.inf})
-        # self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15})
-        
-        # self.frames = QValueRangeWidget(name="# frames (t,t-1)", value=8, condition={"low":2,"high":15})
-        # self.frames_t = QValueRangeWidget(name="# frames (t,t-1)", value=8, condition={"low":2,"high":15})
-        # self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15})
-        # self.asic_vth = QValueRangeWidget(name="ASIC (vth,dth)", value="N/A", condition={"low":2,"high":15})
-        # self.asic_dth = QValueRangeWidget(name="ASIC (vth,dth)", value="N/A", condition={"low":2,"high":15})
-        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15})
-
-        # need to groupd some of these for the layout
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
-        self.software_stat = QValueRangeWidget(name="SW Status", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.de_mode = QValueRangeWidget(name="DE mode", value="N/A", condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=de_layout_colour)
+        self.software_stat = QValueTimeWidget(name="SW Stat.", 
+                                              value=self._default_qvaluewidget_value, 
+                                              time=4000, 
+                                              condition=[int, float, np.int64, str], 
+                                              border_colour=de_layout_colour,
+                                              tool_tip_values={"ASIC VTH":QValueWidget(name="ASIC VTH", value=self._default_qvaluewidget_value), 
+                                                               "ASIC DTH":QValueWidget(name="ASIC DTH", value=self._default_qvaluewidget_value), 
+                                                               "ASIC Load":QValueWidget(name="ASIC Load", value=self._default_qvaluewidget_value)},
+                                              name_plus="<sup>*</sup>")
+        self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        # self.ping = QValueCheckWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.ping = QValueWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.hv = QValueCheckWidget(name="HV", value=self._default_qvaluewidget_value, condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
         de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
         de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
         de_layout.addWidget(self.ping, 2, 0, 1, 2) 
+        de_layout.addWidget(self.hv, 3, 0, 1, 2) 
         # counts
         cts_layout = QtWidgets.QGridLayout()
         cts_layout_colour = "rgb(141, 141, 134)"
-        self.cts = QValueRangeWidget(name="Ct", value="N/A", condition={"low":0,"high":np.inf}, border_colour=cts_layout_colour)
-        self.ctr = QValueRangeWidget(name="Ct/s", value=14, condition={"low":2,"high":15}, border_colour=cts_layout_colour)
+        self.cts = QValueRangeWidget(name="<span>&#931;</span> Ct", 
+                                     value=self._default_qvaluewidget_value, 
+                                     condition={"low":0,"high":np.inf}, 
+                                     border_colour=cts_layout_colour,
+                                     tool_tip_values={"Ct Now":self._default_qvaluewidget_value, 
+                                                      "Ct Mean":self._default_qvaluewidget_value, 
+                                                      "Ct Median":self._default_qvaluewidget_value, 
+                                                      "Ct Max.":self._default_qvaluewidget_value, 
+                                                      "Ct Min.":self._default_qvaluewidget_value},
+                                     name_plus="<sup>*</sup>")
+        self.ctr = QValueRangeWidget(name="<span>&#931;</span> Ct/s", 
+                                     value=self._default_qvaluewidget_value, 
+                                     condition={"low":0,"high":np.inf}, 
+                                     border_colour=cts_layout_colour,
+                                     tool_tip_values={"Ct/s Now":self._default_qvaluewidget_value, 
+                                                      "Ct/s Mean":self._default_qvaluewidget_value, 
+                                                      "Ct/s Median":self._default_qvaluewidget_value, 
+                                                      "Ct/s Max.":self._default_qvaluewidget_value, 
+                                                      "Ct/s Min.":self._default_qvaluewidget_value},
+                                     name_plus="<sup>*</sup>")
         cts_layout.addWidget(self.cts, 0, 0, 1, 2) 
         cts_layout.addWidget(self.ctr, 1, 0, 1, 2) 
         # strips
         strips_layout = QtWidgets.QGridLayout()
         strips_layout_colour = "rgb(213, 105, 48)"
-        self.strips = QValueWidget(name="# of det. strips", value="", separator="", border_colour=strips_layout_colour)
-        self.strips_al = QValueRangeWidget(name="Pt", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
-        self.strips_pt = QValueRangeWidget(name="Al", value=0, condition={"low":0,"high":127}, border_colour=strips_layout_colour)
+        self.strips = QValueWidget(name="Mean # det. strips", value="", separator="", border_colour=strips_layout_colour)
+        self.strips_al = QValueWidget(name="Pt", value=self._default_qvaluewidget_value, border_colour=strips_layout_colour)
+        self.strips_pt = QValueWidget(name="Al", value=self._default_qvaluewidget_value, border_colour=strips_layout_colour)
         strips_layout.addWidget(self.strips, 0, 0, 1, 2) 
-        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 1) 
-        strips_layout.addWidget(self.strips_al, 1, 1, 1, 1) 
+        strips_layout.addWidget(self.strips_pt, 1, 0, 1, 2) 
+        strips_layout.addWidget(self.strips_al, 2, 0, 1, 2) 
         # frames
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
         self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        self.frames_t = QValueRangeWidget(name="t", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueRangeWidget(name="t-1", value=0, condition={"low":0,"high":127}, border_colour=frames_layout_colour)
+        self.frames_t = QValueRangeWidget(name="t", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
-        frames_layout.addWidget(self.frames_t, 1, 0, 1, 1) 
-        frames_layout.addWidget(self.frames_tm1, 1, 1, 1, 1)
-        # # asics
-        # asic_layout = QtWidgets.QGridLayout()
-        # asic_layout_colour = "rgb(234, 141, 54)"
-        # self.asic = QValueWidget(name="ASIC", value="", separator="", border_colour=asic_layout_colour)
-        # self.asic_vth = QValueRangeWidget(name="VTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
-        # self.asic_dth = QValueRangeWidget(name="DTH", value=0, condition={"low":0,"high":127}, border_colour=asic_layout_colour)
-        # self.asic_load = QValueRangeWidget(name="ASIC load", value=2, condition={"low":2,"high":15}, border_colour=asic_layout_colour)
-        # asic_layout.addWidget(self.asic, 0, 0, 1, 2) 
-        # asic_layout.addWidget(self.asic_vth, 1, 0, 1, 1) 
-        # asic_layout.addWidget(self.asic_dth, 1, 1, 1, 1)
-        # asic_layout.addWidget(self.asic_load, 2, 0, 1, 2)
-        # ping
-        # ping_layout = QtWidgets.QGridLayout()
-        # ping_layout_colour = "rgb(213, 105, 48)"
-        # self.ping = QValueRangeWidget(name="ping", value=60, condition={"low":2,"high":15}, border_colour=ping_layout_colour)
-        # ping_layout.addWidget(self.ping, 0, 0, 1, 2) 
-
-        # self._value_layout.addWidget(self.software_stat) 
-        # self._value_layout.addWidget(self.de_mode) 
+        frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
+        frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
+        
+        
         self._value_layout.addLayout(de_layout) 
 
         self._value_layout.addLayout(cts_layout) 
         
         self._value_layout.addLayout(strips_layout) 
         self._value_layout.addLayout(frames_layout)
-        # self._value_layout.addLayout(asic_layout)  
-
-        # self._value_layout.addLayout(ping_layout) 
-        # self._value_layout.addWidget(self.asic_vth) 
-        # self._value_layout.addWidget(self.asic_dth) 
-        # self._value_layout.addWidget(self.asic_load) 
         set_all_spacings(self._value_layout)
-        # self.somevalue0.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue1.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue2.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue3.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue4.setMinimumSize(QtCore.QSize(200,100))
-        # self.somevalue5.setMinimumSize(QtCore.QSize(200,100))
 
-        self.image.reader.value_changed_collection.connect(self.all_fields)
+        self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
+        self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
+        self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
 
         ## all widgets together
         # image
         global_layout = QGridLayout()
-        # global_layout.addWidget(self.image, 0, 0, 4, 4)
-        global_layout.addLayout(image_layout, 0, 0, 4, 4)#,
-                                #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop) # y,x,h,w
-        # pedestal
-        # global_layout.addWidget(self.ped, 4, 0, 4, 3)
-        global_layout.addLayout(ped_layout, 4, 0, 2, 4)#,
-                                #alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignBottom)# y,x,h,w
-        # status values
-        # global_layout.addWidget(self.somevalue0, 0, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue1, 1, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue2, 2, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue3, 3, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue4, 4, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue5, 5, 4, 1, 1)
-        # global_layout.addWidget(self.somevalue5, 6, 4, 1, 1)
-        global_layout.addLayout(value_layout, 0, 4, 6, 2)#,
-                                #alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignBottom)
-        
-        # make sure all cell sizes in the grid expand in proportion
-        # for col in range(global_layout.columnCount()):
-        #     global_layout.setColumnStretch(col, 1)
-        # for row in range(global_layout.rowCount()):
-        #     global_layout.setRowStretch(row, 1)
+        global_layout.addLayout(image_layout, 0, 0, 4, 4)
+        global_layout.addLayout(ped_layout, 4, 0, 2, 4)
+        global_layout.addLayout(value_layout, 0, 4, 6, 2)
+
         unifrom_layout_stretch(global_layout, grid=True)
 
-        # image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._image_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
-        # image_layout.setContentsMargins(0, 0, 0, 0)
-        # ped_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
         self._ped_layout.setContentsMargins(0, 0, 0, 0)
         self._value_layout.setContentsMargins(0, 0, 0, 0)
         self._value_layout.setSpacing(6)
         strips_layout.setSpacing(0)
         frames_layout.setSpacing(0)
-        # asic_layout.setSpacing(0)
         de_layout.setSpacing(0)
         cts_layout.setSpacing(0)
-        # ping_layout.setSpacing(0)
         global_layout.setHorizontalSpacing(0)
         global_layout.setVerticalSpacing(0)
         global_layout.setContentsMargins(0, 0, 0, 0)
@@ -217,12 +180,103 @@ class CdTeWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
-    def all_fields(self):
+    def all_fields_from_data(self):
         """ 
         Update the:
         * count rate field, 
         """
-        self.cts.update_label(self.image.reader.collection.total_counts())
+        # self.software_stat.update_label(...)
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+
+        total_counts = self.image.reader.collection.total_counts()
+        self.cts.update_label(total_counts)
+        _lc_info = self._get_lc_info()
+        self.cts.update_tool_tip({"Ct Now":total_counts, 
+                                  "Ct Mean":round(_lc_info["Ct Mean"], 1), 
+                                  "Ct Median":round(_lc_info["Ct Median"], 1), 
+                                  "Ct Max.":_lc_info["Ct Max."], 
+                                  "Ct Min.":_lc_info["Ct Min."]})
+        
+        delta_time = self.image.reader.collection.delta_time()
+        self.ctr.update_label(round(total_counts/delta_time, 1))
+        self.ctr.update_tool_tip({"Ct/s Now":round(total_counts/delta_time, 1), 
+                                  "Ct/s Mean":round(_lc_info["Ct Mean"]/delta_time, 1), 
+                                  "Ct/s Median":round(_lc_info["Ct Median"]/delta_time, 1), 
+                                  "Ct/s Max.":round(_lc_info["Ct Max."]/delta_time, 1), 
+                                  "Ct/s Min.":round(_lc_info["Ct Min."]/delta_time, 1)})
+
+        self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
+        self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
+        
+    def all_fields_from_hk(self):
+        """ 
+        Update the:
+        * count rate field, 
+        """
+        # ... = self.reader_hk.collection.something()
+        # ... = self.reader_de.collection.something()
+        # self.software_stat.update_label(self.reader_hk.collection.get_status())
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+        # self.de_mode.update_label(...)
+        # self.ping.update_label(...)
+        self.hv.update_label(self.reader_hk.collection.get_hv_set()) #get_hv_exec
+
+        self.frames_t.update_label(self.reader_hk.collection.get_frame_count())
+        if hasattr(self, "_old_frames_t"):
+            self.frames_tm1.update_label(self._old_frames_t)
+        self._old_frames_t = self.reader_hk.collection.get_frame_count()
+
+    def all_fields_from_de(self):
+        """ 
+        Update the:
+        * count rate field, 
+        """
+        self.software_stat.update_label(self.reader_de.collection.get_status())
+        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        #                                     "ASIC DTH":..., 
+        #                                     "ASIC Load":...})
+        # self.de_mode.update_label(...)
+        self.ping.update_label(self.reader_de.collection.get_ping())
+    
+        # self.reader_de.collection. methods
+        # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
+        
+    def _get_lc_info(self):
+        """ To update certain fields, we look to the lightcurve information. """
+        if len(self.lc.graphPane.plot_data_ys)<2:
+            return {"Ct Mean":self._default_qvaluewidget_value,
+                    "Ct Median":self._default_qvaluewidget_value, 
+                    "Ct Max.":self._default_qvaluewidget_value, 
+                    "Ct Min.":self._default_qvaluewidget_value}
+        elif len(self.lc.graphPane.plot_data_ys)==2:
+            lc_data = self.lc.graphPane.plot_data_ys[1:] 
+        else:
+            lc_data = self.lc.graphPane.plot_data_ys
+
+        return {"Ct Mean":np.nanmean(lc_data),
+                "Ct Median":np.nanmedian(lc_data), 
+                "Ct Max.":np.nanmax(lc_data), 
+                "Ct Min.":np.nanmin(lc_data)}
+        
+    def _switch2lc(self, event=None):
+        """ Switch from pedestal to lightcurve. """
+        self._ped_layout.removeWidget(self.ped) 
+        self.ped_layout.removeWidget(self.ped) 
+        self._ped_layout.addWidget(self.lc) 
+        self.ped_layout.addWidget(self.lc) 
+        self.lc.setStyleSheet("border-width: 0px;")
+
+    def _switch2ped(self, event=None):
+        """ Switch from lightcurve to pedestal. """
+        self._ped_layout.removeWidget(self.lc) 
+        self.ped_layout.removeWidget(self.lc) 
+        self._ped_layout.addWidget(self.ped) 
+        self.ped_layout.addWidget(self.ped) 
+        self.ped.setStyleSheet("border-width: 0px;")
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -253,12 +307,6 @@ class CdTeWidget(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
         if event is None:
             return 
         
@@ -283,22 +331,24 @@ class AllCdTeView(QWidget):
         # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
         # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
 
-        f0 = CdTeWidget(data_file=cdte0, name=os.path.basename(cdte0), image_angle=-120)
+        _reflection = 180 # degrees
+
+        f0 = CdTeWidget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=-150+_reflection)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CdTeWidget(data_file=cdte1, name=os.path.basename(cdte1), image_angle=-30)
+        f1 = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=-30+_reflection)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
 
-        f2 = CdTeWidget(data_file=cdte2, name=os.path.basename(cdte2), image_angle=-90)
+        f2 = CdTeWidget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=-90+_reflection)
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
         _f2.addWidget(f2, 0, 0)
 
-        f3 = CdTeWidget(data_file=cdte3, name=os.path.basename(cdte3), image_angle=+30)
+        f3 = CdTeWidget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=+30+_reflection)
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
         _f3.addWidget(f3, 0, 0)
@@ -322,12 +372,7 @@ class AllCdTeView(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
+
         if event is None:
             return 
         
@@ -365,22 +410,22 @@ if __name__=="__main__":
     # # datafile = ""
 
     # # `datafile = FILE_DIR+"/../data/cdte.log"`
-    # reader = CdTeFileReader(datafile)#CdTeReader(data_file)
+    # reader = CdTeFileReader(datafile)#CdTeReader(data_file_pc)
     # # reader = CdTeReader(datafile)
     
-    # f0 = CdTeWidget(data_file=datafile)
+    # f0 = CdTeWidget(data_file_pc=datafile)
     # _f0 =QGridLayout()
     # _f0.addWidget(f0, 0, 0)
 
-    # f1 = CdTeWidget(data_file=datafile)
+    # f1 = CdTeWidget(data_file_pc=datafile)
     # _f1 =QGridLayout()
     # _f1.addWidget(f1, 0, 0)
 
-    # f2 = CdTeWidget(data_file=datafile)
+    # f2 = CdTeWidget(data_file_pc=datafile)
     # _f2 =QGridLayout()
     # _f2.addWidget(f2, 0, 0)
 
-    # f3 = CdTeWidget(data_file=datafile)
+    # f3 = CdTeWidget(data_file_pc=datafile)
     # _f3 =QGridLayout()
     # _f3.addWidget(f3, 0, 0)
     
@@ -395,14 +440,22 @@ if __name__=="__main__":
     # lay.addLayout(_f2, 0, 2, 1, 1)
     # lay.addLayout(_f3, 0, 3, 1, 1)
 
-    cdte0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-    cdte1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-    cdte2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-    cdte3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
+    cdte0 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log", 
+             None, 
+             None)
+    cdte1 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log", 
+             None, 
+             None)
+    cdte2 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log", 
+             None, 
+             None)
+    cdte3 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log", 
+             None, 
+             None)
     
     # w.resize(1000,500)
     w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
-    # w = CdTeWidget(data_file=datafile)
+    # w = CdTeWidget(data_file_pc=datafile)
     
     w.show()
     app.exec()

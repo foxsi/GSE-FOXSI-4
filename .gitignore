@@ -131,8 +131,13 @@ dmypy.json
 # macOS
 *.DS_Store
 
+*.dtmp
+*.bkp
+
 # vscode
 .vscode/
 
 # log files
-log/*
+logs/*
+
+backup*/

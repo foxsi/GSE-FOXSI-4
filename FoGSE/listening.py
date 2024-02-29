@@ -1,12 +1,14 @@
-import socket
-import struct
+import socket, ipaddress, serial
 import os
 import sys
 import json
 import queue
 import math
 import time
+import struct
 from datetime import datetime
+
+from FoGSE.utils import get_system_dict, get_ring_buffer_interface
 
 # todo: migrate this inside systems.json
 
@@ -18,7 +20,8 @@ DOWNLINK_TYPE_ENUM = {
     "pow":  0x11,
     "rtd":  0x12,
     "intro":0x13,
-    "err":  0x14,
+    "stat": 0x14,
+    "err":  0x15,
     "none": 0xff
 }
 
@@ -45,7 +48,7 @@ class LogFileManager:
     width. 
     """
 
-    def __init__(self, filepath: str, system: int, data: int, queue_len: int,
+    def __init__(self, filepath: str, system: int, data: int, frame_len: int,
                  payload_len: int):
         """
         Construct a new instance of `LogFileManager`.
@@ -65,7 +68,7 @@ class LogFileManager:
             the raw packet header. See `DOWNLINK_TYPE_ENUM` for a list of 
             detected raw data types.
 
-        queue_len : int
+        frame_len : int
             The number off received bytes per complete frame.
 
         payload_len : int
@@ -93,13 +96,13 @@ class LogFileManager:
 
         self.system = system
         self.data = data
-        self.queue_len = queue_len
+        self.frame_len = frame_len
         self.payload_len = payload_len
-        self.queue = bytearray(self.queue_len)
-        self.queued = [0]*math.ceil(self.queue_len/self.payload_len)
+        self.frame = bytearray(self.frame_len)
+        self.queued = [0]*math.ceil(self.frame_len/self.payload_len)
 
         print("payload len:\t", self.payload_len)
-        print("queue len:\t", self.queue_len)
+        print("frame len:\t", self.frame_len)
         print("queued len:\t", len(self.queued))
 
     def enqueue(self, raw_data: bytearray):
@@ -129,14 +132,21 @@ class LogFileManager:
 
         npackets = int.from_bytes(raw_data[1:3], byteorder='big')
         ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
-        print(ipacket, npackets)
+
         if ipacket <= npackets:
             # add this packet to the queue, mark it as queued
-            this_index = (ipacket - 1)*self.payload_len
-            distance = len(raw_data[8:])
-            self.queue[this_index:(this_index + distance)] = raw_data[8:]
-            # print(ipacket, this_index, distance)
-            self.queued[ipacket - 1] = 1
+            
+            if self.queued[0]:
+                # if the first element in the frame is there (so CdTe doesn't get bad frames)
+                if self.queued[ipacket - 1]:
+                    # if this element already exists in the packet
+                    print("for",raw_data[0],"overwritten by",ipacket-1,"queued:",self.queued)
+                    self.write()
+                    self.add_to_frame(raw_data)
+                    return True
+            
+            self.add_to_frame(raw_data)
+                
             if all(entry == 1 for entry in self.queued):
                 self.write()
                 return True
@@ -146,14 +156,29 @@ class LogFileManager:
             print("Logging got bad packet number: ", ipacket, " for max index ", npackets)
             raise KeyError
 
+    def add_to_frame(self, packet:bytearray):
+        npackets = int.from_bytes(packet[1:3], byteorder='big')
+        ipacket = int.from_bytes(packet[3:5], byteorder='big')
+        this_index = (ipacket - 1)*self.payload_len
+        distance = min(len(packet[8:]), self.frame_len)
+        self.frame[this_index:(this_index + distance)] = packet[8:]
+        # if ipacket == npackets == 1:
+        #     print("singleton frame:")
+        #     print(packet[:8])
+        #     print("packet length",len(packet))
+        #     print(self.frame)
+        #     print(ipacket, this_index, distance)
+        self.queued[ipacket - 1] = 1
+        # print(self.queued)
+                
     def write(self):
         """
         Writes data in `self.queue` to `self.file`, then refreshes queue.
         """
-        self.file.write(self.queue)
+        self.file.write(self.frame)
         self.file.flush()
-        print("wrote " + str(len(self.queue)) + " bytes to " + self.filepath)
-        self.queue = bytearray(self.queue_len)
+        print("wrote " + str(len(self.frame)) + " bytes to " + self.filepath)
+        self.frame = bytearray(self.frame_len)
         self.queued = [0]*len(self.queued)
 
 
@@ -211,13 +236,16 @@ class Listener():
 
         with open(json_config_file, "r") as json_config:
             json_dict = json.load(json_config)
-            self.local_system_config = self.get_system_dict(local_system,
-                                                            json_dict)
-            self.remote_system_config = self.get_system_dict(remote_system,
-                                                             json_dict)
+            self.local_system_config = get_system_dict(local_system,
+                                                       json_dict)
+            self.remote_system_config = get_system_dict(remote_system,
+                                                        json_dict)
+            self.uplink_system_config = get_system_dict("uplink",
+                                                        json_dict)
 
             if self.local_system_config is None or \
-                    self.remote_system_config is None:
+                    self.remote_system_config is None or \
+                        self.uplink_system_config is None:  
                 print("can't access system in provided JSON!")
                 raise RuntimeError
 
@@ -265,44 +293,81 @@ class Listener():
             except OSError:
                 if os.path.exists(self.unix_socket_path):
                     raise RuntimeError
+                
+            try:
+                self.uplink_port_path = self.local_system_config["logger_interface"]["uplink_device"]
+                
+                self.uplink_port = serial.Serial(
+                    self.uplink_port_path,
+                    baudrate=self.uplink_system_config["uart_interface"]["baud_rate"],
+                    timeout=1
+                )
+                print("opened uplink serial port at",self.uplink_port_path)
+            except:
+                print("could not open uplink serial port at",self.uplink_port_path)
 
-            self.local_address = self.local_system_config["ethernet_interface"]["address"]
-            self.local_port = self.local_system_config["ethernet_interface"]["port"]
-            self.local_endpoint = (self.local_address, self.local_port)
+            try:
+                self.mcast_group = self.local_system_config["ethernet_interface"]["mcast_group"]
+                self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            except KeyError:
+                self.mcast_group = None
+                self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            
+            self.local_recv_port = self.local_system_config["ethernet_interface"]["port"]
+            self.local_recv_endpoint = (self.local_recv_address, self.local_recv_port)
+            # todo: populate these correctly from JSON
+            self.local_send_address = self.local_system_config["ethernet_interface"]["address"]
+            self.local_send_port = self.local_system_config["ethernet_interface"]["port"]
+            self.local_send_endpoint = (self.local_send_address, self.local_send_port)
 
             self.remote_address = self.remote_system_config["ethernet_interface"]["address"]
-            self.remote_port = self.local_port
+            self.remote_port = self.local_recv_port
             self.remote_endpoint = (self.remote_address, self.remote_port)
 
             self.unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             self.unix_socket.bind(self.unix_socket_path)
-            self.unix_socket.settimeout(0.01)
+            self.unix_socket.settimeout(0.001)
+
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
+            
+            self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.local_send_socket.bind(("192.168.1.118", 9999))
+            self.local_send_socket.connect(self.remote_endpoint)
 
-            # check if there is a multicast interface to use
-            try:
-                # listen on a multicast socket
-                self.mcast_group = self.local_system_config["ethernet_interface"]["mcast_group"]
-                self.local_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-                self.local_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            # setup UDP interface
+            if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
+                print("got multicast address")
+                # open the socket for standard use
+                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-                self.local_socket.bind((self.mcast_group, self.local_port))
-                self.local_socket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP,
-                    socket.inet_aton(self.mcast_group) + socket.inet_aton(self.local_address))
-                self.local_socket.settimeout(0.01)
+                self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
+                mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
+
+                # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
+                self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
                 print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                    self.mcast_group + ":" + str(self.local_port))
-            except KeyError:
+                    self.mcast_group + ":" + str(self.local_recv_port))
+            
+            else:
                 # listen on a unicast socket
-                self.local_socket = socket.socket(
+                self.local_recv_socket = socket.socket(
                     socket.AF_INET, socket.SOCK_DGRAM)
-                self.local_socket.bind((self.local_address, self.local_port))
-                self.local_socket.connect(self.remote_endpoint)
-                self.local_socket.settimeout(0.01)
+                self.local_recv_socket.bind((self.local_recv_address, self.local_port))
+                self.local_recv_socket.connect(self.remote_endpoint)
                 print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                    self.local_address + ":" + str(self.local_port))
+                    self.local_recv_address + ":" + str(self.local_recv_port))
+            
+            self.local_recv_socket.settimeout(0.01)
+            self.local_send_socket.settimeout(0.001)
+            # print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+            #       self.local_recv_endpoint[0] + ":" + str(self.local_recv_endpoint[1]))
 
+            print("sending uplink on serial port at:\t",
+                  self.uplink_port_path)
+            
             self._uplink_message_queue = queue.Queue()
 
             self.print()
@@ -315,7 +380,8 @@ class Listener():
     def __del__(self):
         # close sockets
         self.unix_socket.close()
-        self.local_socket.close()
+        self.local_recv_socket.close()
+        self.local_send_socket.close()
         # remove the unix socket file
         # os.remove(self.unix_socket_path)
 
@@ -354,7 +420,7 @@ class Listener():
         file.
         """
         try:
-            data, sender = self.local_socket.recvfrom(4096)
+            data, sender = self.local_recv_socket.recvfrom(2048)
             # print("logging", len(data), "bytes")
             if len(data) < 8:
                 return
@@ -364,8 +430,11 @@ class Listener():
                 print("got unloggable packet with header: ", data[:8].hex())
                 self.write_to_catch(data)
                 return
+            except Exception as e:
+                print("other error: ", e)
                 # todo: dump this in a aggregate log
         except socket.timeout:
+            # print("read timed out")
             return
 
     def _run_log(self):
@@ -375,56 +444,38 @@ class Listener():
         Delegates logging of Ethernet raw data to `self.read_local_socket_to_log()`
         and queueing of Unix socket commands to `self.read_unix_socket_to_queue()`.
         """
-        with self.local_socket:
-            while True:
-                self.read_unix_socket_to_queue()
-                # handle any queued requests to uplink commands:
-                while self._uplink_message_queue.qsize() > 0:
-                    # apparently queues are thread safe.
+        # with self.unix_socket:
+        while True:
+            self.read_unix_socket_to_queue()
+            # handle any queued requests to uplink commands:
+            while self._uplink_message_queue.qsize() > 0:
+                # apparently queues are thread safe.
 
-                    # pop command from the front of the list (FIFO):
-                    message = []
-                    try:
-                        message = self._uplink_message_queue.get(block=False)
-                    except queue.Empty:
-                        print("uplink queue already empty!")
+                # pop command from the front of the list (FIFO):
+                message = []
+                try:
+                    message = self._uplink_message_queue.get(block=False)
+                except queue.Empty:
+                    print("uplink queue already empty!")
 
-                    # expect all `command` to be <system> <command> `int` pairs
-                    try:
-                        if len(message) == 2:
-                            print(message)
-                            self.local_socket.sendall(bytes(message))
-                            print("transmitted " +
-                                  str(message) + " to Formatter.")
-                        else:
-                            print("found bad uplink command in queue! discarding.")
-                    except:
-                        print("couldn't send uplink command! ignoring.")
-                        continue
-
-                self.read_local_socket_to_log()
-                time.sleep(0.01)
-
-    def get_system_dict(self, name: str, json_dict: dict):
-        """
-        Looks up the JSON `dict` in provided `json_dict`.
-
-        Parameters
-        ----------
-        json_dict : dict
-            A JSON dictionary (hopefully) containing fields with attribute `name`.
-
-        Returns
-        -------
-        None or dict : The JSON field containing the `name` key, if one exists.
-        """
-        for element in json_dict:
-            try:
-                if element["name"] == name:
-                    return element
-            except:
-                continue
-        return None
+                # expect all `command` to be <system> <command> `int` pairs
+                try:
+                    if len(message) == 2:
+                        print(message)
+                        # print(self.local_send_socket.getsockname())
+                        # print(self.local_send_socket.getpeername())
+                        # self.local_send_socket.sendall(bytes(message))
+                        self.uplink_port.write(bytes(message))
+                        print("transmitted " +
+                                str(message) + " to Formatter on", self.local_send_endpoint[0], ":", self.local_send_endpoint[1])
+                    else:
+                        print("found bad uplink command in queue! discarding.")
+                except Exception as e:
+                    print("couldn't send uplink command! ignoring.")
+                    print("\tException:",e)
+                    continue
+            self.read_local_socket_to_log()
+            # time.sleep(0.01)
 
     def make_log_dict(self, json_dict):
         """
@@ -444,7 +495,7 @@ class Listener():
         for element in json_dict:
             name = element["name"]
             addr = int(element["hex"], 16)
-            rbif = self.get_ring_buffer_interface(element)
+            rbif = get_ring_buffer_interface(element)
             if type(rbif) is dict:
                 lookup[addr] = {}
                 for key in rbif.keys():
@@ -465,18 +516,6 @@ class Listener():
                         print(e)
                         print("\tcouldn't create log dictionary for ", name, key)
         return lookup
-
-    def get_ring_buffer_interface(self, json_dict):
-        try:
-            return json_dict["ring_buffer_interface"]
-        except KeyError:
-            for key in json_dict.keys():
-                try:
-                    if type(json_dict[key]) is dict:
-                        return json_dict[key]["ring_buffer_interface"]
-                except KeyError:
-                    continue
-            return None
 
     def write_to_catch(self, data: bytes):
         """
@@ -505,6 +544,8 @@ class Listener():
             for data in self.downlink_lookup[system].keys():
                 print(self.downlink_lookup[system][data].system,
                       self.downlink_lookup[system][data].data)
+                
+
 
 
 if __name__ == "__main__":

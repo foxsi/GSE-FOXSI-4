@@ -1,5 +1,5 @@
 """
-A demo to walk through an existing CdTe raw file.
+A demo to walk through an existing RTD raw file.
 """
 
 import numpy as np
@@ -188,7 +188,7 @@ class RTDWindow(QWidget):
 
         [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
 
-        arameters
+        Parameters
         ----------
         graph_widget : `PyQt6 PlotWidget`
             The widget for the labels
@@ -213,7 +213,8 @@ if __name__=="__main__":
     # package top-level
     import os
     DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
-    DATAFILE = "/Users/kris/Desktop/housekeeping.log"
+    # DATAFILE = "/Users/kris/Downloads/housekeeping.log"
+    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/fake_temperatures.txt"
 
     def initiate_gui():
         app = QApplication([])

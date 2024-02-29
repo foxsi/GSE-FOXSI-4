@@ -52,9 +52,11 @@ class CMOSQLCollection:
     
     def new_array(self):
         """ Check if the array is new or a repeat. """
-        if self.linetime>self.last_data_time:
-            return True
-        return False
+        return True
+        # previously was
+        # if self.linetime>self.last_data_time:
+        #     return True
+        # return False
     
     def image_array(self):
         """
@@ -66,7 +68,10 @@ class CMOSQLCollection:
             The image array.
         """
         im = self._image
-        im[im>1] = 0 #images are normalsed so remove values of artificially large value
+        # first 4 entries in first row are header entries
+        if len(np.shape(im))==2:
+            im[0, :4] = np.min(im[0])
+        
         return im
     
     def plot_image(self):
@@ -90,8 +95,10 @@ class CMOSQLCollection:
     
     def get_exposure(self):
         """ Return the exposure time of QL image. """
+        print("Do not use CMOSPCCollection's get_exposure, it is wrong I say!")
         return self.exposure_ql
     
     def get_gain(self):
         """ Return the exposure time of QL image. """
+        print("Do not use CMOSPCCollection's get_gain, it is wrong I say!")
         return self.gain_ql

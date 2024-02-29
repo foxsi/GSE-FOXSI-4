@@ -39,6 +39,8 @@ class CMOSPCCollection:
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
         self.linetime, self.gain_pc, self.exposure_pc, self._image = parsed_data
+
+        self.whole_photon_rate_threshold = np.mean(self._image)
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time
@@ -52,9 +54,11 @@ class CMOSPCCollection:
     
     def new_array(self):
         """ Check if the array is new or a repeat. """
-        if self.linetime>self.last_data_time:
-            return True
-        return False
+        return True
+        # previously was
+        # if self.linetime>self.last_data_time:
+        #     return True
+        # return False
     
     def image_array(self):
         """
@@ -66,7 +70,6 @@ class CMOSPCCollection:
             The image array.
         """
         im = self._image
-        im[im>1] = 0 #images are normalsed so remove values of artificially large value
         return im
     
     def plot_image(self):
@@ -90,8 +93,14 @@ class CMOSPCCollection:
     
     def get_exposure(self):
         """ Return the exposure time of PC image. """
+        print("Do not use CMOSPCCollection's get_exposure, it is wrong I say!")
         return self.exposure_pc
     
     def get_gain(self):
         """ Return the exposure time of PC image. """
+        print("Do not use CMOSPCCollection's get_gain, it is wrong I say!")
         return self.gain_pc
+    
+    def get_whole_photon_rate(self):
+        """ Fraction of PC pixels over a threshold to all pixels"""
+        return np.sum(self._image>self.whole_photon_rate_threshold)/self._image.size
