@@ -8,7 +8,7 @@ import time
 import struct
 from datetime import datetime
 
-from FoGSE.utils import get_system_dict
+from FoGSE.utils import get_system_dict, get_ring_buffer_interface
 
 # todo: migrate this inside systems.json
 
@@ -495,7 +495,7 @@ class Listener():
         for element in json_dict:
             name = element["name"]
             addr = int(element["hex"], 16)
-            rbif = self.get_ring_buffer_interface(element)
+            rbif = get_ring_buffer_interface(element)
             if type(rbif) is dict:
                 lookup[addr] = {}
                 for key in rbif.keys():
@@ -516,18 +516,6 @@ class Listener():
                         print(e)
                         print("\tcouldn't create log dictionary for ", name, key)
         return lookup
-
-    def get_ring_buffer_interface(self, json_dict):
-        try:
-            return json_dict["ring_buffer_interface"]
-        except KeyError:
-            for key in json_dict.keys():
-                try:
-                    if type(json_dict[key]) is dict:
-                        return json_dict[key]["ring_buffer_interface"]
-                except KeyError:
-                    continue
-            return None
 
     def write_to_catch(self, data: bytes):
         """
