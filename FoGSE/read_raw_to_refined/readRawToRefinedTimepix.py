@@ -6,7 +6,7 @@ Can read:
     * Timepix
 """
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase, get_frame_size
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.Timepixparser import timepix_parser
@@ -25,8 +25,8 @@ class TimepixReader(ReaderBase):
         Collected : organised by intrumentation
         """
         ReaderBase.__init__(self, datafile, parent)
-
-        self.define_buffer_size(size=5)
+        
+        self.define_buffer_size(size=5) # bytes, get_frame_size("timepix", "tpx")
         self.call_interval(100)
 
     def extract_raw_data(self):

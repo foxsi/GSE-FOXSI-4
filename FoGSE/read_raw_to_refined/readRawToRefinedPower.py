@@ -5,7 +5,7 @@ the RTDs
 
 # `from PyQt6 import QtCore`
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase, get_frame_size
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.Powerparser import adcparser
@@ -14,7 +14,7 @@ from FoGSE.collections.PowerCollection import PowerCollection
 
 class PowerReader(ReaderBase):
     """
-    Reader for the RTD readout.
+    Reader for the Power readout.
     """
 
     def __init__(self, datafile, parent=None):
@@ -24,8 +24,8 @@ class PowerReader(ReaderBase):
         Collected : organised by intrumentation
         """
         ReaderBase.__init__(self, datafile, parent)
-
-        self.define_buffer_size(size=38)
+        
+        self.define_buffer_size(size=get_frame_size("housekeeping", "pow")) # 38 bytes
         self.call_interval(100)
 
     def extract_raw_data(self):

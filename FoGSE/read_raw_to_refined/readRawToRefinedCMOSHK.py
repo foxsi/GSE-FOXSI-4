@@ -6,7 +6,7 @@ Can read:
     * CMOS PC
 """
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase, get_frame_size
 
 from FoGSE.readBackwards import BackwardsReader
 import FoGSE.parsers.CMOSparser as cmosp
@@ -29,8 +29,8 @@ class CMOSHKReader(ReaderBase):
             return
         
         ReaderBase.__init__(self, datafile, parent)
-        # The magic number for CMOS PC data is 590,848. The magic number for CMOS QL data is 492,544.
-        self.define_buffer_size(size=536)
+        
+        self.define_buffer_size(size=get_frame_size("cmos1", "hk")) # 536 bytes
         self.call_interval(100)
 
     def extract_raw_data(self):

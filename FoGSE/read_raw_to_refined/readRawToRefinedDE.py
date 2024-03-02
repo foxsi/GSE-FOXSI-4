@@ -9,7 +9,7 @@ Can read:
 import struct
 import numpy as np
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase, get_frame_size
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTedehkparser
@@ -33,8 +33,8 @@ class DEReader(ReaderBase):
             return
 
         ReaderBase.__init__(self, datafile, parent)
-
-        self.define_buffer_size(size=32)#100_000#32_780
+        
+        self.define_buffer_size(size=get_frame_size("cdtede", "hk")) # 32 bytes
         self.call_interval(100)
 
     def extract_raw_data(self):
