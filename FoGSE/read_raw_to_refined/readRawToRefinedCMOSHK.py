@@ -6,12 +6,12 @@ Can read:
     * CMOS PC
 """
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase, get_frame_size
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
 import FoGSE.parsers.CMOSparser as cmosp
 from FoGSE.collections.CMOSHKCollection import CMOSHKCollection
-
+from FoGSE.utils import get_frame_size, get_system_value
 
 class CMOSHKReader(ReaderBase):
     """
@@ -31,7 +31,7 @@ class CMOSHKReader(ReaderBase):
         ReaderBase.__init__(self, datafile, parent)
         
         self.define_buffer_size(size=get_frame_size("cmos1", "hk")) # 536 bytes
-        self.call_interval(100)
+        self.call_interval(get_system_value("gse", "display_settings", "cmos", "hk", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):
         """

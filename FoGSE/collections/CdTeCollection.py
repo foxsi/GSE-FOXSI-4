@@ -7,6 +7,8 @@ from copy import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
+from FoGSE.utils import get_system_value
+# get_system_value("gse", "display_settings", "cdte", "pc", "collections", "read_interval")
 
 class CdTeCollection:
     """

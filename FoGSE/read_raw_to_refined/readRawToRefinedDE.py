@@ -9,13 +9,13 @@ Can read:
 import struct
 import numpy as np
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase, get_frame_size
+from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTedehkparser
 # from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.DECollection import DECollection
-
+from FoGSE.utils import get_frame_size, get_system_value
 
 class DEReader(ReaderBase):
     """
@@ -35,7 +35,7 @@ class DEReader(ReaderBase):
         ReaderBase.__init__(self, datafile, parent)
         
         self.define_buffer_size(size=get_frame_size("cdtede", "hk")) # 32 bytes
-        self.call_interval(100)
+        self.call_interval(get_system_value("gse", "display_settings", "cdtede", "hk", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):
         """

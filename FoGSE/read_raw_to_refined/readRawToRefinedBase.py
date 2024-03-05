@@ -19,50 +19,15 @@ One class is assigned to do both jobs since (at this time) we will always want t
 binary data to a collected, human readable form for investigation and analysis.
 """
 
-import json
 import os
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QWidget
 
-from FoGSE.utils import get_system_dict, get_ring_buffer_interface
-
 # import parser for `extract_raw_data` and `extract_raw_data_<det>`
 # import collection for `parsed_2_collections`
 # for example `from FoGSE.parsers.CdTeparser import CdTerawalldata2parser`
 # for example from `FoGSE.collections.CdTeCollection import CdTeCollection`
-
-
-def get_frame_size(system, product):
-    """
-    Method to retreive the "ring_frame_size_bytes" value for a given `system` 
-    (e.g., cdte1, cmos1, etc.) and `product` (e.g., pc, hk, etc.).
-
-    Parameters
-    ----------
-    system : `str`
-        The system of interest (e.g., cdte1, cmos1, etc.).
-
-    product : `str`
-        The system's product of interest (e.g., pc, hk, etc.).
-
-    Example
-    -------
-    >>> get_frame_size("cdte1", "pc")
-
-    32780 # the number of bytes to a cdte1_pc frame in the ring buffer
-
-    # same as running:
-    # int(get_system_dict("cdte1",json_dict)["spacewire_interface"]["ring_buffer_interface"]["pc"]["ring_frame_size_bytes"], 16)
-    """
-    # get the JSON file with all settings
-    FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-    json_config_file = os.path.join(FILE_DIR, "..", "..", "foxsi4-commands", "systems.json")
-
-    # open the JSON file and find the system's product byte size
-    with open(json_config_file, "r") as json_config:
-        json_dict = json.load(json_config)
-        return int(get_ring_buffer_interface(get_system_dict(system,json_dict))[product]["ring_frame_size_bytes"], 16)
 
 class ReaderBase(QWidget):
     """
