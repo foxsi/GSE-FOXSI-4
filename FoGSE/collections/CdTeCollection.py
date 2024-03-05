@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from FoGSE.utils import get_system_value
-# get_system_value("gse", "display_settings", "cdte", "pc", "collections", "read_interval")
 
 class CdTeCollection:
     """
@@ -734,7 +733,7 @@ class CdTeCollection:
     def delta_time(self):
         """ Get the delta-t of the frame. """
         # not using_unixtime = (np.max(self.event_dataframe['unixtime'])-np.min(self.event_dataframe['unixtime'])) anymore
-        ti_clock_interval = 1/10.24e6# 10.24e-6 # 10.24 usec -> 10.24 change in `ti`` every usec?`
+        ti_clock_interval = get_system_value("gse", "display_settings", "cdte", "pc", "collections", "ti_clock_interval")# 10.24e-6 # 10.24 usec -> 10.24 change in `ti`` every usec?`
         _ti_time = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
         return _ti_time*ti_clock_interval
         
