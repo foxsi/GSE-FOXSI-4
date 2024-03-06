@@ -5,8 +5,6 @@ import FoGSE.singleton as singleton
 
 from PyQt6.QtCore import QProcess
 
-import serial as serial
-
 
 
 class CommandSystem:
@@ -298,7 +296,7 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
 
     # def __init__(self, addr=params.GSE_IP, port=params.GSE_PORT, logging=True, logfilename=None):
     def __init__(self, configfile="foxsi4-commands/systems.json", logging=True, logfilename=None, end_background_process_on_close=True):
-        
+        print("got configfile", configfile)
         # configure sockets and endpoints
         try:
             with open(configfile) as json_file:
@@ -328,16 +326,6 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
         self.unix_local_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.unix_local_socket.bind(self.unix_local_socket_path)
 
-        self.has_serial = False
-        try:
-            self.serial_port = serial.Serial(port="/dev/tty.usbserial-FTK1YS5N", baudrate=1200)
-            self.has_serial = True
-            print("opened serial port.")
-        except Exception as e:
-            print("couldn't open serial port!")
-            print(e)
-            self.has_serial = False
-
         # log sent packets to file
         self.do_logging = logging
         self.end_background_process_on_close = end_background_process_on_close
@@ -347,9 +335,10 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
             # using QProcess for this because it cleans up correctly on exit, unlike 
             # self.background_listen_process = QProcess()
             # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
+            time.sleep(2)
             print("started listen for downlink\n")
             # sleep so the subprocess can start
-            time.sleep(2)
+            
         # connect local socket
         self.unix_local_socket.connect(self.unix_remote_socket_path)
         
@@ -375,13 +364,6 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
 
         if self.deck.validate(message[0], message[1]):
             self.unix_local_socket.send(bytes(message))
-            if self.has_serial:
-                try:
-                    self.serial_port.write(bytes(message))
-                    print("sent serial command: ", bytes(message))
-                except Exception as e:
-                    print("couldn't send serial command:")
-                    print(e)
 
             params.DEBUG_PRINT("submitted uplink command: " + str(message))
         else:
