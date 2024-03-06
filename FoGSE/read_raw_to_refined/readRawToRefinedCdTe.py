@@ -16,18 +16,7 @@ from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
-
-import json
-from FoGSE.utils import get_system_dict
-
-FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-json_config_file = FILE_DIR+"/../../foxsi4-commands/systems.json"
-with open(json_config_file, "r") as json_config:
-    json_dict = json.load(json_config)
-
-    BYTES = int(get_system_dict("cdte1",json_dict)["spacewire_interface"]["ring_buffer_interface"]["pc"]["ring_frame_size_bytes"], 16)
-
-# {"cdte_pc":["cdte1", "spacewire_interface", "ring_buffer_interface", "pc", "ring_frame_size_bytes"]}
+from FoGSE.utils import get_frame_size, get_system_value
 
 class CdTeReader(ReaderBase):
     """
@@ -41,10 +30,9 @@ class CdTeReader(ReaderBase):
         Collected : organised by intrumentation
         """
         ReaderBase.__init__(self, datafile, parent)
-        print(BYTES)
-
-        self.define_buffer_size(size=BYTES)#100_000#32_780
-        self.call_interval(100)
+        
+        self.define_buffer_size(size=get_frame_size("cdte1", "pc")) # 32_780 bytes
+        self.call_interval(get_system_value("gse", "display_settings", "cdte", "pc", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):
         """

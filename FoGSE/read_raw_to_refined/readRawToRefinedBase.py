@@ -29,7 +29,6 @@ from PyQt6.QtWidgets import QWidget
 # for example `from FoGSE.parsers.CdTeparser import CdTerawalldata2parser`
 # for example from `FoGSE.collections.CdTeCollection import CdTeCollection`
 
-
 class ReaderBase(QWidget):
     """
     General reader for the FOXSI instruments.
@@ -65,7 +64,7 @@ class ReaderBase(QWidget):
 
         # default is update plot every 100 ms
         self.call_interval()
-        # read 50,000 bytes from the end of `self.data_file` at a time
+        # read 25,000 bytes from the end of `self.data_file` at a time
         self.define_buffer_size(size=25_000)
 
         self.setup_and_start_timer()

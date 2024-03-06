@@ -11,7 +11,7 @@ from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CMOSparser import QLimageData 
 from FoGSE.collections.CMOSQLCollection import CMOSQLCollection
-
+from FoGSE.utils import get_frame_size, get_system_value
 
 class CMOSQLReader(ReaderBase):
     """
@@ -26,8 +26,8 @@ class CMOSQLReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
         # The magic number for CMOS PC data is 590,848. The magic number for CMOS QL data is 492,544.
-        self.define_buffer_size(size=492_544)
-        self.call_interval(100)
+        self.define_buffer_size(size=get_frame_size("cmos1", "ql"))
+        self.call_interval(get_system_value("gse", "display_settings", "cmos", "ql", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):
         """
