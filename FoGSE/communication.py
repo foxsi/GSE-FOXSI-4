@@ -296,7 +296,6 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
 
     # def __init__(self, addr=params.GSE_IP, port=params.GSE_PORT, logging=True, logfilename=None):
     def __init__(self, configfile="foxsi4-commands/systems.json", logging=True, logfilename=None, end_background_process_on_close=True):
-        print("got configfile", configfile)
         # configure sockets and endpoints
         try:
             with open(configfile) as json_file:
@@ -335,8 +334,9 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
             # using QProcess for this because it cleans up correctly on exit, unlike 
             # self.background_listen_process = QProcess()
             # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
-            time.sleep(2)
             print("started listen for downlink\n")
+            
+            time.sleep(2)
             # sleep so the subprocess can start
             
         # connect local socket
