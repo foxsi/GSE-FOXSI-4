@@ -1,3 +1,4 @@
+import sys
 # #timepix_parser.py
 # #V1.1 - No flag readers 
 # #V1.2 - Untested 12/20
@@ -154,3 +155,13 @@ def timepix_parser(bin_data):
 #         	print(len(received_data))
 #             break
 
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], 'rb') as raw_timepix_file:
+            data = raw_timepix_file.read()
+            for i in range(10):
+                result = timepix_parser(data[i*38 : (i + 1)*38])
+                print(result)
+    else:
+        print("usage:\n\t> python Timepixparser.py path/to/raw/data/file.log")
