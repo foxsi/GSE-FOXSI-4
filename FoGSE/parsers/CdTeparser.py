@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import polars as pl
 import struct
@@ -412,17 +413,58 @@ def CdTerawalldata2parser(datalist):
 
 
 def CdTecanisterhkparser(data: bytes):
+    error_flag = False
     frame_size = 796
     if len(data) % frame_size != 0:
         print("CdTecanisterhkparser() expects a input length to be a multiple of", frame_size)
         error_flag = True
         return [{},error_flag]
+    
+    # pull out data region for the DAQ parameters
+    daq_data = data[0x18:0xf0]
+    # pull out raw status bytes, frame data write pointer, and written frame counter
+    status_raw          = data[0     :   0x0c]
+    write_pointer_raw   = data[0x314 :   0x314+4]
+    frame_count_raw     = data[0x318 :   0x318+4]
+    
+    # all values from https://github.com/foxsi/CdTe_DE/blob/main/fig/DAQ_parameter_address.png
+    daq_param_map = {
+        "hv_exec":              int.from_bytes(daq_data[0x00 : 0x00+4], 'big'),
+        "hv_set":               int.from_bytes(daq_data[0x04 : 0x04+4], 'big'),
+        "data_copy_rate":       int.from_bytes(daq_data[0x08 : 0x08+4], 'big'),
+        "pseudo_onoff0":        int.from_bytes(daq_data[0x0c : 0x0c+4], 'big'),
+        "pseudo_rate0":         int.from_bytes(daq_data[0x10 : 0x10+4], 'big'),
+        "va_status":            int.from_bytes(daq_data[0x20 : 0x20+4], 'big'),
+        "module_status":        int.from_bytes(daq_data[0x24 : 0x24+4], 'big'),
+        "enable_flag":          int.from_bytes(daq_data[0x38 : 0x38+4], 'big'),
+        "extern_input_mode":    int.from_bytes(daq_data[0x3c : 0x3c+4], 'big'),
+        "peaking_time":         int.from_bytes(daq_data[0x40 : 0x40+4], 'big'),
+        "adc_clock_period":     int.from_bytes(daq_data[0x44 : 0x44+4], 'big'),
+        "readout_period":       int.from_bytes(daq_data[0x48 : 0x48+4], 'big'),     # may also be readout delay??
+        "trigpat_latch_timing": int.from_bytes(daq_data[0x54 : 0x54+4], 'big'),
+        "reset_wait_time1":     int.from_bytes(daq_data[0x58 : 0x58+4], 'big'),
+        "reset_wait_time2":     int.from_bytes(daq_data[0x5c : 0x5c+4], 'big'),
+        "ti":                   int.from_bytes(daq_data[0x60 : 0x60+4], 'big'),
+        "integral_livetime":    int.from_bytes(daq_data[0x64 : 0x64+4], 'big'),
+        "deadtime":             int.from_bytes(daq_data[0x68 : 0x68+4], 'big'),
+        "test_data":            int.from_bytes(daq_data[0x6c : 0x6c+4], 'big'),
+        "cald_trigger_request": int.from_bytes(daq_data[0x70 : 0x70+4], 'big'),
+        "ti_upper32":           int.from_bytes(daq_data[0x90 : 0x90+4], 'big'),
+        "ti_lower32":           int.from_bytes(daq_data[0x94 : 0x94+4], 'big'),
+        "ti_upper32_next":      int.from_bytes(daq_data[0x98 : 0x98+4], 'big'),
+        "timecode":             int.from_bytes(daq_data[0x9c : 0x9c+4], 'big'),
+        "ext1_ti_upper32":      int.from_bytes(daq_data[0xa0 : 0xa0+4], 'big'),
+        "ext1_ti_lower32":      int.from_bytes(daq_data[0xa4 : 0xa4+4], 'big'),
+        "ext2_ti_upper32":      int.from_bytes(daq_data[0xb0 : 0xb0+4], 'big'),
+        "ext2_ti_lower32":      int.from_bytes(daq_data[0xb4 : 0xb4+4], 'big'),
+        "pseudo_onoff1":        int.from_bytes(daq_data[0xc0 : 0xc0+4], 'big'),
+        "pseudo_rate1":         int.from_bytes(daq_data[0xc4 : 0xc4+4], 'big'),
+        "pseudo_counter":       int.from_bytes(daq_data[0xc8 : 0xc8+4], 'big'),
+        "write_ptr":            int.from_bytes(daq_data[0xd0 : 0xd0+4], 'big'),
+        "write_ptr_reset_req":  int.from_bytes(daq_data[0xd4 : 0xd4+4], 'big'),
+    }
 
-    status_raw      = data[0     :   0x12]
-    hv_exec_raw     = data[0x18  :   0x18+4]
-    hv_set_raw      = data[0x1c  :   0x1c+4]
-    frame_count_raw = data[0x318 :   0x318+4]
-
+    # lookup status label by raw status bytes
     status_converter = {
         b"\x5a\x5a\x01\x00\x00\x00\x00\x00\x5a\x5a\x5a\x5a": "idle",
         b"\x5a\x5a\x01\x00\x01\x01\x01\x01\x5a\x5a\x5a\x5a": "started",
@@ -445,30 +487,36 @@ def CdTecanisterhkparser(data: bytes):
         status = status_raw.hex()
         error_flag = True
 
-    hv_exec = int.from_bytes(hv_exec_raw, 'big')
-    hv_set = int.from_bytes(hv_set_raw, 'big')
+    # convert raw write_pointer and frame_count to `int`
+    write_pointer = int.from_bytes(write_pointer_raw, 'big')
     frame_count = int.from_bytes(frame_count_raw, 'big')
 
+    # convert raw high voltage DAC setting to voltage
     hv_set_converter = {
         0   : "0 V",
         1600: "60 V",
         2000: "100 V",
         3500: "200 V",
     }
+    hv = hv_set_converter[daq_param_map["hv_set"]]
 
-    hv = hv_set_converter[hv_set]
+    # create output dict
     parsed_data = {
         "status": status,
-        "hv_exec": hv_exec,
+        # "hv_exec": hv_exec,
         "hv": hv,
+        "write_pointer": write_pointer,
         "frame_count": frame_count
     }
-    print(parsed_data)
+    
+    parsed_data.update(daq_param_map)
+
     return parsed_data, error_flag
 
 
 
 def CdTedehkparser(data: bytes):
+    error_flag = False
     frame_size = 32
     if len(data) % frame_size != 0:
         print("CdTecanisterhkparser() expects a input length to be a multiple of", frame_size)
@@ -481,6 +529,8 @@ def CdTedehkparser(data: bytes):
     cpu_raw         = data[0x14  :   0x14+4]
     df_raw          = data[0x18  :   0x18+4]
     unixtime_raw    = data[0x1c  :   0x1c+4]
+
+    # lookup status label by raw status bytes
     status_converter = {
         b"\x5a\x5a\x01\x00\x00\x00\x00\x00\x5a\x5a\x5a\x5a": "idle",
         b"\x5a\x5a\x01\x00\x01\x01\x01\x01\x5a\x5a\x5a\x5a": "init",
@@ -491,6 +541,7 @@ def CdTedehkparser(data: bytes):
         b"\x5a\x5a\x01\x01\x01\x01\x01\x01\x5a\x5a\x5a\x5a": "broadcast start, pointer reset",
         b"\x5a\x5a\x01\x01\x01\x01\x02\x02\x5a\x5a\x5a\x5a": "broadcast start",
         b"\x5a\x5a\x01\x01\x02\x02\x02\x02\x5a\x5a\x5a\x5a": "broadcast stop",
+        b"\x5a\x5a\x01\x01\x05\x05\x05\x05\x5a\x5a\x5a\x5a": "canisters stopped",
     }
 
     status = ""
@@ -502,7 +553,7 @@ def CdTedehkparser(data: bytes):
         error_flag = True
 
     ping = [can_ping for can_ping in ping_raw]
-    temp = int.from_bytes(temp_raw, 'big')/1000.0
+    temp = int.from_bytes(temp_raw, 'big')
     cpu = int.from_bytes(cpu_raw, 'big')
     df_GB = int.from_bytes(df_raw, 'big')
     unixtime = int.from_bytes(unixtime_raw, 'big')
@@ -515,5 +566,24 @@ def CdTedehkparser(data: bytes):
         "df_GB": df_GB,
         "unixtime": unixtime
     }
-    print(parsed_data)
+
     return parsed_data, error_flag
+
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 2:
+        with open(sys.argv[2], 'rb') as hk_file:
+            data = hk_file.read()
+            if "can" in sys.argv[1]:
+                for i in range(0,len(data),0x31c):
+                    print(i)
+                    CdTecanisterhkparser(data[i:i+0x31c])
+            elif "de" in sys.argv[1]:
+                for i in range(0,len(data),0x20):
+                    print(i)
+                    CdTedehkparser(data[i:i+0x20])
+            else:
+                print("usage:\n>\tpython CdTeparser.py <cdtede | canister> path/to/hk/file.log")
+    else:
+        print("usage:\n\t> python CdTeparser.py <cdtede | canister> path/to/hk/file.log")

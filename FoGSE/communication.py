@@ -336,8 +336,9 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
             # self.background_listen_process = QProcess()
             # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
             print("started listen for downlink\n")
-            # sleep so the subprocess can start
             time.sleep(2)
+            # sleep so the subprocess can start
+            
         # connect local socket
         self.unix_local_socket.connect(self.unix_remote_socket_path)
         
@@ -363,6 +364,7 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
 
         if self.deck.validate(message[0], message[1]):
             self.unix_local_socket.send(bytes(message))
+
             params.DEBUG_PRINT("submitted uplink command: " + str(message))
         else:
             params.DEBUG_PRINT("got bad uplink command! ignoring.")

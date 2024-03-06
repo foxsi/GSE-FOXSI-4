@@ -2,6 +2,7 @@ import sys, typing, logging, math, json
 import numpy as np
 from collections import namedtuple
 from PyQt6 import QtCore, QtWidgets, QtGui
+# from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QAbstractSeries
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QComboBox, QGroupBox, QLineEdit, QLabel, QGridLayout, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget, QDialog, QDialogButtonBox, QCheckBox, QFormLayout, QFileDialog, QSlider
 import pyqtgraph as pg
 

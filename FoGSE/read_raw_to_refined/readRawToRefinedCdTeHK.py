@@ -15,7 +15,7 @@ from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTecanisterhkparser
 # from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeHKCollection import CdTeHKCollection
-
+from FoGSE.utils import get_frame_size, get_system_value
 
 class CdTeHKReader(ReaderBase):
     """
@@ -34,8 +34,8 @@ class CdTeHKReader(ReaderBase):
 
         ReaderBase.__init__(self, datafile, parent)
 
-        self.define_buffer_size(size=796)#100_000#32_780
-        self.call_interval(100)
+        self.define_buffer_size(size=get_frame_size("cdte1", "hk")) # 796 bytes
+        self.call_interval(get_system_value("gse", "display_settings", "cdte", "hk", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):
         """

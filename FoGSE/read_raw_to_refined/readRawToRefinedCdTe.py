@@ -8,6 +8,7 @@ Can read:
 
 import struct
 import numpy as np
+import os
 
 from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
 
@@ -15,7 +16,7 @@ from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
-
+from FoGSE.utils import get_frame_size, get_system_value
 
 class CdTeReader(ReaderBase):
     """
@@ -29,9 +30,9 @@ class CdTeReader(ReaderBase):
         Collected : organised by intrumentation
         """
         ReaderBase.__init__(self, datafile, parent)
-
-        self.define_buffer_size(size=32_780)#100_000#32_780
-        self.call_interval(100)
+        
+        self.define_buffer_size(size=get_frame_size("cdte1", "pc")) # 32_780 bytes
+        self.call_interval(get_system_value("gse", "display_settings", "cdte", "pc", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):
         """

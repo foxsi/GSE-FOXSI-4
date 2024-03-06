@@ -8,6 +8,8 @@ import time
 import struct
 from datetime import datetime
 
+from FoGSE.utils import get_system_dict, get_ring_buffer_interface
+
 # todo: migrate this inside systems.json
 
 DOWNLINK_TYPE_ENUM = {
@@ -234,12 +236,12 @@ class Listener():
 
         with open(json_config_file, "r") as json_config:
             json_dict = json.load(json_config)
-            self.local_system_config = self.get_system_dict(local_system,
-                                                            json_dict)
-            self.remote_system_config = self.get_system_dict(remote_system,
-                                                             json_dict)
-            self.uplink_system_config = self.get_system_dict("uplink",
-                                                             json_dict)
+            self.local_system_config = get_system_dict(local_system,
+                                                       json_dict)
+            self.remote_system_config = get_system_dict(remote_system,
+                                                        json_dict)
+            self.uplink_system_config = get_system_dict("uplink",
+                                                        json_dict)
 
             if self.local_system_config is None or \
                     self.remote_system_config is None or \
@@ -475,27 +477,6 @@ class Listener():
             self.read_local_socket_to_log()
             # time.sleep(0.01)
 
-    def get_system_dict(self, name: str, json_dict: dict):
-        """
-        Looks up the JSON `dict` in provided `json_dict`.
-
-        Parameters
-        ----------
-        json_dict : dict
-            A JSON dictionary (hopefully) containing fields with attribute `name`.
-
-        Returns
-        -------
-        None or dict : The JSON field containing the `name` key, if one exists.
-        """
-        for element in json_dict:
-            try:
-                if element["name"] == name:
-                    return element
-            except:
-                continue
-        return None
-
     def make_log_dict(self, json_dict):
         """
         Creates `dict` of `dict` mapping `int`s to `LogFileManager`.
@@ -514,7 +495,7 @@ class Listener():
         for element in json_dict:
             name = element["name"]
             addr = int(element["hex"], 16)
-            rbif = self.get_ring_buffer_interface(element)
+            rbif = get_ring_buffer_interface(element)
             if type(rbif) is dict:
                 lookup[addr] = {}
                 for key in rbif.keys():
@@ -535,18 +516,6 @@ class Listener():
                         print(e)
                         print("\tcouldn't create log dictionary for ", name, key)
         return lookup
-
-    def get_ring_buffer_interface(self, json_dict):
-        try:
-            return json_dict["ring_buffer_interface"]
-        except KeyError:
-            for key in json_dict.keys():
-                try:
-                    if type(json_dict[key]) is dict:
-                        return json_dict[key]["ring_buffer_interface"]
-                except KeyError:
-                    continue
-            return None
 
     def write_to_catch(self, data: bytes):
         """
@@ -575,6 +544,8 @@ class Listener():
             for data in self.downlink_lookup[system].keys():
                 print(self.downlink_lookup[system][data].system,
                       self.downlink_lookup[system][data].data)
+                
+
 
 
 if __name__ == "__main__":
