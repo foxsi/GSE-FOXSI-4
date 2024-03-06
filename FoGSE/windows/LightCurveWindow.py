@@ -28,6 +28,9 @@ class LightCurve(QWidget):
         The reader already given a file.
         Default: None
     """
+
+    mpl_click_signal = QtCore.pyqtSignal()
+
     def __init__(self, reader=None, name="light curve", colour="b", parent=None):
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
@@ -40,7 +43,7 @@ class LightCurve(QWidget):
         # self.resize(self.detw, self.deth)
 
         # self.graphPane = pg.PlotWidget()
-        self.graphPane = MPLCanvas(self, width=5, height=4, dpi=100)
+        self.graphPane = MPLCanvas(self)#, width=2, height=1, dpi=100)
         # self.graphPane.setMinimumSize(QtCore.QSize(self.detw, self.deth))
         # self.graphPane.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
@@ -71,7 +74,15 @@ class LightCurve(QWidget):
 
         self.setLayout(self.layoutMain)
         
+        self.graphPane.mpl_connect("button_press_event", self.on_click)
+        
         self.counter = 1
+
+    def on_click(self,event):
+        """ 
+        The matplotlib way needs a method to shout when it is interacted with. 
+        """
+        self.mpl_click_signal.emit()
 
     def manage_plotting_ranges(self):
         # plot the newly updated x and ys
@@ -147,7 +158,7 @@ class LightCurve(QWidget):
         graph_widget._plot_ref.set_data(x, y)
         self.graphPane.draw()
 
-    def set_labels(self, graph_widget, xlabel="", ylabel="", title="", font_size="20pt", title_font_size="25pt"):
+    def set_labels(self, graph_widget, xlabel="", ylabel="", title="", fontsize=9, ticksize=9, titlesize=10, offsetsize=1):
         """
         Method just to easily set the x, y-label andplot title without having to write all lines below again 
         and again.
@@ -164,11 +175,21 @@ class LightCurve(QWidget):
         """
         # if title_font_size!="0pt":
         #     graph_widget.axes.set_title(title, color='k', size=title_font_size)
+        graph_widget.axes.set_title(title, size=titlesize)#, **styles)
 
         # Set label for both axes
-        styles = {'color':'k', 'font-size':font_size, 'padding-top': '5px', 'padding-right': '5px', 'display': 'block'} 
-        graph_widget.axes.set_xlabel(xlabel)#, **styles)
-        graph_widget.axes.set_ylabel(ylabel)#, **styles)
+        # styles = {'color':'k', 'font-size':font_size, 'padding-top': '5px', 'padding-right': '5px', 'display': 'block'} 
+        graph_widget.axes.set_xlabel(xlabel, size=fontsize)#, **styles)
+        graph_widget.axes.set_ylabel(ylabel, size=fontsize)#, **styles)
+
+        graph_widget.axes.tick_params(axis='both', which='major', labelsize=ticksize)
+        graph_widget.axes.tick_params(axis='both', which='minor', labelsize=ticksize)
+
+        # this handles the exponent, if the data is in 1e10 then it is 
+        # usually plotted in smaller numbers with 1e10 off to the side.
+        # `get_offset_text` controls the "1e10"
+        t = graph_widget.axes.xaxis.get_offset_text()
+        t.set_size(offsetsize)
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """

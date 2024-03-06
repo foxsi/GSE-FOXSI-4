@@ -48,7 +48,7 @@ class CdTeWidget(QWidget):
         # define main layouts for the status window, LED, buttons, times, and plot
         image_layout = QtWidgets.QGridLayout()
         ped_layout = QtWidgets.QGridLayout()
-        value_layout = QtWidgets.QVBoxLayout()
+        value_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
         
@@ -72,17 +72,17 @@ class CdTeWidget(QWidget):
         self._ped_layout.addWidget(self.ped) 
         self.ped_layout = ped_layout
 
-        self.ped.mousePressEvent = self._switch2lc
-        self.lc.mousePressEvent = self._switch2ped
+        self.ped.mousePressEvent = self._switch2lc # with pure PyQt6 widgets, this works, but...
+        self.lc.graphPane.mpl_click_signal.connect(self._switch2ped) # with plt, need to be more invlolved
 
         # status values
         self._value_layout = self.layout_bkg(main_layout=value_layout, 
                                              panel_name="value_panel", 
-                                             style_sheet_string=self._layout_style("white", "white"))
+                                             style_sheet_string=self._layout_style("white", "white"), grid=True)
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
-        self.software_stat = QValueTimeWidget(name="SW Stat.", 
+        self.canister_mode = QValueTimeWidget(name="Can. Mode", 
                                               value=self._default_qvaluewidget_value, 
                                               time=4000, 
                                               condition=[int, float, np.int64, str], 
@@ -92,13 +92,14 @@ class CdTeWidget(QWidget):
                                                                "ASIC Load":QValueWidget(name="ASIC Load", value=self._default_qvaluewidget_value)},
                                               name_plus="<sup>*</sup>")
         self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        # self.ping = QValueCheckWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.de_unixtime = QValueCheckWidget(name="Unixtime", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
         self.ping = QValueWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
         self.hv = QValueCheckWidget(name="HV", value=self._default_qvaluewidget_value, condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
-        de_layout.addWidget(self.software_stat, 0, 0, 1, 2) 
-        de_layout.addWidget(self.de_mode, 1, 0, 1, 2) 
-        de_layout.addWidget(self.ping, 2, 0, 1, 2) 
-        de_layout.addWidget(self.hv, 3, 0, 1, 2) 
+        de_layout.addWidget(self.de_mode, 0, 0, 1, 2) 
+        de_layout.addWidget(self.de_unixtime, 1, 0, 1, 2) 
+        de_layout.addWidget(self.canister_mode, 2, 0, 1, 2) 
+        de_layout.addWidget(self.ping, 3, 0, 1, 2) 
+        de_layout.addWidget(self.hv, 4, 0, 1, 2) 
         # counts
         cts_layout = QtWidgets.QGridLayout()
         cts_layout_colour = "rgb(141, 141, 134)"
@@ -144,12 +145,12 @@ class CdTeWidget(QWidget):
         frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
         
         
-        self._value_layout.addLayout(de_layout) 
+        self._value_layout.addLayout(de_layout, 0, 0 , 4, 1) 
 
-        self._value_layout.addLayout(cts_layout) 
+        self._value_layout.addLayout(cts_layout, 4, 0, 2, 1) 
         
-        self._value_layout.addLayout(strips_layout) 
-        self._value_layout.addLayout(frames_layout)
+        self._value_layout.addLayout(strips_layout, 6, 0, 3, 1) 
+        self._value_layout.addLayout(frames_layout, 9, 0, 3, 1)
         set_all_spacings(self._value_layout)
 
         self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
@@ -185,8 +186,8 @@ class CdTeWidget(QWidget):
         Update the:
         * count rate field, 
         """
-        # self.software_stat.update_label(...)
-        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        # self.canister_mode.update_label(...)
+        # self.canister_mode.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
 
@@ -217,8 +218,8 @@ class CdTeWidget(QWidget):
         """
         # ... = self.reader_hk.collection.something()
         # ... = self.reader_de.collection.something()
-        # self.software_stat.update_label(self.reader_hk.collection.get_status())
-        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        # self.canister_mode.update_label(self.reader_hk.collection.get_status())
+        # self.canister_mode.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
@@ -235,8 +236,8 @@ class CdTeWidget(QWidget):
         Update the:
         * count rate field, 
         """
-        self.software_stat.update_label(self.reader_de.collection.get_status())
-        # self.software_stat.update_tool_tip({"ASIC VTH":..., 
+        self.canister_mode.update_label(self.reader_de.collection.get_status())
+        # self.canister_mode.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
@@ -440,18 +441,18 @@ if __name__=="__main__":
     # lay.addLayout(_f2, 0, 2, 1, 1)
     # lay.addLayout(_f3, 0, 3, 1, 1)
 
-    cdte0 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log", 
-             None, 
-             None)
-    cdte1 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log", 
-             None, 
-             None)
-    cdte2 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log", 
-             None, 
-             None)
-    cdte3 = ("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log", 
-             None, 
-             None)
+    cdte0 = ("/Users/kris/Downloads/16-2-2024_15-9-8/cdte1_pc.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdte1_hk.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdte1_pc.log")
+    cdte1 = ("/Users/kris/Downloads/16-2-2024_15-9-8/cdtede_hk.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdte2_hk.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdtede_hk.log")
+    cdte2 = ("/Users/kris/Downloads/16-2-2024_15-9-8/cdte3_pc.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdte3_hk.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdtede_hk.log")
+    cdte3 = ("/Users/kris/Downloads/16-2-2024_15-9-8/cdte4_pc.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdte4_hk.log", 
+             "/Users/kris/Downloads/16-2-2024_15-9-8/cdtede_hk.log")
     
     # w.resize(1000,500)
     w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
