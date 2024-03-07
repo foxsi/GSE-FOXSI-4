@@ -46,8 +46,8 @@ class TimepixWindow(QWidget):
         else:
             print("How do I read the Timepix data?")
 
-        self.mean_tot = LightCurve(reader=self.reader, name="Mean ToT")
-        self.flux = LightCurve(reader=self.reader, name="Flux", colour="purple")
+        self.mean_tot = LightCurve(name="Mean ToT")
+        self.flux = LightCurve(name="Flux", colour="purple")
 
         self.mean_tot.set_labels(self.mean_tot.graphPane, xlabel="", ylabel="Mean ToT", title=" ")
         self.flux.set_labels(self.flux.graphPane, xlabel="Time (frame #)", ylabel="Flux", title="")

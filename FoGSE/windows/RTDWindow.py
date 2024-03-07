@@ -46,20 +46,20 @@ class RTDWindow(QWidget):
         else:
             print("How do I read the Timepix data?")
 
-        self.chip1_ids = ['ts0', 'ts1', 'ts2', 'ts3', 'ts4', 'ts5', 'ts6', 'ts7', 'ts8']
-        self.chip2_ids = ['ts9', 'ts10', 'ts11', 'ts12', 'ts13', 'ts14', 'ts15', 'ts16', 'ts17']
+        self.chip1_ids     = ['ts0',  'ts1',        'ts2',  'ts3',  'ts4',    'ts5',     'ts6',      'ts7',  'ts8']
+        self.chip1_names   = ['LN2',  'POS2',       'POS3', 'POS4', 'POS5',   '5.5 V',   'MICRO',    '???',  'TIMEPIX']
+        self.chip1_colours = ['blue', 'lightgreen', 'red',  'cyan', 'gold',   'magenta', 'darkGrey', 'pink', 'k']
 
-        self.chip1_names = ['LN2', 'POS2', 'POS3', 'POS4', 'POS5', '5.5 V', 'MICRO', '???', 'TIMEPIX']
-        self.chip2_names = ['OPTIC PLATE', 'A FRONT', 'A BACK', 'B FRONT', 'C FRONT', 'C BACK', 'D FRONT', 'D MIDDLE', 'D BACK']
-        self.chip1_colours = ['b',   'g',   'r',   'c',   'y',   'm',  'brown','pink','purple']
-        self.chip2_colours = ['k', 'g', 'r',    'darkCyan',    'b',    'pink',    'darkGreen','darkGray', 'purple']
+        self.chip2_ids     = ['ts9',         'ts10',       'ts11',   'ts12',    'ts13',    'ts14',    'ts15',     'ts16',     'ts17']
+        self.chip2_names   = ['OPTIC PLATE', 'A FRONT',    'A BACK', 'B FRONT', 'C FRONT', 'C BACK',  'D FRONT',  'D MIDDLE', 'D BACK']
+        self.chip2_colours = ['blue',        'lightgreen', 'red',    'cyan',    'gold',    'magenta', 'darkGrey', 'pink',     'k']
 
-        self.chip1 = MultiLightCurve(reader=self.reader, name="Chip 1", ids=self.chip1_ids, colours=self.chip1_colours, names=self.chip1_names)
-        self.chip2 = MultiLightCurve(reader=self.reader, name="Chip 2", ids=self.chip2_ids, colours=self.chip2_colours, names=self.chip2_names)
+        self.chip1 = MultiLightCurve(name="Chip 1", ids=self.chip1_ids, colours=self.chip1_colours, names=self.chip1_names)
+        self.chip2 = MultiLightCurve(name="Chip 2", ids=self.chip2_ids, colours=self.chip2_colours, names=self.chip2_names)
 
-        self.chip1.set_labels(self.chip1.graphPane, xlabel="", ylabel="T (C)", title=" ", font_size="12pt", title_font_size="1pt")
-        self.chip2.set_labels(self.chip2.graphPane, xlabel="Time (Unixtime)", ylabel="T (C)", title="", font_size="12pt", title_font_size="0pt")
-
+        self.chip1.set_labels(self.chip1.graphPane, xlabel="", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
+        self.chip2.set_labels(self.chip2.graphPane, xlabel="Time (Unixtime)", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
+        
         self.reader.value_changed_collection.connect(self.update_plot)
 
         self.layoutMain = QVBoxLayout()

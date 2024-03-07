@@ -1,8 +1,9 @@
 """
-A class to help handle displaying a matplotlib lie plot in a PyQt window.
+A class to help handle displaying a matplotlib image in a PyQt window.
 """
 
 import numpy as np
+from matplotlib import transforms
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget
@@ -10,34 +11,31 @@ import pyqtgraph as pg
 
 from FoGSE.windows.mpl.MPLCanvas import MPLCanvas
 
-from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
+# from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
         
 
-class LightCurve(QWidget):
+class Image(QWidget):
     """
-    A line profile class.
+    An individual window to display Timepix data read from a file.
 
     Parameters
     ----------
     """
 
     mpl_click_signal = QtCore.pyqtSignal()
+    mpl_axes_enter_signal = QtCore.pyqtSignal()
+    mpl_axes_leave_signal = QtCore.pyqtSignal()
 
-    def __init__(self, reader=None, name="light curve", colour="b", parent=None):
+    def __init__(self, name="image", colour="b", rotation=0, parent=None):
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
 
-        self.reader = reader
-
-        self.detw, self.deth = 400, 150
+        self.detw, self.deth = 400, 400
         self.aspect_ratio = self.detw / self.deth
         # self.resize(self.detw, self.deth)
 
-        # self.graphPane = pg.PlotWidget()
-        self.graphPane = MPLCanvas(self)#, width=2, height=1, dpi=100)
-        # self.graphPane.setMinimumSize(QtCore.QSize(self.detw, self.deth))
-        # self.graphPane.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
+        self.graphPane = MPLCanvas(self)
 
         self.layoutMain = QVBoxLayout()
         self.layoutMain.addWidget(self.graphPane)
@@ -53,6 +51,11 @@ class LightCurve(QWidget):
         self.plot_data_xs = np.array([0]).astype(float)
         self._remove_first = True
 
+        tr = transforms.Affine2D().rotate_deg(rotation) #rotation_in_degrees
+        # Create the pcolormesh plot
+        self.graphPane.axes.pcolormesh(x_values, y_values, data_matrix, cmap='viridis', transform=tr + self.graphPane.axes.transData)
+        self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
+
         # self.plot_line = self.plot(self.graphPane, [], [], 
         #                            color=colour, plotname=name, symbol="+", 
         #                            symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255))
@@ -67,6 +70,8 @@ class LightCurve(QWidget):
         self.setLayout(self.layoutMain)
         
         self.graphPane.mpl_connect("button_press_event", self.on_click)
+        self.graphPane.mpl_connect("axes_enter_event", self.on_enter)
+        self.graphPane.mpl_connect("axes_leave_event", self.on_leave)
         
         self.counter = 1
 
@@ -75,6 +80,16 @@ class LightCurve(QWidget):
         The matplotlib way needs a method to shout when it is interacted with. 
         """
         self.mpl_click_signal.emit()
+
+    def on_enter(self, event):
+        # https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
+        # connection: https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
+        self.mpl_axes_enter_signal.emit()
+
+    def on_leave(self, event):
+        # https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
+        # connection: https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
+        self.mpl_axes_leave_signal.emit()
 
     def manage_plotting_ranges(self):
         # plot the newly updated x and ys
@@ -195,206 +210,8 @@ class LightCurve(QWidget):
 
         self.resize(new_size)
 
-class MultiLightCurve(QWidget):
-    """
-    A line profile class to display multiple lines on one plot.
 
-    Parameters
-    ----------
-    """
-
-    mpl_click_signal = QtCore.pyqtSignal()
-
-    def __init__(self, reader=None, name="multi light curve", ids=["first"], colours=["b"], names=None, parent=None):
-        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
-        QWidget.__init__(self, parent)
-
-        self.reader = reader
-
-        self.detw, self.deth = 400, 150
-        self.aspect_ratio = self.detw / self.deth
-
-        self.graphPane = MPLCanvas(self)
-
-        self.layoutMain = QVBoxLayout()
-
-        self.layoutMain.setContentsMargins(0, 0, 0, 0)
-        self.layoutMain.setSpacing(0)
-
-        self._plot_ref = [None]*len(ids)
-
-        self.plot_data_ys = [np.array([0]).astype(float)]*len(ids)
-        self.plot_data_xs = [np.array([0]).astype(float)]*len(ids)
-        self._remove_firsts = [True]*len(ids)
-
-        # self.graphPane = pg.PlotWidget()
-        # self.graphPane.addLegend(offset=-0.5, labelTextSize='10pt',labelTextColor='k', **{'background-color':'w'}) 
-        self.layoutMain.addWidget(self.graphPane)
-
-        colours = colours if len(colours)==len(ids) else colours*len(ids)
-        names = ids if names is None else names
-        self.plot_lines = []
-        for p in range(len(names)):
-            # self.plot_lines.append(self.plot(self.graphPane, [], [], 
-            #                                  color=colours[p], plotname=names[p], symbol="+", 
-            #                                  symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255)))
-            plot_refs = self.graphPane.axes.plot(self.plot_data_xs[p], self.plot_data_ys[p], colours[p], marker="o", ms=6, label=names[p])
-            self.plot_lines.append(plot_refs[0])
-            self._plot_ref[p] = plot_refs[0]
-            
-        # self.graphPane.setBackground('w')
-        # self.graphPane.showGrid(x=True, y=True)
-        # # Disable interactivity
-        # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
-            
-        self.graphPane.axes.legend(loc="upper left", fontsize=5, ncol=2)
-
-        self.keep_entries = 60 # entries
-
-        self.setLayout(self.layoutMain)
-
-        self.graphPane.mpl_connect("button_press_event", self.on_click)
-        
-        self.counter = 1
-
-    def on_click(self,event):
-        """ 
-        The matplotlib way needs a method to shout when it is interacted with. 
-        """
-        self.mpl_click_signal.emit()
-
-    def manage_plotting_ranges(self):
-        # plot the newly updated x and ys
-        _add_counter = True
-        for p in range(len(self.plot_data_ys)):
-            _no_nans = ~np.isnan(self.plot_data_ys[p]) #avoid plotting nans
-            if len(self.plot_data_ys[p][_no_nans])>1:
-                #pyqtgraph won't plot 1 data-point and throws an error instead :|
-                # self.plot_lines[p].clear()
-                # self.plot_lines[p].setData(self.plot_data_xs[p][_no_nans], self.plot_data_ys[p][_no_nans])
-                self.plot(self._plot_ref[p], self.plot_data_xs[p][_no_nans], self.plot_data_ys[p][_no_nans])
-                self.counter = self.counter+1 if _add_counter else self.counter
-                _add_counter = False
-
-    def _remove_first_artificial_point(self):
-        """ 
-        First point is artificial since PlotWidget object won't plot 
-        a single datapoint by itself.
-        
-        The check is we still have that entry there (`_remove_first`), 
-        and if there are at least two real data points, the just remove 
-        the artificial one.
-        """
-        for p in range(len(self.plot_data_ys)):
-            if self._remove_firsts[p] and len(self.plot_data_ys[p])>=3:
-                self._remove_firsts[p] = False
-                self.plot_data_ys[p] = self.plot_data_ys[p][1:]
-                self.plot_data_xs[p] = self.plot_data_xs[p][1:]
-
-    def _replace_values(self, replace):
-        """
-        Given a dictionary, replace the entries with values "this" with 
-        the value indicated by "with" in `self.plot_data_ys`.
-
-        E.g., replace = {"this":[0, 500, 453], "with":[np.nan, 475, 450]}
-        would mean to replace all 0s, 500s, and 453s in `self.plot_data_ys` 
-        with np.nan, 475, and 450, respectively.
-        """
-        if replace is None:
-            return
-        
-        for p in range(len(self.plot_data_ys)):
-            if len(self.plot_data_ys[p])>=3:
-                if len(replace["this"])!=len(replace["with"]):
-                    print("`replace` 'this' and 'with' keys do not have lists the same length.")
-
-                for t, w in zip(replace["this"],replace["with"]):
-                    self.plot_data_ys[p][np.where(self.plot_data_ys[p]==t)] = w
-
-    def add_plot_data(self, new_data_ys, new_data_xs=None, replace=None):
-        """ Adds the new data to the array to be plotted. """
-
-        for p in range(len(self.plot_data_ys)):
-            self.plot_data_ys[p] = np.append(self.plot_data_ys[p], new_data_ys[p])
-            # print("kjy",new_data_xs)
-            # print("dsfgs",self.plot_data_xs)
-            # print(new_data_xs[p])
-            # print(self.plot_data_xs[p])
-            self.plot_data_xs[p] = np.append(self.plot_data_xs[p], self.plot_data_xs[p][-1]+1) if new_data_xs is None else np.append(self.plot_data_xs[p], new_data_xs)
-
-        self._remove_first_artificial_point()
-        self._replace_values(replace)
-        
-        for p in range(len(self.plot_data_ys)):
-            if len(self.plot_data_ys[p])>self.keep_entries:
-                self.plot_data_ys[p] = self.plot_data_ys[p][-self.keep_entries:]
-                self.plot_data_xs[p] = self.plot_data_xs[p][-self.keep_entries:]
-
-        _ymins, _ymaxs, _xmins, _xmaxs = [], [], [], []
-        for p in range(len(self.plot_data_ys)):
-            _ymins.append(np.nanmin(self.plot_data_ys[p]))
-            _ymaxs.append(np.nanmax(self.plot_data_ys[p]))
-            _xmins.append(np.nanmin(self.plot_data_xs[p]))
-            _xmaxs.append(np.nanmax(self.plot_data_xs[p]))
-
-        # self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(_ymins)*0.95)
-        # self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(_ymaxs)*1.05)
-        # self.graphPane.plotItem.vb.setLimits(xMin=np.nanmin(_xmins))
-        # self.graphPane.plotItem.vb.setLimits(xMax=np.nanmax(_xmaxs)+1)
-        self.graphPane.axes.set_ylim([np.nanmin(_ymins)*0.95, np.nanmax(_ymaxs)*1.05])
-        self.graphPane.axes.set_xlim([np.nanmin(_xmins), np.nanmax(_xmaxs)+1])
-
-    def plot(self, graph_widget_plot_ref, x, y, color='r', plotname='', **kwargs):
-        # pen = pg.mkPen(color=color, width=5)
-        # return graph_widget.plot(x, y, name=plotname, pen=pen, **kwargs)
-        graph_widget_plot_ref.set_data(x, y)
-        self.graphPane.draw()
-    
-    def set_labels(self, graph_widget, xlabel="", ylabel="", title="", fontsize=9, ticksize=9, titlesize=10, offsetsize=1):
-        """
-        Method just to easily set the x, y-label andplot title without having to write all lines below again 
-        and again.
-
-        [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
-
-        arameters
-        ----------
-        graph_widget : `PyQt6 PlotWidget`
-            The widget for the labels
-
-        xlabel, ylabel, title : `str`
-            The strings relating to each label to be set.
-        """
-        graph_widget.axes.set_title(title, size=titlesize)#, **styles)
-
-        # Set label for both axes
-        # styles = {'color':'k', 'font-size':font_size, 'padding-top': '5px', 'padding-right': '5px', 'display': 'block'} 
-        graph_widget.axes.set_xlabel(xlabel, size=fontsize)#, **styles)
-        graph_widget.axes.set_ylabel(ylabel, size=fontsize)#, **styles)
-
-        graph_widget.axes.tick_params(axis='both', which='major', labelsize=ticksize)
-        graph_widget.axes.tick_params(axis='both', which='minor', labelsize=ticksize)
-
-        # this handles the exponent, if the data is in 1e10 then it is 
-        # usually plotted in smaller numbers with 1e10 off to the side.
-        # `get_offset_text` controls the "1e10"
-        t = graph_widget.axes.xaxis.get_offset_text()
-        t.set_size(offsetsize)
-
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.resize(new_size)
-
-
-class LightCurveExample(QWidget):
+class ImageExample(QWidget):
     """
     An individual window to display Timepix data read from a file.
 
@@ -425,8 +242,8 @@ class LightCurveExample(QWidget):
         else:
             print("How do I read the Timepix data?")
 
-        self.lc = LightCurve(name="Mean ToT")
-        self.mlc = MultiLightCurve(name="Mean ToT", ids=["first", "second"], colours=["b", "k"], names=["1","2"])
+        self.lc = LightCurve(reader=self.reader, name="Mean ToT")
+        self.mlc = MultiLightCurve(reader=self.reader, name="Mean ToT", ids=["first", "second"], colours=["b", "k"], names=["1","2"])
 
         self.lc.set_labels(self.lc.graphPane, xlabel="", ylabel="Some Light Curve", title=" ")
         self.mlc.set_labels(self.mlc.graphPane, xlabel="", ylabel="Multi Light Curve", title=" ")

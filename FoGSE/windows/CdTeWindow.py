@@ -166,8 +166,8 @@ class CdTeWindow(QWidget):
         # self.graphPane= LightCurve(reader=self.reader, name="Counts")
         self.graphPane = LightCurve(reader=self.reader, name="Counts", colour=self.colour)
         self.layoutMain.addWidget(self.graphPane)
-        self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Unixtime", ylabel="Counts", title="")
-        font=QtGui.QFont("Ariel",10)
+        self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Unixtime", ylabel="Counts", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
+        # font=QtGui.QFont("Ariel",10)
         # self.graphPane.graphPane.getAxis("bottom").setTickFont(font)
         # self.graphPane.graphPane.getAxis("left").setTickFont(font)
         # self.graphPane.graphPane.getAxis('left').textWidth = 0
