@@ -82,6 +82,8 @@ class CdTeWidget(QWidget):
         # de
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
+        self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
+        self.de_unixtime = QValueCheckWidget(name="Unixtime", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
         self.canister_mode = QValueTimeWidget(name="Can. Mode", 
                                               value=self._default_qvaluewidget_value, 
                                               time=4000, 
@@ -91,8 +93,6 @@ class CdTeWidget(QWidget):
                                                                "ASIC DTH":QValueWidget(name="ASIC DTH", value=self._default_qvaluewidget_value), 
                                                                "ASIC Load":QValueWidget(name="ASIC Load", value=self._default_qvaluewidget_value)},
                                               name_plus="<sup>*</sup>")
-        self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.de_unixtime = QValueCheckWidget(name="Unixtime", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
         self.ping = QValueWidget(name="Ping", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
         self.hv = QValueCheckWidget(name="HV", value=self._default_qvaluewidget_value, condition={"acceptable":[("0 V","white"), ("60 V","rgb(209, 229, 255)"), ("100 V","rgb(149, 200, 255)"), ("200 V","rgb(90, 170, 255)")]}, border_colour=de_layout_colour)
         de_layout.addWidget(self.de_mode, 0, 0, 1, 2) 
@@ -242,6 +242,7 @@ class CdTeWidget(QWidget):
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
         self.ping.update_label(self.reader_de.collection.get_ping())
+        self.de_unixtime.update_label(self.reader_de.collection.get_unixtime())
     
         # self.reader_de.collection. methods
         # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
