@@ -222,7 +222,12 @@ class ReaderBase(QWidget):
         Check if the data file has been modified since the last time 
         it was read.
         """
-        stamp = os.stat(self.data_file).st_mtime
+        if os.path.exists(self.data_file):
+            stamp = os.stat(self.data_file).st_mtime
+        else:
+            print(f"File: {self.data_file} does not exist.")
+            return False
+        
         if stamp != self._cached_stamp:
             self._cached_stamp = stamp
             return True
