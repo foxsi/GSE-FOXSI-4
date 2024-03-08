@@ -4,14 +4,13 @@ A class to help handle displaying a matplotlib image in a PyQt window.
 
 import numpy as np
 from matplotlib import transforms
+# from matplotlib.pyplot import draw, pause
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QGridLayout, QWidget
 import pyqtgraph as pg
 
 from FoGSE.windows.mpl.MPLCanvas import MPLCanvas
-
-# from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
         
 
 class Image(QWidget):
@@ -20,13 +19,32 @@ class Image(QWidget):
 
     Parameters
     ----------
+    pcolormesh : `dict`, `NoneType` 
+        Information to get a `pcolormesh` plot on the go.
+        E.g., `{"x_bins":np.arange(151), "y_bins":np.arange(201), "data_matrix":np.zeros((200, 150))}`.
+        Default: None
+    
+    imshow : `dict`, `NoneType`  
+        Information to get a `pcolormesh` plot on the go. The `pcolormesh`
+        input takes priority.
+        E.g., `{"data_matrix":_zeros}`.
+        Default: None
+    
+    rotation : `int`, `float`, etc.
+        The rotation affine transormation angle to be applied to the 
+        axes (not the data).
+        Default: 0
+    
+    custom_plotting_kwargs : `dict`, `NoneType` 
+        Any custom kwargs that are required to be sent to `.pcolormesh(**custom_plotting_kwargs)` 
+        or `.imshow(**custom_plotting_kwargs). E.g., `{"vmin":0, "vmax":1}`
     """
 
     mpl_click_signal = QtCore.pyqtSignal()
     mpl_axes_enter_signal = QtCore.pyqtSignal()
     mpl_axes_leave_signal = QtCore.pyqtSignal()
 
-    def __init__(self, name="image", colour="b", rotation=0, parent=None):
+    def __init__(self, pcolormesh=None, imshow=None, rotation=0, custom_plotting_kwargs=None, name="image", parent=None):
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
@@ -34,6 +52,10 @@ class Image(QWidget):
         self.detw, self.deth = 400, 400
         self.aspect_ratio = self.detw / self.deth
         # self.resize(self.detw, self.deth)
+
+        self.pcolormesh = pcolormesh
+        self.imshow = imshow
+        custom_plotting_kwargs = {} if custom_plotting_kwargs is None else custom_plotting_kwargs
 
         self.graphPane = MPLCanvas(self)
 
@@ -43,126 +65,119 @@ class Image(QWidget):
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.setSpacing(0)
 
-        # self.graphPane.setBackground('w')
-        # self.graphPane.showGrid(x=True, y=True)
-        self._plot_ref = None
-
-        self.plot_data_ys = np.array([0]).astype(float)
-        self.plot_data_xs = np.array([0]).astype(float)
-        self._remove_first = True
-
         tr = transforms.Affine2D().rotate_deg(rotation) #rotation_in_degrees
+        # "cmap" is ignored if data is RGB(A)
+        _plotting_kwargs = {"origin":"lower", "rasterized":True, "cmap":"viridis", "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
+
         # Create the pcolormesh plot
-        self.graphPane.axes.pcolormesh(x_values, y_values, data_matrix, cmap='viridis', transform=tr + self.graphPane.axes.transData)
+        if self.pcolormesh is not None:
+            _plotting_kwargs.pop("origin", None)
+            self.im_obj = self.graphPane.axes.pcolormesh(self.pcolormesh["x_bins"], self.pcolormesh["y_bins"], self.pcolormesh["data_matrix"], **_plotting_kwargs)
+        elif self.imshow is not None:
+            self.im_obj = self.graphPane.axes.imshow(self.imshow["data_matrix"], **_plotting_kwargs)
+            self.get_new_limits_post_rotation(affine_transform=_plotting_kwargs["transform"])
+        else:
+            print("Please, I need to know `pcolormesh` or `imshow` at least!")
+
+        self.graphPane.axes.axis('off')
         self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
-
-        # self.plot_line = self.plot(self.graphPane, [], [], 
-        #                            color=colour, plotname=name, symbol="+", 
-        #                            symbolPen=pg.mkPen(color=(0, 0, 0), width=1), symbolSize=10, symbolBrush=pg.mkBrush(0, 0, 0, 255))
-        plot_refs = self.graphPane.axes.plot(self.plot_data_xs, self.plot_data_ys, colour, marker="o", ms=6)
-        self._plot_ref = plot_refs[0]
-
-        self.keep_entries = 60 # entries
-
-        # Disable interactivity
-        # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
 
         self.setLayout(self.layoutMain)
         
         self.graphPane.mpl_connect("button_press_event", self.on_click)
         self.graphPane.mpl_connect("axes_enter_event", self.on_enter)
         self.graphPane.mpl_connect("axes_leave_event", self.on_leave)
-        
-        self.counter = 1
 
     def on_click(self,event):
         """ 
         The matplotlib way needs a method to shout when it is interacted with. 
+
+        Sends a signal if the plot is clicked on by the mouse.
+
+        Other connections exist. [1]
+
+        [1] https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
         """
         self.mpl_click_signal.emit()
 
     def on_enter(self, event):
+        """ 
+        The matplotlib way needs a method to shout when it is interacted with. 
+
+        Sends a signal if the mouse enters the plot (started hovering).
+
+        Other connections exist. [1]
+
+        [1] https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
+        """
         # https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
-        # connection: https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
         self.mpl_axes_enter_signal.emit()
 
     def on_leave(self, event):
+        """ 
+        The matplotlib way needs a method to shout when it is interacted with. 
+
+        Sends a signal if the mouse leaves the plot (ended hovering).
+
+        Other connections exist. [1]
+
+        [1] https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
+        """
         # https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
-        # connection: https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.connect.html
         self.mpl_axes_leave_signal.emit()
 
-    def manage_plotting_ranges(self):
-        # plot the newly updated x and ys
-        _no_nans = ~np.isnan(self.plot_data_ys) #avoid plotting nans
-        if len(self.plot_data_ys[_no_nans])>1:
-            #pyqtgraph won't plot 1 data-point and throws an error instead :|
-            # self.plot_line.clear()
-            # self.plot_line.setData(self.plot_data_xs[_no_nans], self.plot_data_ys[_no_nans])
-            self.plot(self, self.plot_data_xs[_no_nans], self.plot_data_ys[_no_nans])
-            self.counter += 1
-
-    def _remove_first_artificial_point(self):
+    def get_new_limits_post_rotation(self, affine_transform):
         """ 
-        First point is artificial since PlotWidget object won't plot 
-        a single datapoint by itself.
-        
-        The check is we still have that entry there (`_remove_first`), 
-        and if there are at least two real data points, the just remove 
-        the artificial one.
-        """
-        if self._remove_first and len(self.plot_data_ys)>=3:
-            self._remove_first = False
-            self.plot_data_ys = self.plot_data_ys[1:]
-            self.plot_data_xs = self.plot_data_xs[1:]
+        So `imshow()` does not rescale the limits of the plot after performing 
+        an affine transformation to it so need to find the new plot limits
+        after a rotation has been performed.
 
-    def _replace_values(self, replace):
+        Note: `pcolormesh` rescales its limts by default.
+        """
+        # extent is for non-rotated array
+        x1, x2, y1, y2 = self.im_obj.get_extent() 
+
+        # maybe I will return and see if there is a more direct way, but for now...
+        # get new display coordniates of the image corners after the transform
+        new_display_corners = affine_transform.transform([(x1,y1), (x2,y1), (x1,y2), (x2,y2)])
+        # can now convert the display coords to data coords
+        new_data_corners = np.array(self.graphPane.axes.transData.inverted().transform(new_display_corners))
+
+        self.graphPane.axes.set_xlim([np.min(new_data_corners[:,0]), 
+                                      np.max(new_data_corners[:,0])])
+        self.graphPane.axes.set_ylim([np.min(new_data_corners[:,1]), 
+                                      np.max(new_data_corners[:,1])])
+
+    def _replace_values(self, matrix, replace):
         """
         Given a dictionary, replace the entries with values "this" with 
-        the value indicated by "with" in `self.plot_data_ys`.
+        the value indicated by "with" in `matrix`.
 
         E.g., replace = {"this":[0, 500, 453], "with":[np.nan, 475, 450]}
-        would mean to replace all 0s, 500s, and 453s in `self.plot_data_ys` 
+        would mean to replace all 0s, 500s, and 453s in `matrix` 
         with np.nan, 475, and 450, respectively.
         """
         if replace is None:
-            return
+            return matrix
         
-        if len(self.plot_data_ys)>=3:
-            if len(replace["this"])!=len(replace["with"]):
-                print("`replace` 'this' and 'with' keys do not have lists the same length.")
+        if len(replace["this"])!=len(replace["with"]):
+            print("`replace` 'this' and 'with' keys do not have lists the same length.")
 
-            for t, w in zip(replace["this"],replace["with"]):
-                self.plot_data_ys[np.where(self.plot_data_ys==t)] = w
+        for t, w in zip(replace["this"],replace["with"]):
+            matrix[np.where(matrix==t)] = w
 
-    def add_plot_data(self, new_data_y, new_data_x=None, replace=None):
+        return matrix
+
+    def add_plot_data(self, new_matrix, replace=None):
         """ Adds the new data to the array to be plotted. """
 
-        # self.sensor_plot_data_mean_tot.append(new_data)
-        self.plot_data_ys = np.append(self.plot_data_ys, new_data_y)
-        # self.plot_data_xs = np.append(self.plot_data_xs, self.plot_data_xs[-1]+1) if new_data_x is None else np.append(self.plot_data_xs, new_data_x)
-        self.plot_data_xs = np.append(self.plot_data_xs, self.plot_data_xs[-1]+1) if new_data_x is None else np.append(self.plot_data_xs, new_data_x)
-
-        self._remove_first_artificial_point()
-        self._replace_values(replace)
+        new_matrix = self._replace_values(new_matrix, replace)
         
-        if len(self.plot_data_ys)>self.keep_entries:
-            self.plot_data_ys = self.plot_data_ys[-self.keep_entries:]
-            self.plot_data_xs = self.plot_data_xs[-self.keep_entries:]
+        if self.pcolormesh is not None:
+            self.im_obj.set_array(new_matrix)
+        elif self.imshow is not None:
+            self.im_obj.set_data(new_matrix)
 
-        self._minmax_y = np.array([np.nanmin(self.plot_data_ys), np.nanmax(self.plot_data_ys)])
-        # self.graphPane.plotItem.vb.setLimits(yMin=np.nanmin(self._minmax_y[0])*0.95)
-        # self.graphPane.plotItem.vb.setLimits(yMax=np.nanmax(self._minmax_y[1])*1.05)
-        self.graphPane.axes.set_ylim([np.nanmin(self._minmax_y[0])*0.95, np.nanmax(self._minmax_y[1])*1.05])
-
-        self._minmax_x = np.array([np.nanmin(self.plot_data_xs), np.nanmax(self.plot_data_xs)])
-        # self.graphPane.plotItem.vb.setLimits(xMin=np.nanmin(self._minmax_x[0]))
-        # self.graphPane.plotItem.vb.setLimits(xMax=np.nanmax(self._minmax_x[1])+1)
-        self.graphPane.axes.set_xlim([np.nanmin(self._minmax_x[0]), np.nanmax(self._minmax_x[1])+1])
-
-    def plot(self, graph_widget, x, y, color="r", plotname='', **kwargs):
-        # pen = pg.mkPen(color=color, width=5)
-        # return graph_widget.plot(x, y, name=plotname, pen=pen, **kwargs)
-        graph_widget._plot_ref.set_data(x, y)
         self.graphPane.draw()
 
     def set_labels(self, graph_widget, xlabel="", ylabel="", title="", fontsize=9, ticksize=9, titlesize=10, offsetsize=1):
@@ -180,12 +195,9 @@ class Image(QWidget):
         xlabel, ylabel, title : `str`
             The strings relating to each label to be set.
         """
-        # if title_font_size!="0pt":
-        #     graph_widget.axes.set_title(title, color='k', size=title_font_size)
         graph_widget.axes.set_title(title, size=titlesize)#, **styles)
 
         # Set label for both axes
-        # styles = {'color':'k', 'font-size':font_size, 'padding-top': '5px', 'padding-right': '5px', 'display': 'block'} 
         graph_widget.axes.set_xlabel(xlabel, size=fontsize)#, **styles)
         graph_widget.axes.set_ylabel(ylabel, size=fontsize)#, **styles)
 
@@ -217,47 +229,117 @@ class ImageExample(QWidget):
 
     Parameters
     ----------
-    data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
-        If given, takes priority over `reader` input.
-        Default: None
 
     reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
         The reader already given a file.
         Default: None
+
+    x_size, y_size : `int`
+        Width and height of image in pixels.
+
+    Example
+    -------
+    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+
+    class ImageFakeReader(ReaderBase):
+        \"""
+        Reader for fake image arrays.
+        \"""
+
+        def __init__(self, array_x, array_y, parent=None):
+            \"""
+            Raw : binary
+            Parsed : human readable
+            Collected : organised by intrumentation
+            \"""
+            ReaderBase.__init__(self, "", parent)
+
+            self.array_x, self.array_y = array_x, array_y
+            
+            self.call_interval(10)
+
+        def extract_raw_data(self):
+            \"""
+            Generate random array.
+
+            Returns
+            -------
+            `numpy.ndarray` :
+                Random frame.
+            \"""
+            rand_array = np.random.rand(self.array_y, self.array_x)
+            rand_array[0, 0] = -1 #stays the same always, to help track orientaion
+            rand_array[-1, -1] = 1 #stays the same always, to help track orientaion
+            return rand_array
+        
+        def raw_2_collected(self):
+            \""" 
+            Method to control the flow from raw data to parsed to 
+            collected. 
+
+            Sets the `collections` attribute.
+            \"""
+
+            # assign the collected data and trigger the `emit`
+            self.collection = self.extract_raw_data()
+            self.value_changed_collection.emit()
+
+    def initiate_gui():
+        app = QApplication([])
+        array_x, array_y = 300, 200
+        R = ImageFakeReader(array_x, array_y)
+
+        f0 = ImageExample(R, array_x, array_y)
+
+        f0.show()
+        app.exec()
+
+    initiate_gui()
     """
-    def __init__(self, data_file=None, reader=None, parent=None, name="Timepix"):
+    def __init__(self, reader, x_size, y_size, parent=None, name="Images"):
 
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
 
         # decide how to read the data
-        if data_file is not None:
-            # probably the main way to use it
-            self.reader = TimepixReader(data_file)
-        elif reader is not None:
-            # useful for testing and if multiple windows need to share the same file
-            self.reader = reader
-        else:
-            print("How do I read the Timepix data?")
+        self.reader = reader
 
-        self.lc = LightCurve(reader=self.reader, name="Mean ToT")
-        self.mlc = MultiLightCurve(reader=self.reader, name="Mean ToT", ids=["first", "second"], colours=["b", "k"], names=["1","2"])
+        _x_size, _y_size = x_size, y_size
+        pcol_xs, pcol_ys = np.arange(_x_size+1), np.arange(_y_size+1)+20.3
+        _zeros = np.zeros((_y_size, _x_size))
+        self.imsh0 = Image(imshow={"data_matrix":_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.pcol0 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        r1_imsh = -120
+        self.imsh1 = Image(imshow={"data_matrix":_zeros}, rotation=r1_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        r1_pcol = 45
+        self.pcol1 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=r1_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        r2_imsh = -10
+        self.imsh2 = Image(imshow={"data_matrix":_zeros}, rotation=r2_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        r2_pcol = 60
+        self.pcol2 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=r2_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
 
-        self.lc.set_labels(self.lc.graphPane, xlabel="", ylabel="Some Light Curve", title=" ")
-        self.mlc.set_labels(self.mlc.graphPane, xlabel="", ylabel="Multi Light Curve", title=" ")
+        self.imsh0.set_labels(self.imsh0.graphPane, xlabel="", ylabel="", title="Imshow")
+        self.pcol0.set_labels(self.pcol0.graphPane, xlabel="", ylabel="", title="Pcolormesh")
+        self.imsh1.set_labels(self.imsh1.graphPane, xlabel="", ylabel="", title=f"Imshow: rot of {r1_imsh} deg")
+        self.pcol1.set_labels(self.pcol1.graphPane, xlabel="", ylabel="", title=f"Pcolormesh: rot of {r1_pcol} deg")
+        self.imsh2.set_labels(self.imsh2.graphPane, xlabel="", ylabel="", title=f"Imshow: rot of {r2_imsh} deg (RGBA)")
+        self.pcol2.set_labels(self.pcol2.graphPane, xlabel="", ylabel="", title=f"Pcolormesh: rot of {r2_pcol} deg (RGBA)")
 
         self.reader.value_changed_collection.connect(self.update_plot)
 
-        self.layoutMain = QVBoxLayout()
+        self.layoutMain = QGridLayout()
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.setSpacing(0)
-        self.layoutMain.addWidget(self.lc)
-        self.layoutMain.addWidget(self.mlc)
+        self.layoutMain.addWidget(self.imsh0, 0, 0)
+        self.layoutMain.addWidget(self.pcol0, 1, 0)
+        self.layoutMain.addWidget(self.imsh1, 0, 1)
+        self.layoutMain.addWidget(self.pcol1, 1, 1)
+        self.layoutMain.addWidget(self.imsh2, 0, 2)
+        self.layoutMain.addWidget(self.pcol2, 1, 2)
         self.setLayout(self.layoutMain)
 
-        self.detw, self.deth = self.lc.detw, self.lc.deth*2
+        self.detw, self.deth = self.imsh0.detw*3, self.imsh0.deth*2
         self.aspect_ratio = self.detw / self.deth
 
         self.setMinimumSize(self.detw, self.deth)
@@ -273,25 +355,25 @@ class ImageExample(QWidget):
         *`process_data` to perform any last steps before updating the plot.
         """
         
-        new_mean_tot = self.reader.collection.get_mean_tot()
+        new_array = self.reader.collection
         
         # defined how to add/append onto the new data arrays
-        self.lc.add_plot_data(new_mean_tot)
-        self.mlc.add_plot_data([new_mean_tot, new_mean_tot-100])
+        self.imsh0.add_plot_data(new_array)
+        self.pcol0.add_plot_data(new_array)
+        self.imsh1.add_plot_data(new_array)
+        self.pcol1.add_plot_data(new_array)
 
-        # plot the newly updated x and ys
-        self.lc.manage_plotting_ranges()
-        self.mlc.manage_plotting_ranges()
+        new_array = (new_array-np.min(new_array))/(np.max(new_array)-np.min(new_array))
+        _zs = np.zeros(np.shape(new_array))
+        rgba_array_blue = np.concatenate((_zs[:,:,None], _zs[:,:,None], new_array[:,:,None], new_array[:,:,None]), axis=2)
+        self.imsh2.add_plot_data(rgba_array_blue)
+        rgba_array_red = np.concatenate((new_array[:,:,None], _zs[:,:,None], _zs[:,:,None], new_array[:,:,None]), axis=2)
+        self.pcol2.add_plot_data(rgba_array_red)
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
+        
         if event is None:
             return 
         
@@ -303,36 +385,60 @@ class ImageExample(QWidget):
 
 if __name__=="__main__":
     # package top-level
-    import os
-    DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
-    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame.bin"
-    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
+
+    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+
+    class ImageFakeReader(ReaderBase):
+        """
+        Reader for fake image arrays.
+        """
+
+        def __init__(self, array_x, array_y, parent=None):
+            """
+            Raw : binary
+            Parsed : human readable
+            Collected : organised by intrumentation
+            """
+            ReaderBase.__init__(self, "", parent)
+
+            self.array_x, self.array_y = array_x, array_y
+            
+            self.call_interval(10)
+
+        def extract_raw_data(self):
+            """
+            Generate random array.
+
+            Returns
+            -------
+            `numpy.ndarray` :
+                Random frame.
+            """
+            rand_array = np.random.rand(self.array_y, self.array_x)
+            rand_array[0, 0] = -1 #stays the same always, to help track orientaion
+            rand_array[-1, -1] = 1 #stays the same always, to help track orientaion
+            return rand_array
+        
+        def raw_2_collected(self):
+            """ 
+            Method to control the flow from raw data to parsed to 
+            collected. 
+
+            Sets the `collections` attribute.
+            """
+
+            # assign the collected data and trigger the `emit`
+            self.collection = self.extract_raw_data()
+            self.value_changed_collection.emit()
 
     def initiate_gui():
         app = QApplication([])
+        array_x, array_y = 300, 200
+        R = ImageFakeReader(array_x, array_y)
 
-        # R = TimepixFileReader(DATAFILE)
-        R = TimepixReader(DATAFILE)
-
-        f0 = LightCurveExample(reader=R)
+        f0 = ImageExample(R, array_x, array_y)
 
         f0.show()
         app.exec()
-
-    # def initiate_fake_Timepixs():
-    #     from FoGSE.fake_foxsi.fake_Timepixs import fake_Timepixs
-
-    #     # generate fake data and save to `datafile`
-    #     fake_Timepixs(DATAFILE, loops=1_000_000)
-
-    # from multiprocessing import Process
-
-    # fake temps
-    # p1 = Process(target = initiate_fake_Timepixs)
-    # p1.start()
-    # live plot
-    # p2 = Process(target = initiate_gui)
-    # p2.start()
-    # p2.join()
 
     initiate_gui()
