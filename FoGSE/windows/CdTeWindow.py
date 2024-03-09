@@ -164,16 +164,9 @@ class CdTeWindow(QWidget):
     def setup_1d(self):
         """ Set up for 1D plotting products. """
         # self.graphPane= LightCurve(reader=self.reader, name="Counts")
-        self.graphPane = LightCurve(reader=self.reader, name="Counts", colour=self.colour)
+        self.graphPane = LightCurve(colour=self.colour)
         self.layoutMain.addWidget(self.graphPane)
-        self.graphPane.set_labels(self.graphPane.graphPane, xlabel="Unixtime", ylabel="Counts", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
-        # font=QtGui.QFont("Ariel",10)
-        # self.graphPane.graphPane.getAxis("bottom").setTickFont(font)
-        # self.graphPane.graphPane.getAxis("left").setTickFont(font)
-        # self.graphPane.graphPane.getAxis('left').textWidth = 0
-        # self.graphPane.graphPane.getAxis('bottom').textHeight = 0
-        # self.graphPane.graphPane.getAxis('left')._updateWidth()
-        # self.graphPane.graphPane.getAxis('bottom')._updateWidth()
+        self.graphPane.set_labels(xlabel="Unixtime", ylabel="Counts", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
         self.graphPane.detw, self.graphPane.deth = 2, 1
         self.graphPane.aspect_ratio = self.graphPane.detw/self.graphPane.deth
         self.detw, self.deth = 256, 1024

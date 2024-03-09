@@ -54,11 +54,11 @@ class RTDWindow(QWidget):
         self.chip2_names   = ['OPTIC PLATE', 'A FRONT',    'A BACK', 'B FRONT', 'C FRONT', 'C BACK',  'D FRONT',  'D MIDDLE', 'D BACK']
         self.chip2_colours = ['blue',        'lightgreen', 'red',    'cyan',    'gold',    'magenta', 'darkGrey', 'pink',     'k']
 
-        self.chip1 = MultiLightCurve(name="Chip 1", ids=self.chip1_ids, colours=self.chip1_colours, names=self.chip1_names)
-        self.chip2 = MultiLightCurve(name="Chip 2", ids=self.chip2_ids, colours=self.chip2_colours, names=self.chip2_names)
+        self.chip1 = MultiLightCurve(ids=self.chip1_ids, colours=self.chip1_colours, names=self.chip1_names)
+        self.chip2 = MultiLightCurve(ids=self.chip2_ids, colours=self.chip2_colours, names=self.chip2_names)
 
-        self.chip1.set_labels(self.chip1.graphPane, xlabel="", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
-        self.chip2.set_labels(self.chip2.graphPane, xlabel="Time (Unixtime)", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
+        self.chip1.set_labels(xlabel="", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
+        self.chip2.set_labels(xlabel="Time (Unixtime)", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
         
         self.reader.value_changed_collection.connect(self.update_plot)
 

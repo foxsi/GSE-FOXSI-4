@@ -17,6 +17,8 @@ class Image(QWidget):
     """
     An individual window to display Timepix data read from a file.
 
+    Updated with the `add_plot_data()` method.
+
     Parameters
     ----------
     pcolormesh : `dict`, `NoneType` 
@@ -44,7 +46,12 @@ class Image(QWidget):
     mpl_axes_enter_signal = QtCore.pyqtSignal()
     mpl_axes_leave_signal = QtCore.pyqtSignal()
 
-    def __init__(self, pcolormesh=None, imshow=None, rotation=0, custom_plotting_kwargs=None, name="image", parent=None):
+    def __init__(self, pcolormesh=None, imshow=None, rotation=0, custom_plotting_kwargs=None, parent=None):
+        """ 
+        Set up the plot with an initial grid of zeros, limits, etc., and 
+        connect some `matplotlib` connections to methods that emit some 
+        `PyQt6` signals.
+        """
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
@@ -53,6 +60,7 @@ class Image(QWidget):
         self.aspect_ratio = self.detw / self.deth
         # self.resize(self.detw, self.deth)
 
+        self.rotation = rotation
         self.pcolormesh = pcolormesh
         self.imshow = imshow
         custom_plotting_kwargs = {} if custom_plotting_kwargs is None else custom_plotting_kwargs
@@ -65,9 +73,10 @@ class Image(QWidget):
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.setSpacing(0)
 
-        tr = transforms.Affine2D().rotate_deg(rotation) #rotation_in_degrees
+        tr = transforms.Affine2D().rotate_deg(self.rotation) #rotation_in_degrees
         # "cmap" is ignored if data is RGB(A)
         _plotting_kwargs = {"origin":"lower", "rasterized":True, "cmap":"viridis", "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
+        self.affine_transform =_plotting_kwargs["transform"]
 
         # Create the pcolormesh plot
         if self.pcolormesh is not None:
@@ -75,7 +84,7 @@ class Image(QWidget):
             self.im_obj = self.graphPane.axes.pcolormesh(self.pcolormesh["x_bins"], self.pcolormesh["y_bins"], self.pcolormesh["data_matrix"], **_plotting_kwargs)
         elif self.imshow is not None:
             self.im_obj = self.graphPane.axes.imshow(self.imshow["data_matrix"], **_plotting_kwargs)
-            self.get_new_limits_post_rotation(affine_transform=_plotting_kwargs["transform"])
+            self.get_new_limits_post_rotation()
         else:
             print("Please, I need to know `pcolormesh` or `imshow` at least!")
 
@@ -88,7 +97,7 @@ class Image(QWidget):
         self.graphPane.mpl_connect("axes_enter_event", self.on_enter)
         self.graphPane.mpl_connect("axes_leave_event", self.on_leave)
 
-    def on_click(self,event):
+    def on_click(self, event):
         """ 
         The matplotlib way needs a method to shout when it is interacted with. 
 
@@ -126,7 +135,16 @@ class Image(QWidget):
         # https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
         self.mpl_axes_leave_signal.emit()
 
-    def get_new_limits_post_rotation(self, affine_transform):
+    def points_post_rotation(self, data_points):
+        """ Given data-points before any rotation, get their new coordinates. """
+
+        # maybe I will return and see if there is a more direct way, but for now...
+        # get new display coordniates of the image corners after the transform
+        new_display_corners = self.affine_transform.transform(data_points)
+        # can now convert the display coords to data coords
+        return np.array(self.graphPane.axes.transData.inverted().transform(new_display_corners))
+
+    def get_new_limits_post_rotation(self):
         """ 
         So `imshow()` does not rescale the limits of the plot after performing 
         an affine transformation to it so need to find the new plot limits
@@ -137,16 +155,28 @@ class Image(QWidget):
         # extent is for non-rotated array
         x1, x2, y1, y2 = self.im_obj.get_extent() 
 
-        # maybe I will return and see if there is a more direct way, but for now...
-        # get new display coordniates of the image corners after the transform
-        new_display_corners = affine_transform.transform([(x1,y1), (x2,y1), (x1,y2), (x2,y2)])
-        # can now convert the display coords to data coords
-        new_data_corners = np.array(self.graphPane.axes.transData.inverted().transform(new_display_corners))
+        new_data_corners = self.points_post_rotation(data_points=[(x1,y1), (x2,y1), (x1,y2), (x2,y2)])
 
         self.graphPane.axes.set_xlim([np.min(new_data_corners[:,0]), 
                                       np.max(new_data_corners[:,0])])
         self.graphPane.axes.set_ylim([np.min(new_data_corners[:,1]), 
                                       np.max(new_data_corners[:,1])])
+        
+    def get_new_axes_labels_post_rotation(self):
+        """
+        Attempt to plot axes labels after rotation.
+        """
+        # extent is for non-rotated array
+        if self.pcolormesh is not None:
+            x1, x2 = self.pcolormesh["x_bins"][0], self.pcolormesh["x_bins"][-1]
+            y1, y2 = self.pcolormesh["y_bins"][0], self.pcolormesh["y_bins"][-1]
+        elif self.imshow is not None:
+            x1, x2, y1, y2 = self.im_obj.get_extent() 
+
+        x_label_pos, y_label_pos = self.points_post_rotation(data_points=[(np.mean([x1, x2]), y1), (x1, np.mean([y1, y2]))])
+
+        return x_label_pos, y_label_pos
+
 
     def _replace_values(self, matrix, replace):
         """
@@ -169,7 +199,21 @@ class Image(QWidget):
         return matrix
 
     def add_plot_data(self, new_matrix, replace=None):
-        """ Adds the new data to the array to be plotted. """
+        """ 
+        Adds the new data to the array to be plotted. 
+        
+        Parameters
+        ----------
+        new_matrix : `numpy.ndarray`
+            The new image array to be plotted.
+
+        replace : `dict`
+            Input for the `_replace_values` method. 
+            E.g., {"this":[0, 500, 453], "with":[np.nan, 475, 450]}
+            would mean to replace all 0s, 500s, and 453s in `matrix` 
+            with np.nan, 475, and 450, respectively.
+            Default: None
+        """
 
         new_matrix = self._replace_values(new_matrix, replace)
         
@@ -180,35 +224,32 @@ class Image(QWidget):
 
         self.graphPane.draw()
 
-    def set_labels(self, graph_widget, xlabel="", ylabel="", title="", fontsize=9, ticksize=9, titlesize=10, offsetsize=1):
+    def set_labels(self, xlabel="", ylabel="", title="", fontsize=9, titlesize=10):
         """
-        Method just to easily set the x, y-label andplot title without having to write all lines below again 
-        and again.
+        Method just to easily set the x, y-label and title.
 
-        [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
-
-        arameters
+        Parameters
         ----------
-        graph_widget : `PyQt6 PlotWidget`
-            The widget for the labels
 
         xlabel, ylabel, title : `str`
             The strings relating to each label to be set.
+            Defaults: "", "", ""
+
+        fontsize, titlesize : `int`, `float`, etc.
+            The `fontize` of the axes labels and the size for the title.
+            Defaults: 9, 10
         """
-        graph_widget.axes.set_title(title, size=titlesize)#, **styles)
+        self.graphPane.axes.set_title(title, size=titlesize)
 
         # Set label for both axes
-        graph_widget.axes.set_xlabel(xlabel, size=fontsize)#, **styles)
-        graph_widget.axes.set_ylabel(ylabel, size=fontsize)#, **styles)
-
-        graph_widget.axes.tick_params(axis='both', which='major', labelsize=ticksize)
-        graph_widget.axes.tick_params(axis='both', which='minor', labelsize=ticksize)
-
-        # this handles the exponent, if the data is in 1e10 then it is 
-        # usually plotted in smaller numbers with 1e10 off to the side.
-        # `get_offset_text` controls the "1e10"
-        t = graph_widget.axes.xaxis.get_offset_text()
-        t.set_size(offsetsize)
+        # if a rotation has happened to the image then find new label positions
+        x_label_pos, y_label_pos = self.get_new_axes_labels_post_rotation()
+        # want the labels to not go upside down
+        x_rot = self.rotation if -90<=self.rotation<=90 else self.rotation-180
+        y_rot = self.rotation+90 if -180<=self.rotation<=0 else self.rotation-90
+        # make the labels
+        self.graphPane.axes.text(*x_label_pos, xlabel, size=fontsize, rotation=x_rot, va="center", ha="center")
+        self.graphPane.axes.text(*y_label_pos, ylabel, size=fontsize, rotation=y_rot, va="center", ha="center")
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
@@ -297,7 +338,7 @@ class ImageExample(QWidget):
     initiate_gui()
     """
     def __init__(self, reader, x_size, y_size, parent=None, name="Images"):
-
+        """ Just put some examples of the `Image` class in a grid. """
         pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
@@ -319,12 +360,12 @@ class ImageExample(QWidget):
         r2_pcol = 60
         self.pcol2 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=r2_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
 
-        self.imsh0.set_labels(self.imsh0.graphPane, xlabel="", ylabel="", title="Imshow")
-        self.pcol0.set_labels(self.pcol0.graphPane, xlabel="", ylabel="", title="Pcolormesh")
-        self.imsh1.set_labels(self.imsh1.graphPane, xlabel="", ylabel="", title=f"Imshow: rot of {r1_imsh} deg")
-        self.pcol1.set_labels(self.pcol1.graphPane, xlabel="", ylabel="", title=f"Pcolormesh: rot of {r1_pcol} deg")
-        self.imsh2.set_labels(self.imsh2.graphPane, xlabel="", ylabel="", title=f"Imshow: rot of {r2_imsh} deg (RGBA)")
-        self.pcol2.set_labels(self.pcol2.graphPane, xlabel="", ylabel="", title=f"Pcolormesh: rot of {r2_pcol} deg (RGBA)")
+        self.imsh0.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title="Imshow")
+        self.pcol0.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title="Pcolormesh")
+        self.imsh1.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Imshow: rot of {r1_imsh} deg")
+        self.pcol1.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Pcolormesh: rot of {r1_pcol} deg")
+        self.imsh2.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Imshow: rot of {r2_imsh} deg (RGBA)")
+        self.pcol2.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Pcolormesh: rot of {r2_pcol} deg (RGBA)")
 
         self.reader.value_changed_collection.connect(self.update_plot)
 
@@ -391,6 +432,9 @@ if __name__=="__main__":
     class ImageFakeReader(ReaderBase):
         """
         Reader for fake image arrays.
+
+        Just generates a random array of a given size on a timer setting 
+        the `collection` attribute` each timer loop cycle.
         """
 
         def __init__(self, array_x, array_y, parent=None):
@@ -403,7 +447,7 @@ if __name__=="__main__":
 
             self.array_x, self.array_y = array_x, array_y
             
-            self.call_interval(10)
+            self.call_interval(1000)
 
         def extract_raw_data(self):
             """
