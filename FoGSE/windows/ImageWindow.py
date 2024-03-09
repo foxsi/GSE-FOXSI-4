@@ -347,18 +347,18 @@ class ImageExample(QWidget):
         self.reader = reader
 
         _x_size, _y_size = x_size, y_size
-        pcol_xs, pcol_ys = np.arange(_x_size+1), np.arange(_y_size+1)+20.3
-        _zeros = np.zeros((_y_size, _x_size))
-        self.imsh0 = Image(imshow={"data_matrix":_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
-        self.pcol0 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        pcol_xs, pcol_ys = np.arange(_x_size+1)**2, np.arange(_y_size+1)**2+20.3
+        _im_zeros, _pcol_zeros = np.zeros((_y_size, _x_size)), np.zeros((_y_size, _x_size))
+        self.imsh0 = Image(imshow={"data_matrix":_im_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.pcol0 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r1_imsh = -120
-        self.imsh1 = Image(imshow={"data_matrix":_zeros}, rotation=r1_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.imsh1 = Image(imshow={"data_matrix":_im_zeros}, rotation=r1_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r1_pcol = 45
-        self.pcol1 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=r1_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.pcol1 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=r1_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r2_imsh = -10
-        self.imsh2 = Image(imshow={"data_matrix":_zeros}, rotation=r2_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.imsh2 = Image(imshow={"data_matrix":_im_zeros}, rotation=r2_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r2_pcol = 60
-        self.pcol2 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_zeros}, rotation=r2_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.pcol2 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=r2_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1, "linewidth":0, "antialiased":True})
 
         self.imsh0.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title="Imshow")
         self.pcol0.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title="Pcolormesh")
@@ -477,7 +477,7 @@ if __name__=="__main__":
 
     def initiate_gui():
         app = QApplication([])
-        array_x, array_y = 300, 200
+        array_x, array_y = 30, 20
         R = ImageFakeReader(array_x, array_y)
 
         f0 = ImageExample(R, array_x, array_y)

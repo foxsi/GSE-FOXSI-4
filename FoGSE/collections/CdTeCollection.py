@@ -371,11 +371,8 @@ class CdTeCollection:
     
     def channel_bins(self):
         """ Define the strip and ADC bins. """
-        strip_bins = np.arange(257)-0.5
-        side_strip_bins = np.arange(129)-0.5
-        adc_bins = np.arange(1025)-0.5
 
-        return strip_bins, side_strip_bins, adc_bins
+        return channel_bins()
 
     def get_pt_cmn(self):
         """ 
@@ -654,21 +651,8 @@ class CdTeCollection:
         Define dictionary for easy remapping of channels to physical 
         location. 
         """
-        original_channels = np.arange(256)
 
-        new_channels = copy(original_channels)
-
-        asic0_inds = original_channels<64
-        asic1_inds = (64<=original_channels)&(original_channels<128)
-        asic2_inds = (128<=original_channels)&(original_channels<192)
-        asic3_inds = 192<=original_channels
-
-        new_channels[asic0_inds] = original_channels[asic0_inds][::-1]
-        new_channels[asic1_inds] = original_channels[asic1_inds][::-1]
-        new_channels[asic2_inds] = original_channels[asic3_inds][::-1]
-        new_channels[asic3_inds] = original_channels[asic2_inds][::-1]
-
-        return dict(zip(original_channels, new_channels))
+        return remap_strip_dict()
     
     def reverse_rows(self, arr):
         """ Reverse the rows of a 2D numpy array. """
@@ -700,23 +684,8 @@ class CdTeCollection:
         Pitch widths are 100, 80, 60 um and the spaced between are 90 
         and 70 um (100/2+80/2 and 80/2+60/2, respectively).
         """
-        C = np.arange(29)*100 # ignore channel 28 just now
-
-        B = np.arange(20)*80 
-
-        A = np.arange(16)*60
         
-        new_b = B + C[-1] + 50 + 40 # add last value from (C) then half a bin in (C) and half one in (B)
-        
-        new_a = A + new_b[-1] + 40 + 30
-        
-        right_a = A[:-1] + new_a[-1] + 60
-        right_b = B + right_a[-1] + 30 + 40
-        right_c = C + right_b[-1] + 40 + 50
-        
-        edges = np.concatenate((C,new_b,new_a,right_a,right_b,right_c))
-        
-        return edges
+        return strip_widths()
     
     def pixel_areas(self):
         """ From the pitch widths, get the strip-pixel areas. """
@@ -751,3 +720,63 @@ class CdTeCollection:
         """ Get the total number of Pt strips with measured ADC values for the frame"""
         return np.mean(self.event_dataframe['hitnum_pt'])
     
+
+def channel_bins():
+    """ Define the strip and ADC bins. """
+    strip_bins = np.arange(257)-0.5
+    side_strip_bins = np.arange(129)-0.5
+    adc_bins = np.arange(1025)-0.5
+
+    return strip_bins, side_strip_bins, adc_bins
+
+def remap_strip_dict():
+    """ 
+    Define dictionary for easy remapping of channels to physical 
+    location. 
+    """
+    original_channels = np.arange(256)
+
+    new_channels = copy(original_channels)
+
+    asic0_inds = original_channels<64
+    asic1_inds = (64<=original_channels)&(original_channels<128)
+    asic2_inds = (128<=original_channels)&(original_channels<192)
+    asic3_inds = 192<=original_channels
+
+    new_channels[asic0_inds] = original_channels[asic0_inds][::-1]
+    new_channels[asic1_inds] = original_channels[asic1_inds][::-1]
+    new_channels[asic2_inds] = original_channels[asic3_inds][::-1]
+    new_channels[asic3_inds] = original_channels[asic2_inds][::-1]
+
+    return dict(zip(original_channels, new_channels))
+
+def strip_widths():
+    """ 
+    Function to define the physical sizes of the different pitch 
+    widths and what to do as they transition. 
+    
+    Pitch widths are 100, 80, 60 um and the spaced between are 90 
+    and 70 um (100/2+80/2 and 80/2+60/2, respectively).
+    """
+    C = np.arange(29)*100 # ignore channel 28 just now
+
+    B = np.arange(20)*80 
+
+    A = np.arange(16)*60
+    
+    new_b = B + C[-1] + 50 + 40 # add last value from (C) then half a bin in (C) and half one in (B)
+    
+    new_a = A + new_b[-1] + 40 + 30
+    
+    right_a = A[:-1] + new_a[-1] + 60
+    right_b = B + right_a[-1] + 30 + 40
+    right_c = C + right_b[-1] + 40 + 50
+    
+    edges = np.concatenate((C,new_b,new_a,right_a,right_b,right_c))
+    
+    return edges
+    
+def pixel_areas():
+    """ From the pitch widths, get the strip-pixel areas. """
+    strip_width_edges = strip_widths()
+    return np.diff(strip_width_edges)[:,None]@np.diff(strip_width_edges)[None,:]
