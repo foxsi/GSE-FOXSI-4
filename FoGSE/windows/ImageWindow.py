@@ -4,7 +4,7 @@ A class to help handle displaying a matplotlib image in a PyQt window.
 
 import numpy as np
 from matplotlib import transforms
-# from matplotlib.pyplot import draw, pause
+import matplotlib.patches as patches
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QGridLayout, QWidget
@@ -36,6 +36,15 @@ class Image(QWidget):
         The rotation affine transormation angle to be applied to the 
         axes (not the data).
         Default: 0
+
+    keep_aspect : `bool`
+        Defines whether to plot the axes spines, ticks and tick-marks.
+        Default: False
+
+    keep_aspect : `bool`
+        Defines whether it is important to keep the aspect ratio of the 
+        plot.
+        Default: False
     
     custom_plotting_kwargs : `dict`, `NoneType` 
         Any custom kwargs that are required to be sent to `.pcolormesh(**custom_plotting_kwargs)` 
@@ -46,13 +55,13 @@ class Image(QWidget):
     mpl_axes_enter_signal = QtCore.pyqtSignal()
     mpl_axes_leave_signal = QtCore.pyqtSignal()
 
-    def __init__(self, pcolormesh=None, imshow=None, rotation=0, custom_plotting_kwargs=None, parent=None):
+    def __init__(self, pcolormesh=None, imshow=None, rotation=0, keep_axes=False, keep_aspect=False, custom_plotting_kwargs=None, figure_kwargs=None, parent=None):
         """ 
         Set up the plot with an initial grid of zeros, limits, etc., and 
         connect some `matplotlib` connections to methods that emit some 
         `PyQt6` signals.
         """
-        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
+        # pg.setConfigOption('background', (255,0,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
 
@@ -64,8 +73,9 @@ class Image(QWidget):
         self.pcolormesh = pcolormesh
         self.imshow = imshow
         custom_plotting_kwargs = {} if custom_plotting_kwargs is None else custom_plotting_kwargs
+        figure_kwargs = {} if figure_kwargs is None else figure_kwargs
 
-        self.graphPane = MPLCanvas(self)
+        self.graphPane = MPLCanvas(self, **figure_kwargs)
 
         self.layoutMain = QVBoxLayout()
         self.layoutMain.addWidget(self.graphPane)
@@ -88,8 +98,10 @@ class Image(QWidget):
         else:
             print("Please, I need to know `pcolormesh` or `imshow` at least!")
 
-        # self.graphPane.axes.axis('off')
-        # self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
+        if not keep_axes:
+            self.graphPane.axes.axis('off')
+        if keep_aspect:
+            self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
 
         self.setLayout(self.layoutMain)
         
@@ -152,31 +164,72 @@ class Image(QWidget):
 
         Note: `pcolormesh` rescales its limts by default.
         """
-        # extent is for non-rotated array
-        x1, x2, y1, y2 = self.im_obj.get_extent() 
 
-        new_data_corners = self.points_post_rotation(data_points=[(x1,y1), (x2,y1), (x1,y2), (x2,y2)])
+        new_data_corners = self.get_new_corners()
 
         self.graphPane.axes.set_xlim([np.min(new_data_corners[:,0]), 
                                       np.max(new_data_corners[:,0])])
         self.graphPane.axes.set_ylim([np.min(new_data_corners[:,1]), 
                                       np.max(new_data_corners[:,1])])
         
-    def get_new_axes_labels_post_rotation(self):
+    def get_new_corners(self):
+        if self.pcolormesh is not None:
+            x1, x2 = self.pcolormesh["x_bins"][0], self.pcolormesh["x_bins"][-1]
+            y1, y2 = self.pcolormesh["y_bins"][0], self.pcolormesh["y_bins"][-1]
+        elif self.imshow is not None:
+            # extent is for non-rotated array
+            x1, x2, y1, y2 = self.im_obj.get_extent() 
+
+        return self.points_post_rotation(data_points=[(x1,y1), (x2,y1), (x1,y2), (x2,y2)])
+    
+    def draw_extent(self, **kwargs):
+        """ 
+        Method to draw box around new rotated image. 
+        
+        **kwargs:
+            Passed to `matplotlib.pyplot.plot`.
         """
-        Attempt to plot axes labels after rotation.
+        x1, x2, y1, y2 = self.get_new_axes_post_rotation()
+
+        xs = [x1, x2, x2, x1, x1]
+        ys = [y1, y1, y2, y2, y1]
+
+        _plotting_kwargs = {"transform":self.affine_transform} | kwargs
+        
+        # still have to apply rotation afterwords for some reason
+        self.extent_box = self.im_obj.axes.plot(xs, ys, **_plotting_kwargs)
+        self.graphPane.draw()
+    
+    def remove_extent(self):
+        """ Remove the extent box drawn by `draw_extent`."""
+        if hasattr(self, "extent_box"):
+            line = self.extent_box.pop(0)
+            line.remove()
+            del self.extent_box
+            self.graphPane.draw()
+
+    def get_new_axes_post_rotation(self):
         """
-        # extent is for non-rotated array
+        Attempt to get new plot corners after rotation.
+        """
         if self.pcolormesh is not None:
             x1, x2 = self.pcolormesh["x_bins"][0], self.pcolormesh["x_bins"][-1]
             y1, y2 = self.pcolormesh["y_bins"][0], self.pcolormesh["y_bins"][-1]
         elif self.imshow is not None:
             x1, x2, y1, y2 = self.im_obj.get_extent() 
 
+        return x1, x2, y1, y2
+        
+    def get_new_axes_labels_post_rotation(self):
+        """
+        Attempt to plot axes labels after rotation.
+        """
+        # extent is for non-rotated array
+        x1, x2, y1, y2 = self.get_new_axes_post_rotation()
+
         x_label_pos, y_label_pos = self.points_post_rotation(data_points=[(np.mean([x1, x2]), y1), (x1, np.mean([y1, y2]))])
 
         return x_label_pos, y_label_pos
-
 
     def _replace_values(self, matrix, replace):
         """
@@ -216,15 +269,12 @@ class Image(QWidget):
         """
 
         new_matrix = self._replace_values(new_matrix, replace)
-        
-        if self.pcolormesh is not None:
-            self.im_obj.set_array(new_matrix)
-        elif self.imshow is not None:
-            self.im_obj.set_data(new_matrix)
+
+        self.im_obj.set_array(new_matrix)
 
         self.graphPane.draw()
 
-    def set_labels(self, xlabel="", ylabel="", title="", fontsize=9, titlesize=10):
+    def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None):
         """
         Method just to easily set the x, y-label and title.
 
@@ -235,11 +285,17 @@ class Image(QWidget):
             The strings relating to each label to be set.
             Defaults: "", "", ""
 
-        fontsize, titlesize : `int`, `float`, etc.
-            The `fontize` of the axes labels and the size for the title.
-            Defaults: 9, 10
+        xlabel_kwargs, ylabel_kwargs, title_kwargs : `dict`, `dict`, `dict`
+            Keywords to be passed to the title and axis labels.
+            Defaults: None, None, None
         """
-        self.graphPane.axes.set_title(title, size=titlesize)
+        xlabel_kwargs = {} if xlabel_kwargs is None else xlabel_kwargs
+        ylabel_kwargs = {} if ylabel_kwargs is None else ylabel_kwargs
+        title_kwargs = {} if title_kwargs is None else title_kwargs
+
+        _title_kwargs = {"size":10} | title_kwargs
+
+        self.graphPane.axes.set_title(title, **_title_kwargs)
 
         # Set label for both axes
         # if a rotation has happened to the image then find new label positions
@@ -248,8 +304,10 @@ class Image(QWidget):
         x_rot = self.rotation if -90<=self.rotation<=90 else self.rotation-180
         y_rot = self.rotation+90 if -180<=self.rotation<=0 else self.rotation-90
         # make the labels
-        self.graphPane.axes.text(*x_label_pos, xlabel, size=fontsize, rotation=x_rot, va="center", ha="center")
-        self.graphPane.axes.text(*y_label_pos, ylabel, size=fontsize, rotation=y_rot, va="center", ha="center")
+        _xlabel_kwargs = {"size":9, "rotation":x_rot, "va":"center", "ha":"center"} | xlabel_kwargs
+        _ylabel_kwargs = {"size":9, "rotation":y_rot, "va":"center", "ha":"center"} | ylabel_kwargs
+        self.graphPane.axes.text(*x_label_pos, xlabel, **_xlabel_kwargs)
+        self.graphPane.axes.text(*y_label_pos, ylabel, **_ylabel_kwargs)
 
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
@@ -353,16 +411,16 @@ class ImageExample(QWidget):
         _x_size, _y_size = x_size, y_size
         pcol_xs, pcol_ys = np.arange(_x_size+1)**2, np.arange(_y_size+1)**2+20.3
         _im_zeros, _pcol_zeros = np.zeros((_y_size, _x_size)), np.zeros((_y_size, _x_size))
-        self.imsh0 = Image(imshow={"data_matrix":_im_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
-        self.pcol0 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=0, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.imsh0 = Image(imshow={"data_matrix":_im_zeros}, rotation=0, keep_aspect=True, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.pcol0 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=0, keep_aspect=True, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r1_imsh = -120
-        self.imsh1 = Image(imshow={"data_matrix":_im_zeros}, rotation=r1_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.imsh1 = Image(imshow={"data_matrix":_im_zeros}, rotation=r1_imsh, keep_aspect=True, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r1_pcol = 45
-        self.pcol1 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=r1_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.pcol1 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=r1_pcol, keep_aspect=True, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r2_imsh = -10
-        self.imsh2 = Image(imshow={"data_matrix":_im_zeros}, rotation=r2_imsh, custom_plotting_kwargs={"vmin":0, "vmax":1})
+        self.imsh2 = Image(imshow={"data_matrix":_im_zeros}, rotation=r2_imsh, keep_aspect=True, custom_plotting_kwargs={"vmin":0, "vmax":1})
         r2_pcol = 60
-        self.pcol2 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=r2_pcol, custom_plotting_kwargs={"vmin":0, "vmax":1, "linewidth":0, "antialiased":True})
+        self.pcol2 = Image(pcolormesh={"x_bins":pcol_xs, "y_bins":pcol_ys, "data_matrix":_pcol_zeros}, rotation=r2_pcol, keep_aspect=True, custom_plotting_kwargs={"vmin":0, "vmax":1, "linewidth":0, "antialiased":True})
 
         self.imsh0.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title="Imshow")
         self.pcol0.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title="Pcolormesh")

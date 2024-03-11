@@ -8,7 +8,8 @@ class MPLCanvas(FigureCanvasQTAgg):
     Allows a nice container for matplotlib.pyplot plots when added as 
     widgets using PyQt6.
     """
-    def __init__(self, parent=None):
-        fig = Figure(layout='compressed')
+    def __init__(self, parent=None, **kwargs):
+        fig_kwargs = {"layout":'compressed'} | kwargs
+        fig = Figure(**fig_kwargs)
         self.axes = fig.add_subplot(111)
         super().__init__(fig)

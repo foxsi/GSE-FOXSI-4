@@ -57,8 +57,8 @@ class RTDWindow(QWidget):
         self.chip1 = MultiLightCurve(ids=self.chip1_ids, colours=self.chip1_colours, names=self.chip1_names)
         self.chip2 = MultiLightCurve(ids=self.chip2_ids, colours=self.chip2_colours, names=self.chip2_names)
 
-        self.chip1.set_labels(xlabel="", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
-        self.chip2.set_labels(xlabel="Time (Unixtime)", ylabel="T (C)", title="", fontsize=5, ticksize=5, titlesize=0, offsetsize=1)
+        self.chip1.set_labels(xlabel="", ylabel="T (C)", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.chip2.set_labels(xlabel="Time (Unixtime)", ylabel="T (C)", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
         
         self.reader.value_changed_collection.connect(self.update_plot)
 

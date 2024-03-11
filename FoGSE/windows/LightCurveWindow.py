@@ -21,20 +21,23 @@ class LightCurve(QWidget):
 
     Parameters
     ----------
-    colour : `str`
+    colour : `str`, `tuple[float]`
         This is the colour of the line being plotted. It could actually 
         be anything a `matplotlib.pyplot` plot will accept as a colour.
         Default: "b"
+
+    facecolour : `str`, `tuple[float]`
+        This sets the colour inside the plot axes.
+        Default: "w"
     """
 
     mpl_click_signal = QtCore.pyqtSignal()
 
-    def __init__(self, colour="b", parent=None):
+    def __init__(self, colour="b", facecolour="w", parent=None):
         """ 
         Set up the plot with the initial plot settings and connect some 
         `matplotlib` connections to methods that emit some `PyQt6` signals.
         """
-        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
 
@@ -60,6 +63,8 @@ class LightCurve(QWidget):
         self.keep_entries = 60 # entries
 
         self.setLayout(self.layoutMain)
+
+        self.graphPane.axes.set_facecolor(facecolour)
         
         self.graphPane.mpl_connect("button_press_event", self.on_click)
         
@@ -145,7 +150,7 @@ class LightCurve(QWidget):
         self._plot_ref.set_data(x, y)
         self.graphPane.draw()
 
-    def set_labels(self, xlabel="", ylabel="", title="", fontsize=9, ticksize=9, titlesize=10, offsetsize=1):
+    def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None, tick_kwargs=None, offsetsize=1):
         """
         Method just to easily set the x, y-label and title.
 
@@ -156,22 +161,34 @@ class LightCurve(QWidget):
             The strings relating to each label to be set.
             Defaults: "", "", ""
 
-        fontsize, ticksize, titlesize, offsetsize : `int`, `float`, etc.
-            The `fontize` of the axes labels, `ticksize` for the axes 
-            ticks, and the size for the title. The `offsetsize` handles 
-            the size of any text offsets (like when values are too large 
-            then text appears like "1e9" so the tick values can be shown 
-            as 1,2, 3 etc.).
-            Defaults: 9, 9, 10, 1
+        xlabel_kwargs, ylabel_kwargs, title_kwargs, tick_kwargs : `dict` or `NoneType`
+            Keywords to be passed to the title and axis labels.
+            Defaults: None, None, None, None
+
+        offsetsize : `int`, `float`, etc.
+            The `offsetsize` handles the size of any text offsets (like 
+            when values are too large then text appears like "1e9" so the
+            tick values can be shown as 1,2, 3 etc.).
+            Defaults: 1
         """
-        self.graphPane.axes.set_title(title, size=titlesize)
+        xlabel_kwargs = {} if xlabel_kwargs is None else xlabel_kwargs
+        ylabel_kwargs = {} if ylabel_kwargs is None else ylabel_kwargs
+        title_kwargs = {} if title_kwargs is None else title_kwargs
+        tick_kwargs = {} if tick_kwargs is None else tick_kwargs
+
+        _title_kwargs = {"size":10} | title_kwargs
+
+        self.graphPane.axes.set_title(title, **_title_kwargs)
 
         # Set label for both axes
-        self.graphPane.axes.set_xlabel(xlabel, size=fontsize)
-        self.graphPane.axes.set_ylabel(ylabel, size=fontsize)
+        _xlabel_kwargs = {"size":9} | xlabel_kwargs
+        _ylabel_kwargs = {"size":9} | ylabel_kwargs
+        self.graphPane.axes.set_xlabel(xlabel, **_xlabel_kwargs)
+        self.graphPane.axes.set_ylabel(ylabel, **_ylabel_kwargs)
 
-        self.graphPane.axes.tick_params(axis='both', which='major', labelsize=ticksize)
-        self.graphPane.axes.tick_params(axis='both', which='minor', labelsize=ticksize)
+        _tick_kwargs = {"axis":"both", "which":"major", "labelsize":5} | tick_kwargs
+        self.graphPane.axes.tick_params(**_tick_kwargs)
+        self.graphPane.axes.tick_params(**_tick_kwargs)
 
         # this handles the exponent, if the data is in 1e10 then it is 
         # usually plotted in smaller numbers with 1e10 off to the side.
@@ -218,16 +235,19 @@ class MultiLightCurve(QWidget):
         `names` will be used for legend text.
         E.g., ["1","2"].
         Default: None
+
+    facecolour : `str`, `tuple[float]`
+        This sets the colour inside the plot axes.
+        Default: "w"
     """
 
     mpl_click_signal = QtCore.pyqtSignal()
 
-    def __init__(self, ids=["first"], colours=["b"], names=None, parent=None):
+    def __init__(self, ids=["first"], colours=["b"], names=None, facecolour="w", parent=None):
         """ 
         Set up the plot with the initial plot settings and connect some 
         `matplotlib` connections to methods that emit some `PyQt6` signals.
         """
-        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
         QWidget.__init__(self, parent)
 
         self.detw, self.deth = 400, 150
@@ -261,6 +281,8 @@ class MultiLightCurve(QWidget):
         self.keep_entries = 60 # entries
 
         self.setLayout(self.layoutMain)
+
+        self.graphPane.axes.set_facecolor(facecolour)
 
         self.graphPane.mpl_connect("button_press_event", self.on_click)
         
@@ -355,7 +377,7 @@ class MultiLightCurve(QWidget):
         graph_widget_plot_ref.set_data(x, y)
         self.graphPane.draw()
     
-    def set_labels(self, xlabel="", ylabel="", title="", fontsize=9, ticksize=9, titlesize=10, offsetsize=1):
+    def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None, tick_kwargs=None, offsetsize=1):
         """
         Method just to easily set the x, y-label and title.
 
@@ -366,27 +388,41 @@ class MultiLightCurve(QWidget):
             The strings relating to each label to be set.
             Defaults: "", "", ""
 
-        fontsize, ticksize, titlesize, offsetsize : `int`, `float`, etc.
-            The `fontize` of the axes labels, `ticksize` for the axes 
-            ticks, and the size for the title. The `offsetsize` handles 
-            the size of any text offsets (like when values are too large 
-            then text appears like "1e9" so the tick values can be shown 
-            as 1,2, 3 etc.).
-            Defaults: 9, 9, 10, 1
+        xlabel_kwargs, ylabel_kwargs, title_kwargs, tick_kwargs : `dict` or `NoneType`
+            Keywords to be passed to the title and axis labels.
+            Defaults: None, None, None, None
+
+        offsetsize : `int`, `float`, etc.
+            The `offsetsize` handles the size of any text offsets (like 
+            when values are too large then text appears like "1e9" so the
+            tick values can be shown as 1,2, 3 etc.).
+            Defaults: 1
         """
-        self.graphPane.axes.set_title(title, size=titlesize)
+        xlabel_kwargs = {} if xlabel_kwargs is None else xlabel_kwargs
+        ylabel_kwargs = {} if ylabel_kwargs is None else ylabel_kwargs
+        title_kwargs = {} if title_kwargs is None else title_kwargs
+        tick_kwargs = {} if tick_kwargs is None else tick_kwargs
+
+        _title_kwargs = {"size":10} | title_kwargs
+
+        self.graphPane.axes.set_title(title, **_title_kwargs)
 
         # Set label for both axes
-        self.graphPane.axes.set_xlabel(xlabel, size=fontsize)
-        self.graphPane.axes.set_ylabel(ylabel, size=fontsize)
+        _xlabel_kwargs = {"size":9} | xlabel_kwargs
+        _ylabel_kwargs = {"size":9} | ylabel_kwargs
+        self.graphPane.axes.set_xlabel(xlabel, **_xlabel_kwargs)
+        self.graphPane.axes.set_ylabel(ylabel, **_ylabel_kwargs)
 
-        self.graphPane.axes.tick_params(axis='both', which='major', labelsize=ticksize)
-        self.graphPane.axes.tick_params(axis='both', which='minor', labelsize=ticksize)
+        _tick_kwargs = {"axis":"both", "which":"major", "labelsize":5} | tick_kwargs
+        self.graphPane.axes.tick_params(**_tick_kwargs)
+        self.graphPane.axes.tick_params(**_tick_kwargs)
 
         # this handles the exponent, if the data is in 1e10 then it is 
         # usually plotted in smaller numbers with 1e10 off to the side.
         # `get_offset_text` controls the "1e10"
         t = self.graphPane.axes.xaxis.get_offset_text()
+        t.set_size(offsetsize)
+        t = self.graphPane.axes.yaxis.get_offset_text()
         t.set_size(offsetsize)
 
     def resizeEvent(self,event):

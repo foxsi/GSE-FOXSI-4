@@ -49,8 +49,8 @@ class TimepixWindow(QWidget):
         self.mean_tot = LightCurve()
         self.flux = LightCurve(colour="purple")
 
-        self.mean_tot.set_labels(xlabel="", ylabel="Mean ToT", title=" ")
-        self.flux.set_labels(xlabel="Time (frame #)", ylabel="Flux", title="")
+        self.mean_tot.set_labels(xlabel="", ylabel="Mean ToT", title=" ", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.flux.set_labels(xlabel="Time (frame #)", ylabel="Flux", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
 
         self.reader.value_changed_collection.connect(self.update_plot)
 
