@@ -31,7 +31,7 @@ class CdTeReader(ReaderBase):
         """
         ReaderBase.__init__(self, datafile, parent)
         
-        self.define_buffer_size(size=get_frame_size("cdte1", "pc")) # 32_780 bytes
+        self.define_buffer_size(size=0)#get_frame_size("cdte1", "pc")) # 32_780 bytes
         self.call_interval(get_system_value("gse", "display_settings", "cdte", "pc", "read_raw_to_refined", "read_interval"))
 
     def extract_raw_data(self):

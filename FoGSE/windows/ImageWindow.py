@@ -88,8 +88,8 @@ class Image(QWidget):
         else:
             print("Please, I need to know `pcolormesh` or `imshow` at least!")
 
-        self.graphPane.axes.axis('off')
-        self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
+        # self.graphPane.axes.axis('off')
+        # self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
 
         self.setLayout(self.layoutMain)
         
@@ -250,6 +250,10 @@ class Image(QWidget):
         # make the labels
         self.graphPane.axes.text(*x_label_pos, xlabel, size=fontsize, rotation=x_rot, va="center", ha="center")
         self.graphPane.axes.text(*y_label_pos, ylabel, size=fontsize, rotation=y_rot, va="center", ha="center")
+
+    def update_aspect(self, aspect_ratio):
+        """ Update the image aspect ratio (width/height). """
+        self.aspect_ratio = aspect_ratio
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """

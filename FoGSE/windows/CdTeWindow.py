@@ -8,8 +8,10 @@ from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 import pyqtgraph as pg
 
+from FoGSE.collections.CdTeCollection import strip_edges
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
+from FoGSE.windows.ImageWindow import Image
 from FoGSE.windows.LightCurveWindow import LightCurve
 from FoGSE.windows.images import rotatation
 
@@ -71,7 +73,7 @@ class CdTeWindow(QWidget):
         self.name = self.name+": Integrated" if self.integrate else self.name
 
         # make this available everywhere, incase a rotation is specified for the image
-        self.image_angle = image_angle
+        self.image_angle = -image_angle
             
         self.image_product = plotting_product
         if self.image_product in ["image", "spectrogram"]:
@@ -86,10 +88,10 @@ class CdTeWindow(QWidget):
         # Disable interactivity
         # self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
 
-        self.update_background(colour=(10,40,80,100))#colour="white"
+        # self.update_background(colour=(10,40,80,100))#colour="white"
 
-        self.add_rotate_frame()
-        self.installEventFilter(self)
+        # self.add_rotate_frame()
+        # self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
         # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
@@ -115,8 +117,8 @@ class CdTeWindow(QWidget):
     def setup_2d(self):
         """ Set up for 2D plotting products. """
 
-        self.graphPane = pg.PlotWidget()
-        self.layoutMain.addWidget(self.graphPane)
+        # self.graphPane = pg.PlotWidget()
+        # self.layoutMain.addWidget(self.graphPane)
 
         # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
         self.colour_mode = "rgba"
@@ -132,32 +134,51 @@ class CdTeWindow(QWidget):
         # create QImage from numpy array 
         if self.image_product=="image":
             # could do some maths to figure out but this WILL give the result need even if something is changed elsewhere
-            _rm = rotatation.rotate_matrix(matrix=np.zeros((128, 128)), angle=self.image_angle)
-            self.detw, self.deth = np.shape(_rm)
+            _cdte_strip_edges = strip_edges()
+            _no_of_strips = len(_cdte_strip_edges)-1
+            self.graphPane = Image(pcolormesh={"x_bins":_cdte_strip_edges, 
+                                               "y_bins":_cdte_strip_edges, 
+                                               "data_matrix":np.zeros((_no_of_strips, _no_of_strips))}, 
+                                   rotation=self.image_angle, 
+                                   custom_plotting_kwargs={"vmin":self.min_val, 
+                                                           "vmax":self.max_val, 
+                                                           "linewidth":0, 
+                                                           "antialiased":True})
+            # _rm = rotatation.rotate_matrix(matrix=np.zeros((128, 128)), angle=self.image_angle)
+            self.detw, self.deth = _no_of_strips, _no_of_strips
             self.update_aspect(aspect_ratio=self.detw/self.deth)
             # set title and labels
-            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}")
-            xlabel = " "
-            ylabel = " "
+            # self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}")
+            xlabel = ""
+            ylabel = ""
+            title=""#f"{self.name}"
         elif self.image_product=="spectrogram":
             self.detw, self.deth = 256, 1024
+            self.graphPane = Image(imshow={"data_matrix":np.zeros((self.detw, self.deth))}, 
+                                   custom_plotting_kwargs={"vmin":self.min_val, 
+                                                           "vmax":self.max_val, "aspect":2})
             self.update_aspect(aspect_ratio=2)
+            self.graphPane.update_aspect(aspect_ratio=2)
             xlabel = "Strips [Pt:0-127, Al:127-255]"
             ylabel = "ADC/Energy"
+            xlabel = ""
+            ylabel = ""
+            title=""#f"{self.name}"
         # set title and labels
-        self.set_labels(self.graphPane, xlabel=xlabel, ylabel=ylabel, title=f"{self.name}")
+        self.layoutMain.addWidget(self.graphPane)
+        self.graphPane.set_labels(xlabel=xlabel, ylabel=ylabel, title=title)
  
-        self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
+        # self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
 
-        self.numpy_format = np.uint8
+        # self.numpy_format = np.uint8
         self.set_image_ndarray()
-        q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
+        # q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
 
-        if hasattr(self,"img"):
-            self.graphPane.removeItem(self.img)
+        # if hasattr(self,"img"):
+        #     self.graphPane.removeItem(self.img)
         # send image to frame and add to plot
-        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
-        self.graphPane.addItem(self.img)
+        # self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
+        # self.graphPane.addItem(self.img)
 
         self.set_image_colour(self.colour)
 
@@ -210,7 +231,8 @@ class CdTeWindow(QWidget):
               etc.
         """
         if self.image_product in ["image", "spectrogram"]:
-            self.graphPane.getViewBox().setBackgroundColor(colour)
+            # self.graphPane.getViewBox().setBackgroundColor(colour)
+            pass
         # elif self.image_product in ["lightcurve"]:
         #     self.graphPane.graphPane.getViewBox().setBackgroundColor(colour)
         
@@ -250,13 +272,7 @@ class CdTeWindow(QWidget):
             # get the new frame
             if self.image_product=="image":
                 new_frame = self.reader.collection.image_array(area_correction=False)[:,::-1]
-                new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-                # import matplotlib.pyplot as plt
-                # plt.figure()
-                # plt.hist(new_frame)
-                # plt.xlim([-10,50])
-                # plt.show()
-                # new_frame[new_frame<0] = 0 # because interp 0s causes tiny artifacts
+                # new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
                 self.update_method = "fade"
             elif self.image_product=="spectrogram":
                 new_frame = self.reader.collection.spectrogram_array(remap=True, 
@@ -275,15 +291,17 @@ class CdTeWindow(QWidget):
             self.update_image(existing_frame=self.my_array, new_frame=new_frame)
             
             # define self.qImageDetails for this particular image product
-            self.process_data()
+            new_im = self.process_data()
 
             # # new image
-            q_image = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
+            # q_image = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
 
             # faster long term to remove pervious frame and replot new one
-            self.graphPane.removeItem(self.img)
-            self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
-            self.graphPane.addItem(self.img)
+            # self.graphPane.removeItem(self.img)
+            # self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
+            # self.graphPane.addItem(self.img)
+            self.graphPane.add_plot_data(new_im)
+
         elif self.image_product in ["lightcurve"]:
             # defined how to add/append onto the new data arrays
             self.graphPane.add_plot_data(self.reader.collection.total_counts(), new_data_x=self.reader.collection.mean_unixtime(), replace={"this":[0], "with":[np.nan]})
@@ -398,8 +416,9 @@ class CdTeWindow(QWidget):
         uf[uf>self.max_val] = self.max_val
 
         # allow this all to be looked at if need be
-        self.qImageDetails = [uf.astype(self.numpy_format), self.detw, self.deth, self.cformat]
-
+        # self.qImageDetails = [uf.astype(self.numpy_format), self.detw, self.deth, self.cformat]
+        return uf/np.nanmax(uf)
+    
     def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
         """
         Method just to easily set the x, y-label andplot title without having to write all lines below again 
@@ -446,15 +465,15 @@ class CdTeWindow(QWidget):
         # do we want alpha channel or not
         if self.colour_mode == "rgba":
             self.my_array = np.zeros((self.deth, self.detw, 4))
-            self.cformat = pg.QtGui.QImage.Format.Format_RGBA8888
+            # self.cformat = pg.QtGui.QImage.Format.Format_RGBA8888
             # for all x and y, turn alpha to max
             self.my_array[:,:,3] = self.max_val 
         if self.colour_mode == "rgb":
             self.my_array = np.zeros((self.deth, self.detw, 3))
-            self.cformat = pg.QtGui.QImage.Format.Format_RGB888
+            # self.cformat = pg.QtGui.QImage.Format.Format_RGB888
 
         # define array to keep track of the last hit to each pixel
-        self.no_new_hits_counter_array = (np.zeros((self.deth, self.detw))).astype(self.numpy_format)
+        self.no_new_hits_counter_array = (np.zeros((self.deth, self.detw)))#.astype(self.numpy_format)
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """

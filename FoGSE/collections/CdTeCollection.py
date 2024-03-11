@@ -66,7 +66,7 @@ class CdTeCollection:
         self.f_data = self.filter_counts_grades(event_dataframe=self.event_dataframe, grade_al="max_adc", grade_pt="max_adc")
         
         # get more physical information about detector geometry
-        self.strip_width_edges = self.strip_widths()
+        self.strip_width_edges = self.strip_edges()
         self.pixel_area = self.pixel_areas()
 
     def single_event(self, adc_values_pt, adc_values_al, style:str="simple1"):
@@ -676,7 +676,7 @@ class CdTeCollection:
 
         return np.concatenate((asic0_rmap, asic1_rmap, asic3_rmap, asic2_rmap), axis=0)
     
-    def strip_widths(self):
+    def strip_edges(self):
         """ 
         Function to define the physical sizes of the different pitch 
         widths and what to do as they transition. 
@@ -685,7 +685,7 @@ class CdTeCollection:
         and 70 um (100/2+80/2 and 80/2+60/2, respectively).
         """
         
-        return strip_widths()
+        return strip_edges()
     
     def pixel_areas(self):
         """ From the pitch widths, get the strip-pixel areas. """
@@ -750,7 +750,7 @@ def remap_strip_dict():
 
     return dict(zip(original_channels, new_channels))
 
-def strip_widths():
+def strip_edges():
     """ 
     Function to define the physical sizes of the different pitch 
     widths and what to do as they transition. 
@@ -778,5 +778,5 @@ def strip_widths():
     
 def pixel_areas():
     """ From the pitch widths, get the strip-pixel areas. """
-    strip_width_edges = strip_widths()
+    strip_width_edges = strip_edges()
     return np.diff(strip_width_edges)[:,None]@np.diff(strip_width_edges)[None,:]

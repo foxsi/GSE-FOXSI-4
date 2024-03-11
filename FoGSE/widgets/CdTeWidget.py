@@ -72,7 +72,8 @@ class CdTeWidget(QWidget):
         self._ped_layout.addWidget(self.ped) 
         self.ped_layout = ped_layout
 
-        self.ped.mousePressEvent = self._switch2lc # with pure PyQt6 widgets, this works, but...
+        # self.ped.mousePressEvent = self._switch2lc # with pure PyQt6 widgets, this works, but...
+        self.ped.graphPane.mpl_click_signal.connect(self._switch2lc)
         self.lc.graphPane.mpl_click_signal.connect(self._switch2ped) # with plt, need to be more invlolved
 
         # status values
