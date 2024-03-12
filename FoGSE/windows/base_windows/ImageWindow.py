@@ -46,16 +46,24 @@ class Image(QWidget):
         plot.
         Default: False
     
+    loose_axes : `bool`
+        Set to True to avoid removing some whitespace around the axes.
+        Default: False
+    
     custom_plotting_kwargs : `dict`, `NoneType` 
         Any custom kwargs that are required to be sent to `.pcolormesh(**custom_plotting_kwargs)` 
         or `.imshow(**custom_plotting_kwargs). E.g., `{"vmin":0, "vmax":1}`
+
+    figure_kwargs : `dict`, `NoneType` 
+        Any custom kwargs that are required to be sent to the `matplotlib.figure.Figure`
+        when creating the plot.
     """
 
     mpl_click_signal = QtCore.pyqtSignal()
     mpl_axes_enter_signal = QtCore.pyqtSignal()
     mpl_axes_leave_signal = QtCore.pyqtSignal()
 
-    def __init__(self, pcolormesh=None, imshow=None, rotation=0, keep_axes=False, keep_aspect=False, custom_plotting_kwargs=None, figure_kwargs=None, parent=None):
+    def __init__(self, pcolormesh=None, imshow=None, rotation=0, keep_axes=False, keep_aspect=False, loose_axes=False, custom_plotting_kwargs=None, figure_kwargs=None, parent=None):
         """ 
         Set up the plot with an initial grid of zeros, limits, etc., and 
         connect some `matplotlib` connections to methods that emit some 
@@ -101,6 +109,8 @@ class Image(QWidget):
 
         if not keep_axes:
             self.graphPane.axes.axis('off')
+        if not loose_axes:
+            self.graphPane.axes.axis('tight')
         if keep_aspect:
             self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
 
