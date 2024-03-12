@@ -137,8 +137,8 @@ class CdTeWindow(BaseWindow):
                                                         "vmax":self.max_val, 
                                                         "linewidth":0, 
                                                         "antialiased":True},
-                                figure_kwargs={"facecolor":(0.3,0.3,0.3,0.2)})
-        self.add_rotate_frame(alpha=0.3)
+                                figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
+        self.add_rotate_frame(color="w", alpha=0.5)
 
         self.detw, self.deth = _no_of_strips, _no_of_strips
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
@@ -169,7 +169,8 @@ class CdTeWindow(BaseWindow):
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.detw, self.deth))}, 
                                 custom_plotting_kwargs={"vmin":self.min_val, 
                                                         "vmax":self.max_val, 
-                                                        "aspect":2})
+                                                        "aspect":2},
+                                figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.base_update_aspect(aspect_ratio=2)
         self.graphPane.update_aspect(aspect_ratio=2)
 

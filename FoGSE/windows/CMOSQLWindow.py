@@ -122,7 +122,8 @@ class CMOSQLWindow(BaseWindow):
                                keep_aspect=True,
                                custom_plotting_kwargs={"vmin":self.min_val, 
                                                        "vmax":self.max_val,
-                                                       "aspect":self.aspect_ratio})
+                                                       "aspect":self.aspect_ratio},
+                                figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
 
         self.graphPane.update_aspect(aspect_ratio=self.aspect_ratio)

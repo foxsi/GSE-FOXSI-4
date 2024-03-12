@@ -85,7 +85,7 @@ class GSEDataDisplay(QWidget):
         
         if window_alert:
             self.timer = QtCore.QTimer()
-            self.timer.setInterval(500)
+            self.timer.setInterval(0)
             self.timer.timeout.connect(self.check_current_window) # call self.update_plot_data every cycle
             self.timer.start()
             # get the currect application
