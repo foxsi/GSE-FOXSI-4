@@ -4,15 +4,11 @@ A demo to walk through an existing CdTe raw file.
 
 import numpy as np
 
-from PyQt6 import QtCore, QtWidgets, QtGui
-from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
-import pyqtgraph as pg
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QWidget, QGridLayout
 
-from FoGSE.collections.CdTeCollection import strip_edges
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.windows.ImageWindow import Image
-from FoGSE.windows.LightCurveWindow import LightCurve
+from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
+from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
 
 class BaseWindow(QWidget):
@@ -33,7 +29,7 @@ class BaseWindow(QWidget):
     plotting_product : `str`
         String to determine whether an "image", "spectrogram", or "lightcurve" 
         should be shown.
-        Default: ""
+        Default: \"\"
 
     image_angle : `int`, `float`, etc.
         The angle of roation for the plot. Positive is anti-clockwise and 
@@ -47,7 +43,7 @@ class BaseWindow(QWidget):
     
     name : `str`
         A useful string that can be used as a label.
-        Default: ""
+        Default: \"\"
         
     colour : `str`
         The colour channel used, if used for the `plotting_product`. 
@@ -60,6 +56,8 @@ class BaseWindow(QWidget):
     def __init__(self, data_file=None, reader=None, plotting_product="", image_angle=0, integrate=False, name="", colour="green", parent=None):
 
         QWidget.__init__(self, parent)
+        self.installEventFilter(self)
+        self.setMouseTracking(True)
 
         self.layoutMain = QGridLayout()
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
@@ -82,17 +80,18 @@ class BaseWindow(QWidget):
         # make this available everywhere, incase a rotation is specified for the image
         self.image_angle = image_angle
             
-        self.image_product = plotting_product
-        setup_func = self.base_essential_setup_product(self.image_product)
+        self.plotting_product = plotting_product
+        setup_func = self.base_essential_setup_product(self.plotting_product)
 
         if setup_func is None:
-            print(f"How do I set-up {self.image_product}?")
+            print(f"How do I set-up {self.plotting_product}?")
             return 
         
         setup_func()
         self.reader.value_changed_collection.connect(self.base_essential_update_plot)
 
-        self.installEventFilter(self)
+        set_all_spacings(self.layoutMain)
+        unifrom_layout_stretch(self.layoutMain, grid=True)
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
@@ -328,7 +327,7 @@ class BaseWindow(QWidget):
         super().resizeEvent(event)
         # Create a square base size of 10x10 and scale it to the new size
         # maintaining aspect ratio.
-        # if self.image_product=="spectrogram":
+        # if self.plotting_product=="spectrogram":
         #     print("ere", event.size().width(), event.size().height())
         if event is None:
             return 

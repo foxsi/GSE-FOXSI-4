@@ -1,5 +1,5 @@
 """
-A demo to walk through an existing CMOS raw file.
+A demo to walk through a CMOS PC raw file.
 """
 
 import numpy as np
@@ -7,8 +7,8 @@ import numpy as np
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
-from FoGSE.windows.BaseWindow import BaseWindow
-from FoGSE.windows.ImageWindow import Image
+from FoGSE.windows.base_windows.BaseWindow import BaseWindow
+from FoGSE.windows.base_windows.ImageWindow import Image
 
 
 class CMOSPCWindow(BaseWindow):
@@ -28,7 +28,7 @@ class CMOSPCWindow(BaseWindow):
 
     plotting_product : `str`
         String to determine whether an "image" and or <something else> should be shown.
-        Default: "image"
+        Default: \"image\"
 
     image_angle : `int`, `float`, etc.
         The angle of roation for the plot. Positive is anti-clockwise and 
@@ -42,7 +42,7 @@ class CMOSPCWindow(BaseWindow):
     
     name : `str`
         A useful string that can be used as a label.
-        Default: "CMOS"
+        Default: \"CMOS\"
         
     colour : `str`
         The colour channel used, if used for the `plotting_product`. 
@@ -52,7 +52,8 @@ class CMOSPCWindow(BaseWindow):
 
     def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", colour="green", parent=None):
 
-        BaseWindow.__init__(self, data_file=data_file, 
+        BaseWindow.__init__(self, 
+                            data_file=data_file, 
                             reader=reader, 
                             plotting_product=plotting_product, 
                             image_angle=image_angle, 
@@ -149,25 +150,25 @@ class CMOSPCWindow(BaseWindow):
 
     def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """
-        if self.image_product!="image":
+        if self.plotting_product!="image":
             return
         
         self.rect = self.graphPane.draw_extent(**kwargs)
 
     def remove_rotate_frame(self):
         """ Removes rectangle indicating the image rotation. """
-        if hasattr(self,"rect") and (self.image_product=="image"):
+        if hasattr(self,"rect") and (self.plotting_product=="image"):
             self.graphPane.remove_extent()
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
-        if self.image_product!="image":
+        if self.plotting_product!="image":
             return 
         im_array = self.graphPane.im_obj.get_array()
         self.layoutMain.removeWidget(self.graphPane)
         del self.graphPane
         self.image_angle = image_angle
-        self.base_essential_setup_product(self.image_product)()
+        self.base_essential_setup_product(self.plotting_product)()
         self.graphPane.add_plot_data(im_array)
 
     def update_background(self, colour):
@@ -182,7 +183,7 @@ class CMOSPCWindow(BaseWindow):
 
     def base_essential_update_plot(self):
         """ Defines how the plot window is updated. """
-        self.update_product(self.image_product)()
+        self.update_product(self.plotting_product)()
 
         self.update()
 

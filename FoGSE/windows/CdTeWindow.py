@@ -10,9 +10,9 @@ from PyQt6.QtWidgets import QApplication
 from FoGSE.collections.CdTeCollection import strip_edges
 from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.windows.BaseWindow import BaseWindow
-from FoGSE.windows.ImageWindow import Image
-from FoGSE.windows.LightCurveWindow import LightCurve
+from FoGSE.windows.base_windows.BaseWindow import BaseWindow
+from FoGSE.windows.base_windows.ImageWindow import Image
+from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
 
 class CdTeWindow(BaseWindow):
     """
@@ -32,7 +32,7 @@ class CdTeWindow(BaseWindow):
     plotting_product : `str`
         String to determine whether an "image", "spectrogram", or "lightcurve" 
         should be shown.
-        Default: "image"
+        Default: \"image\"
 
     image_angle : `int`, `float`, etc.
         The angle of roation for the plot. Positive is anti-clockwise and 
@@ -46,7 +46,7 @@ class CdTeWindow(BaseWindow):
     
     name : `str`
         A useful string that can be used as a label.
-        Default: "CdTe"
+        Default: \"CdTe\"
         
     colour : `str`
         The colour channel used, if used for the `plotting_product`. 
@@ -59,7 +59,8 @@ class CdTeWindow(BaseWindow):
 
     def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", parent=None):
 
-        BaseWindow.__init__(self, data_file=data_file, 
+        BaseWindow.__init__(self, 
+                            data_file=data_file, 
                             reader=reader, 
                             plotting_product=plotting_product, 
                             image_angle=image_angle, 
@@ -174,7 +175,10 @@ class CdTeWindow(BaseWindow):
 
         self.graphPane.set_labels(xlabel="Strips [Pt:0-127, Al:127-255]", 
                                   ylabel="ADC/Energy", 
-                                  title="")
+                                  title="", 
+                                  xlabel_kwargs={"size":7}, 
+                                  ylabel_kwargs={"size":7}, 
+                                  title_kwargs={"size":0})
 
         self.base_2d_image_handling()
 
@@ -218,25 +222,25 @@ class CdTeWindow(BaseWindow):
         
     def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """
-        if self.image_product!="image":
+        if self.plotting_product!="image":
             return
         
         self.rect = self.graphPane.draw_extent(**kwargs)
 
     def remove_rotate_frame(self):
         """ Removes rectangle indicating the image rotation. """
-        if hasattr(self,"rect") and (self.image_product=="image"):
+        if hasattr(self,"rect") and (self.plotting_product=="image"):
             self.graphPane.remove_extent()
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
-        if self.image_product!="image":
+        if self.plotting_product!="image":
             return 
         im_array = self.graphPane.im_obj.get_array()
         self.layoutMain.removeWidget(self.graphPane)
         del self.graphPane
         self.image_angle = image_angle
-        self.base_essential_setup_product(self.image_product)()
+        self.base_essential_setup_product(self.plotting_product)()
         self.graphPane.add_plot_data(im_array)
 
     def update_background(self, colour):
@@ -251,7 +255,7 @@ class CdTeWindow(BaseWindow):
 
     def base_essential_update_plot(self):
         """Defines how the plot window is updated. """
-        self.update_product(self.image_product)()
+        self.update_product(self.plotting_product)()
 
         self.update()
 
