@@ -85,12 +85,13 @@ class Image(QWidget):
 
         tr = transforms.Affine2D().rotate_deg(self.rotation) #rotation_in_degrees
         # "cmap" is ignored if data is RGB(A)
-        _plotting_kwargs = {"origin":"lower", "rasterized":True, "cmap":"viridis", "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
+        _plotting_kwargs = {"origin":"lower", "interpolation":"nearest", "rasterized":True, "cmap":"viridis", "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
         self.affine_transform =_plotting_kwargs["transform"]
 
         # Create the pcolormesh plot
         if self.pcolormesh is not None:
             _plotting_kwargs.pop("origin", None)
+            _plotting_kwargs.pop("interpolation", None)
             self.im_obj = self.graphPane.axes.pcolormesh(self.pcolormesh["x_bins"], self.pcolormesh["y_bins"], self.pcolormesh["data_matrix"], **_plotting_kwargs)
         elif self.imshow is not None:
             self.im_obj = self.graphPane.axes.imshow(self.imshow["data_matrix"], **_plotting_kwargs)
@@ -247,7 +248,7 @@ class Image(QWidget):
             print("`replace` 'this' and 'with' keys do not have lists the same length.")
 
         for t, w in zip(replace["this"],replace["with"]):
-            matrix[np.where(matrix==t)] = w
+            matrix[np.nonzero(matrix==t)] = w
 
         return matrix
 

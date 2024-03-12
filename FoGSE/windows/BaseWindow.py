@@ -15,7 +15,6 @@ from FoGSE.windows.ImageWindow import Image
 from FoGSE.windows.LightCurveWindow import LightCurve
 
 
-
 class BaseWindow(QWidget):
     """
     An individual window to display CdTe data read from a file.
@@ -35,7 +34,28 @@ class BaseWindow(QWidget):
         String to determine whether an "image", "spectrogram", or "lightcurve" 
         should be shown.
         Default: ""
+
+    image_angle : `int`, `float`, etc.
+        The angle of roation for the plot. Positive is anti-clockwise and 
+        negative is clockwise.
+        Default: 0
+    
+    integrate : `bool`
+        Indicates whether the frames (if that is relevant `plotting_product`)
+        should be summed continously, unless told otherwise.
+        Default: False
+    
+    name : `str`
+        A useful string that can be used as a label.
+        Default: ""
+        
+    colour : `str`
+        The colour channel used, if used for the `plotting_product`. 
+        Likely from [\"red\", \"green\", \"blue\"].
+        Default: \"green\"
     """
+    base_qwidget_entered_signal = QtCore.pyqtSignal()
+    base_qwidget_left_signal = QtCore.pyqtSignal()
 
     def __init__(self, data_file=None, reader=None, plotting_product="", image_angle=0, integrate=False, name="", colour="green", parent=None):
 
@@ -60,7 +80,7 @@ class BaseWindow(QWidget):
         self.name = self.base_essential_get_name()
 
         # make this available everywhere, incase a rotation is specified for the image
-        self.image_angle = -image_angle
+        self.image_angle = image_angle
             
         self.image_product = plotting_product
         setup_func = self.base_essential_setup_product(self.image_product)
@@ -71,6 +91,8 @@ class BaseWindow(QWidget):
         
         setup_func()
         self.reader.value_changed_collection.connect(self.base_essential_update_plot)
+
+        self.installEventFilter(self)
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
@@ -124,6 +146,26 @@ class BaseWindow(QWidget):
 
         # define how many frames to fade a count out over
         self.base_set_fade_out(no_of_frames=25)
+
+    def base_2d_image_handling(self):
+        """ 
+        Once an image has been created, add to the widget then make sure 
+        `base_2d_image_settings` are applied.
+
+        Attributes needed to be set are:
+        * `layoutMain`
+        * `graphPane`
+        * `colour`
+
+        Methods needed are:
+        * `base_set_image_ndarray`
+        * `base_set_image_colour`
+        """
+        self.layoutMain.addWidget(self.graphPane)
+
+        self.base_set_image_ndarray()
+
+        self.base_set_image_colour(self.colour)
 
     def base_apply_update_style(self, existing_frame, new_frame):
         """
@@ -265,6 +307,18 @@ class BaseWindow(QWidget):
         self.no_new_hits_counter_array = (np.zeros((self.deth, self.detw)))
 
     # window/GUI methods
+    def eventFilter(self, obj, event):
+        """ 
+        Allows better event handling that matplotlib for hovering 
+        mouse actions. 
+        """
+        # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
+        if event.type() == QtCore.QEvent.Type.Enter:
+            self.base_qwidget_entered_signal.emit()
+        elif event.type() == QtCore.QEvent.Type.Leave:
+            self.base_qwidget_left_signal.emit()
+        return super(BaseWindow, self).eventFilter(obj, event)
+    
     def base_update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
         self.aspect_ratio = aspect_ratio

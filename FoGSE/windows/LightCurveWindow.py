@@ -122,7 +122,7 @@ class LightCurve(QWidget):
                 print("`replace` 'this' and 'with' keys do not have lists the same length.")
 
             for t, w in zip(replace["this"],replace["with"]):
-                self.plot_data_ys[np.where(self.plot_data_ys==t)] = w
+                self.plot_data_ys[np.nonzero(self.plot_data_ys==t)] = w
 
     def add_plot_data(self, new_data_y, new_data_x=None, replace=None):
         """ Adds the new data to the array to be plotted. """
@@ -344,7 +344,7 @@ class MultiLightCurve(QWidget):
                     print("`replace` 'this' and 'with' keys do not have lists the same length.")
 
                 for t, w in zip(replace["this"],replace["with"]):
-                    self.plot_data_ys[p][np.where(self.plot_data_ys[p]==t)] = w
+                    self.plot_data_ys[p][np.nonzero(self.plot_data_ys[p]==t)] = w
 
     def add_plot_data(self, new_data_ys, new_data_xs=None, replace=None):
         """ Adds the new data to the array to be plotted. """
@@ -549,7 +549,6 @@ if __name__=="__main__":
     def initiate_gui():
         app = QApplication([])
 
-        # R = TimepixFileReader(DATAFILE)
         R = TimepixReader(DATAFILE)
 
         f0 = LightCurveExample(reader=R)

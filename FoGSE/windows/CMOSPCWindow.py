@@ -4,15 +4,14 @@ A demo to walk through an existing CMOS raw file.
 
 import numpy as np
 
-from PyQt6 import QtCore, QtWidgets, QtGui
-from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout
-import pyqtgraph as pg
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
-from FoGSE.windows.images import rotatation
+from FoGSE.windows.BaseWindow import BaseWindow
+from FoGSE.windows.ImageWindow import Image
 
 
-class CMOSPCWindow(QWidget):
+class CMOSPCWindow(BaseWindow):
     """
     An individual window to display CMOS data read from a file.
 
@@ -30,70 +29,48 @@ class CMOSPCWindow(QWidget):
     plotting_product : `str`
         String to determine whether an "image" and or <something else> should be shown.
         Default: "image"
-    """
 
-    add_box_signal = QtCore.pyqtSignal()
-    remove_box_signal = QtCore.pyqtSignal()
+    image_angle : `int`, `float`, etc.
+        The angle of roation for the plot. Positive is anti-clockwise and 
+        negative is clockwise.
+        Default: 0
+    
+    integrate : `bool`
+        Indicates whether the frames (if that is relevant `plotting_product`)
+        should be summed continously, unless told otherwise.
+        Default: False
+    
+    name : `str`
+        A useful string that can be used as a label.
+        Default: "CMOS"
+        
+    colour : `str`
+        The colour channel used, if used for the `plotting_product`. 
+        Likely from [\"red\", \"green\", \"blue\"].
+        Default: \"green\"
+    """
 
     def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", colour="green", parent=None):
 
-        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
+        BaseWindow.__init__(self, data_file=data_file, 
+                            reader=reader, 
+                            plotting_product=plotting_product, 
+                            image_angle=image_angle, 
+                            integrate=integrate, 
+                            name=name, 
+                            colour=colour, 
+                            parent=parent)
 
-        QWidget.__init__(self, parent)
-        self.graphPane = pg.PlotWidget()
-        # self.graphPane.setMinimumSize(QtCore.QSize(40,80)) # was 300,250, # was 2,1
-        # self.graphPane.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
-
-        self.layoutMain = QHBoxLayout()
-        self.layoutMain.setContentsMargins(0, 0, 0, 0)# left, top, right, bottom
-        self.layoutMain.addWidget(self.graphPane, 
-                                  alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.setLayout(self.layoutMain)
-
-        self.name = name
-        self.integrate = integrate
-
+    def base_essential_get_reader(self):
+        """ Return default reader here. """
+        return CMOSPCReader
+    
+    def base_essential_get_name(self):
+        """ Define a custom way to get the name. Can be used as a label. """
+        _pos = self.name_to_position(self.name)
+        self.name = self.name+f": PC pos#{_pos}"
         self.name = self.name+": Integrated" if self.integrate else self.name
-        self.colour = colour
-
-        # decide how to read the data
-        if data_file is not None:
-            # probably the main way to use it
-            self.reader = CMOSPCReader(data_file)
-        elif reader is not None:
-            # useful for testing and if multiple windows need to share the same file
-            self.reader = reader
-        else:
-            print("How do I read the CMOS PC data?")
-
-        # make this available everywhere, incase a rotation is specified for the image
-        self.image_angle = image_angle
-            
-        self.image_product = plotting_product
-        if self.image_product in ["image"]:
-            self.setup_2d()
-        else:
-            print("Nothing else is set-up yet.")
-
-        self.reader.value_changed_collection.connect(self.update_plot)
-
-        # Disable interactivity
-        self.graphPane.setMouseEnabled(x=False, y=False)  # Disable mouse panning & zooming
-        
-        self.update_background(colour=(10,40,80,100))
-
-        self.installEventFilter(self)
-        self.add_rotate_frame()
-
-    def eventFilter(self, obj, event):
-        # clue for these types is in printout of `print(event.type(), event)` which gives `Type.Enter <PyQt6.QtGui.QEnterEvent object at 0x13997af80>`
-        if event.type() == QtCore.QEvent.Type.Enter:
-            # self.add_rotate_frame()
-            self.add_box_signal.emit()
-        elif event.type() == QtCore.QEvent.Type.Leave:
-            # self.remove_rotate_frame()
-            self.remove_box_signal.emit()
-        return super(CMOSPCWindow, self).eventFilter(obj, event)
+        return self.name
     
     def name_to_position(self, data_file):
         """ CMOS detector focal plane position from name. """
@@ -105,67 +82,93 @@ class CMOSPCWindow(QWidget):
     def det_and_pos_mapping(self):
         """ CMOS detectors and their focal plane position mapping. """
         return {"cmos1":0, "cmos2":1}
+    
+    def products(self):
+        """ Define the products for the class. """
+        return {"image":None}
+    
+    def base_essential_setup_product(self, product):
+        """ 
+        Given a plotting product (e.g., image, etc.), return a function 
+        to set up that product.
+        """
+        product_setup_map = self.products()
+
+        product_setup_map["image"] = self.image_setup
+
+        return product_setup_map.get(product, None)
+    
+    def update_product(self, product):
+        """ 
+        Given a plotting product (e.g., image, etc.), return a function 
+        to update that product.
+        """
+        product_update_map = self.products()
+
+        product_update_map["image"] = self.image_update
+
+        return product_update_map.get(product, None)
+    
+    def image_setup(self):
+        """ Sets up the class for an image product. """
+
+        self.base_2d_image_settings()
+
+        self.detw, self.deth = 768, 384
+        self.base_update_aspect(aspect_ratio=self.detw/self.deth)
+        self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
+                               rotation=self.image_angle, 
+                               keep_aspect=True,
+                               custom_plotting_kwargs={"vmin":self.min_val, 
+                                                       "vmax":self.max_val,
+                                                       "aspect":self.aspect_ratio})
+        self.add_rotate_frame(alpha=0.3)
+
+        self.graphPane.update_aspect(aspect_ratio=self.aspect_ratio)
+
+        self.graphPane.set_labels(xlabel="", ylabel="", title="")
+
+        self.base_2d_image_handling()
+
+    def image_update(self):
+        """ Define how the image product should updated. """
+        # get the new frame
+        new_frame = self.reader.collection.image_array()
         
-    def setup_2d(self):
-        # set all rgba info (e.g., mode rgb or rgba, indices for red green blue, etc.)
-        self.colour_mode = "rgba"
-        self.channel = {"red":0, "green":1, "blue":2}
-        # alpha index
-        self.alpha = 3
-        # colours range from 0->255 in RGBA
-        self.min_val, self.max_val = 0, 255
+        self.update_method = "replace"
+        
+        self.update_method = "integrate" if self.integrate else self.update_method
 
-        # define how many frames to fade a count out over
-        self.set_fade_out(no_of_frames=25)
+        # update current plotted data with new frame
+        self.base_apply_update_style(existing_frame=self.my_array, new_frame=new_frame)
+        
+        # define self.qImageDetails for this particular image product
+        new_im = self.process_image_data()
 
-        # create QImage from numpy array 
-        if self.image_product=="image":
-            # could do some maths to figure out but this WILL give the result need even if something is changed elsewhere
-            _rm = rotatation.rotate_matrix(matrix=np.zeros((768, 384)), angle=self.image_angle)
-            self.detw, self.deth = np.shape(_rm)
-            self.update_aspect(aspect_ratio=self.detw/self.deth)
-            # set title and labels
-            # self.set_labels(self.graphPane, xlabel="X", ylabel="Y", title=f"{self.name}: PC Image")
-            self.set_labels(self.graphPane, xlabel=" ", ylabel=" ", title=f"{self.name}: PC")
+        self.graphPane.add_plot_data(new_im)
 
-        self.graphPane.plotItem.vb.setLimits(xMin=0, xMax=self.detw, yMin=0, yMax=self.deth)
-
-        self.numpy_format = np.uint8
-        self.set_image_ndarray()
-        q_image = pg.QtGui.QImage(self.my_array, self.detw, self.deth, self.cformat)
-
-        if hasattr(self,"img"):
-            self.graphPane.removeItem(self.img)
-        # send image to frame and add to plot
-        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
-        self.graphPane.addItem(self.img)
-        self.set_image_colour(self.colour)
-
-    def add_rotate_frame(self):
+    def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """
-        ql_center_width, ql_center_height = int(self.detw/2),int(self.deth/2)
-        im_width, im_height = 768, 384
-        # self.rect = QtWidgets.QGraphicsRectItem(160, 192, 192, 96) # x, y, w, h
-        self.im_rect = QtWidgets.QGraphicsRectItem(int(ql_center_width-im_width/2), 
-                                                int(ql_center_height-im_height/2), 
-                                                int(im_width), 
-                                                int(im_height)) # x, y, w, h
-        self.im_rect.setPen(pg.mkPen((255, 255, 255, 255), width=3))
-        self.im_rect.setBrush(pg.mkBrush((255, 255, 255, 0)))
-        self.im_rect.setTransformOriginPoint(self.img.boundingRect().center())
-        # self.rect.setRotation(0) #+ve is anticlockwise and -ve is clockwise
-        self.im_rect.setRotation(-self.image_angle) #+ve is anticlockwise and -ve is clockwise
-        self.graphPane.addItem(self.im_rect)
+        if self.image_product!="image":
+            return
+        
+        self.rect = self.graphPane.draw_extent(**kwargs)
 
     def remove_rotate_frame(self):
         """ Removes rectangle indicating the image rotation. """
-        if hasattr(self,"rect"):
-            self.graphPane.removeItem(self.im_rect)
+        if hasattr(self,"rect") and (self.image_product=="image"):
+            self.graphPane.remove_extent()
 
     def update_rotation(self, image_angle):
         """ Allow the image rotation to be updated whenever. """
+        if self.image_product!="image":
+            return 
+        im_array = self.graphPane.im_obj.get_array()
+        self.layoutMain.removeWidget(self.graphPane)
+        del self.graphPane
         self.image_angle = image_angle
-        self.setup_2d()
+        self.base_essential_setup_product(self.image_product)()
+        self.graphPane.add_plot_data(im_array)
 
     def update_background(self, colour):
         """ 
@@ -175,237 +178,27 @@ class CMOSPCWindow(QWidget):
               colour=\"white\"
               etc.
         """
-        self.graphPane.getViewBox().setBackgroundColor(colour)
-    
-    def update_aspect(self, aspect_ratio):
-        """ Update the image aspect ratio (width/height). """
-        self.aspect_ratio = aspect_ratio
+        self.graphPane.graphPane.axes.set_facecolor(colour)
 
-    def set_fade_out(self, no_of_frames):
-        """ Define how many frames to fade a count out over. """
-        self.fade_out = no_of_frames
-        # the minimum fade for a pixel, should be redunant but this can end up being 
-        # an incredibly small value (e.g, 1e-14) instead of exactly 0
-        self._min_fade_alpha = self.max_val - (self.max_val/self.fade_out)*self.fade_out
+    def base_essential_update_plot(self):
+        """ Defines how the plot window is updated. """
+        self.update_product(self.image_product)()
 
-    def set_image_colour(self, colour):
-        """ Define image colour to use. """
-
-        if colour not in list(self.channel):
-            print("Need colour of:", list(self.channel))
-            return
-
-        if hasattr(self, "image_colour") and hasattr(self, "my_array"):
-            self.my_array[:,:,self.channel[colour]] = self.my_array[:,:,self.channel[self.image_colour]]
-            self.my_array[:,:,self.channel[self.image_colour]] = np.zeros(np.shape(self.my_array[:,:,self.channel[self.image_colour]]))
-        self.image_colour = colour
-
-    def update_plot(self):
-        """
-        Defines how the plot window is updated for a 2D image.
-
-        In subclass define methods: 
-        *`get_data` to extract the new image frame from `self.data_file`, 
-        *`update_image` to define how the new image affects the current one,
-        *`process_data` to perform any last steps before updating the plot.
-        """
-        
-        # get the new frame
-        if self.image_product=="image":
-            new_frame = self.reader.collection.image_array()
-            new_frame = rotatation.rotate_matrix(matrix=new_frame, angle=self.image_angle)
-            new_frame[new_frame<1e-5] = 0 # because interp 0s causes tiny artifacts
-            self.update_method = "replace"
-        
-        self.update_method = "integrate" if self.integrate else self.update_method
-
-        # update current plotted data with new frame
-        self.update_image(existing_frame=self.my_array, new_frame=new_frame)
-        
-        # define self.qImageDetails for this particular image product
-        self.process_data()
-
-        # # new image
-        q_image = pg.QtGui.QImage(*self.qImageDetails)#Format.Format_RGBA64
-
-        # faster long term to remove pervious frame and replot new one
-        self.graphPane.removeItem(self.img)
-        self.img = QtWidgets.QGraphicsPixmapItem(pg.QtGui.QPixmap(q_image))
-        self.graphPane.addItem(self.img)
         self.update()
 
-    def update_image(self, existing_frame, new_frame):
-        """
-        Add new frame to the current frame while recording the newsest hits in the `new_frame` image. Use 
-        the new hits to control the alpha channel via `self.fade_control` to allow old counts to fade out.
-        
-        Only using the blue and alpha channels at the moment.
-
-        Parameters
-        ----------
-        existing_frame : `numpy.ndarray`
-            This is the RGB (`self.colour_mode='rgb'`) or RGBA (`self.colour_mode='rgba'`) array of shape 
-            (`self.deth`,`self.detw`,3) or (`self.deth`,`self.detw`,4), respectively.
-
-        new_frame : `numpy.ndarray`
-            This is a 2D array of the new image frame created from the latest data of shape (`self.deth`,`self.detw`).
-        """
-
-        # if new_frame is a list then it's empty and so no new frame, make all 0s
-        if isinstance(new_frame,list): 
-            new_frame = np.zeros((self.deth, self.detw))
-        
-        if self.update_method=="fade":
-            # what pixels have a brand new hit? (0 = False, not 0 = True)
-            new_hits = new_frame.astype(bool) 
-            
-            self.fade_control(new_hits_array=new_hits)#, control_with=self.image_colour)
-
-            # add the new frame to the blue channel values and update the `self.my_array` to be plotted
-            self.my_array[:,:,self.channel[self.image_colour]] = existing_frame[:,:,self.channel[self.image_colour]] + new_frame
-        elif self.update_method=="replace":
-            self.my_array[:,:,self.channel[self.image_colour]] = new_frame
-        elif self.update_method=="integrate":
-            self.my_array[:,:,self.channel[self.image_colour]] += new_frame
-
-        self._turn_pixels_on_and_off()
-
-    def _turn_pixels_on_and_off(self):
-        """ Turn pixels alpha channels on and off. """
-        _frame = self.my_array[:,:,self.channel[self.image_colour]]
-        _lowest_value_to_view = np.max(_frame)/1e6 #i.e., dynamic range of 1e6
-        self.my_array[:,:,self.alpha][_frame>_lowest_value_to_view] = self.max_val
-        self.my_array[:,:,self.alpha][_frame<=_lowest_value_to_view] = self.min_val
-
-    def fade_control(self, new_hits_array, control_with="rgb"):
-        """
-        Fades out pixels that haven't had a new count in steps of `self.max_val//self.fade_out` until a pixel has not had an 
-        event for `self.fade_out` frames. If a pixel has not had a detection in `self.fade_out` frames then reset the colour 
-        channel to zero and the alpha channel back to `self.max_val`.
-
-        Parameters
-        ----------
-        new_hits_array : `numpy.ndarray`, `bool`
-            This is a 2D boolean array of shape (`self.deth`,`self.detw`) which shows True if the pixel has just detected 
-            a new count and False if it hasn't.
-
-        control_with : `str`
-            Sets how to control the image fade. Can choose rgb, and it will control the fade with `self.image_colour` or
-            set to alpha and it will use th alpha channel if it can.
-            Default: 'rgb'
-        """
-
-        # add to counter if pixel has no hits
-        self.no_new_hits_counter_array += ~new_hits_array
-
-        # reset counter if pixel has new hit
-        self.no_new_hits_counter_array[new_hits_array] = 0
-
-        if (control_with=="alpha") and (self.colour_mode=="rgba"):
-            # set alpha channel, fade by decreasing steadily over `self.fade_out` steps 
-            # (a step for every frame the pixel has not detected an event)
-            self.my_array[:,:,self.alpha] = self.max_val - (self.max_val/self.fade_out)*self.no_new_hits_counter_array
-
-            # find where alpha is zero (completely faded)
-            turn_off_colour = (self.my_array[:,:,self.alpha]==self._min_fade_alpha)
-
-            # now set the colour back to zero and return alpha to max, ready for new counts
-            for k in self.channel.keys():
-                self.my_array[:,:,self.channel[k]][turn_off_colour] = 0
-
-            # reset alpha
-            self.my_array[:,:,self.alpha][turn_off_colour] = self.max_val
-
-        elif control_with=="rgb":# in ["red", "green", "blue"]:
-            cw = self.image_colour
-            index = self.channel[cw]
-            self.my_array[:,:,index] = self.my_array[:,:,index] - (self.my_array[:,:,index]/self.fade_out)*self.no_new_hits_counter_array
-            #sometimes the above line doesn't set an entry to zero, just really really close to it
-            self.my_array[:,:,index][self.my_array[:,:,index]<1e-2] = 0 
-
-        # reset the no hits counter when max is reached
-        self.no_new_hits_counter_array[self.no_new_hits_counter_array>=self.fade_out] = 0
-
-    def process_data(self):
+    def process_image_data(self):
         """
         An extra processing step for the data before it is plotted.
         """
 
-        # make sure everything is normalised between 0--255
+        # make sure everything is normalised between 0--1
         norm = np.max(self.my_array, axis=(0,1))
         norm[norm==0] = 1 # can't divide by 0
         uf = self.max_val*self.my_array//norm
+        uf[uf>self.max_val] = self.max_val
 
         # allow this all to be looked at if need be
-        self.qImageDetails = [uf.astype(self.numpy_format), self.detw, self.deth, self.cformat]
-
-    def set_labels(self, graph_widget, xlabel="", ylabel="", title=""):
-        """
-        Method just to easily set the x, y-label andplot title without having to write all lines below again 
-        and again.
-
-        [1] https://stackoverflow.com/questions/74628737/how-to-change-the-font-of-axis-label-in-pyqtgraph
-
-        arameters
-        ----------
-        graph_widget : `PyQt6 PlotWidget`
-            The widget for the labels
-
-        xlabel, ylabel, title : `str`
-            The strings relating to each label to be set.
-        """
-
-        # graph_widget.setTitle(title)
-        self.add_label(title)
-
-        # Set label for both axes
-        graph_widget.setLabel('bottom', xlabel)
-        graph_widget.setLabel('left', ylabel)
-
-        graph_widget.getAxis("left").setWidth(0)
-        graph_widget.getAxis("right").setWidth(0)
-        graph_widget.getAxis("top").setHeight(0)
-        graph_widget.getAxis("bottom").setHeight(0)
-
-    def add_label(self, entry):
-        self.label_title = pg.TextItem("", **{'color': '#FFF', "anchor":(0,1)})
-        self.label_title.setFont(QtGui.QFont('Arial', 10))
-        self.label_title.setPos(QtCore.QPointF(0, 0))
-        self.label_title.setText(entry)
-        self.label_title.setZValue(1)
-        self.graphPane.addItem(self.label_title)
-
-    def set_image_ndarray(self):
-        """
-        Set-up the numpy array and define colour format from `self.colour_mode`.
-        """
-        # colours range from 0->255 in RGBA8888 and RGB888
-        # do we want alpha channel or not
-        if self.colour_mode == "rgba":
-            self.my_array = np.zeros((self.deth, self.detw, 4))
-            self.cformat = pg.QtGui.QImage.Format.Format_RGBA8888
-            # for all x and y, turn alpha to max
-            self.my_array[:,:,3] = self.max_val 
-        if self.colour_mode == "rgb":
-            self.my_array = np.zeros((self.deth, self.detw, 3))
-            self.cformat = pg.QtGui.QImage.Format.Format_RGB888
-
-        # define array to keep track of the last hit to each pixel
-        self.no_new_hits_counter_array = (np.zeros((self.deth, self.detw))).astype(self.numpy_format)
-
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.resize(new_size)
+        return uf/np.nanmax(uf)
 
 
 if __name__=="__main__":
@@ -418,6 +211,7 @@ if __name__=="__main__":
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
     # datafile = ""
+    datafile ="/Users/kris/Documents/umnPostdoc/general/notes/Obsidian Vault/PC_check_downlink_new.dat"
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`
     reader = CMOSPCReader(datafile)

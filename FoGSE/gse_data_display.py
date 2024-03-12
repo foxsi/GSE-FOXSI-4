@@ -84,6 +84,7 @@ class GSEDataDisplay(QWidget):
         self.setLayout(lay)
 
 if __name__=="__main__":
+    import time
     app = QApplication([])
 
     w = GSEDataDisplay()
