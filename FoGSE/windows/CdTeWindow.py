@@ -140,6 +140,8 @@ class CdTeWindow(BaseWindow):
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(color="w", alpha=0.5)
 
+        self.graphPane.add_label((0.0, 0.0), self.name, size=7, color="w", alpha=0.75)
+
         self.detw, self.deth = _no_of_strips, _no_of_strips
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
 

@@ -198,6 +198,29 @@ class LightCurve(QWidget):
         t = self.graphPane.axes.yaxis.get_offset_text()
         t.set_size(offsetsize)
 
+    def add_label(self, label_pos, label, **kwargs):
+        """ 
+        Method to add labels to the image plot. 
+
+        Parameters
+        ----------
+        label_pos : `tuple`
+            A tuple of an x- and y-coordinate for the text. Default is to 
+            work in \"axes fraction\".
+
+        label : `str`
+            The string of text to be drawn.
+
+        **kwargs : 
+            Any kwargs to be passed to `matplotlib.text.Annotation`.
+        """
+        label_kwargs = {"xycoords":"axes fraction"} | kwargs
+        self.graphPane.axes.annotate(label, label_pos, **label_kwargs)
+
+    def update_aspect(self, aspect_ratio):
+        """ Update the image aspect ratio (width/height). """
+        self.aspect_ratio = aspect_ratio
+
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
@@ -424,6 +447,29 @@ class MultiLightCurve(QWidget):
         t.set_size(offsetsize)
         t = self.graphPane.axes.yaxis.get_offset_text()
         t.set_size(offsetsize)
+
+    def add_label(self, label_pos, label, **kwargs):
+        """ 
+        Method to add labels to the image plot. 
+
+        Parameters
+        ----------
+        label_pos : `tuple`
+            A tuple of an x- and y-coordinate for the text. Default is to 
+            work in \"axes fraction\".
+
+        label : `str`
+            The string of text to be drawn.
+
+        **kwargs : 
+            Any kwargs to be passed to `matplotlib.text.Annotation`.
+        """
+        label_kwargs = {"xycoords":"axes fraction"} | kwargs
+        self.graphPane.axes.annotate(label, label_pos, **label_kwargs)
+
+    def update_aspect(self, aspect_ratio):
+        """ Update the image aspect ratio (width/height). """
+        self.aspect_ratio = aspect_ratio
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """

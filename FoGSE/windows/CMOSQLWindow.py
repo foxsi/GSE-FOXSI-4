@@ -126,6 +126,8 @@ class CMOSQLWindow(BaseWindow):
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
 
+        self.graphPane.add_label((0.0, 0.0), self.name, size=7, color="w", alpha=0.75)
+
         self.graphPane.update_aspect(aspect_ratio=self.aspect_ratio)
 
         self.graphPane.set_labels(xlabel="", ylabel="", title="")
