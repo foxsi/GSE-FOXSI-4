@@ -30,7 +30,7 @@ class GSEDataDisplay(QWidget):
 
         newest_folder = newest_data_dir() 
         # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
-        newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
+        # newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
         f0 = AllCdTeView((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
@@ -49,7 +49,7 @@ class GSEDataDisplay(QWidget):
         #                  os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte4.log", instruments)))
-        newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
+        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
         f1 = AllCMOSView(os.path.join(newest_folder, get_det_file("cmos1_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos1_ql.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
@@ -57,8 +57,8 @@ class GSEDataDisplay(QWidget):
                         cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), #"/Users/kris/Downloads/cmos1_hk.log",#
                         cmos_hk1=os.path.join(newest_folder, get_det_file("cmos2_hk.log", instruments)))
         
-        # f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
-        f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
+        f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
+        # f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
         f3 = RTDWidget(os.path.join(newest_folder, get_det_file("housekeeping_rtd.log", instruments)))
 
