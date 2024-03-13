@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSHK import CMOSHKReader
+from FoGSE.readers.CMOSPCReader import CMOSPCReader
+from FoGSE.readers.CMOSQLReader import CMOSQLReader
+from FoGSE.readers.CMOSHKReader import CMOSHKReader
 from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueChangeWidget, QValueTimeWidget, QValueCheckWidget, QValueMultiRangeWidget
@@ -24,8 +24,8 @@ class CMOSWidget(QWidget):
     Parameters
     ----------
     data_file_pc, data_file_ql : `str`, `str`
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC.CMOSPCReader()` 
-        and `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.CMOSQLReader()`,
+        The file to be passed to `FoGSE.readers.CMOSPCReader.CMOSPCReader()` 
+        and `FoGSE.readers.CMOSQLReader.CMOSQLReader()`,
         respectively.
         Default: None
 

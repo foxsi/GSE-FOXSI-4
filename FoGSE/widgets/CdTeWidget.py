@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTeHK import CdTeHKReader
-from FoGSE.read_raw_to_refined.readRawToRefinedDE import DEReader
+from FoGSE.readers.CdTePCReader import CdTePCReader
+from FoGSE.readers.CdTeHKReader import CdTeHKReader
+from FoGSE.readers.DEReader import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -23,7 +23,7 @@ class CdTeWidget(QWidget):
     Parameters
     ----------
     data_file_pc : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        The file to be passed to `FoGSE.readers.CdTePCReader.CdTePCReader()`.
         Default: None
 
     plotting_product : `str`
@@ -33,7 +33,7 @@ class CdTeWidget(QWidget):
     def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file_pc)
+        reader = CdTePCReader(datafile=data_file_pc)
         self.reader_hk = CdTeHKReader(datafile=data_file_hk)
         self.reader_de = DEReader(datafile=data_file_de)
 

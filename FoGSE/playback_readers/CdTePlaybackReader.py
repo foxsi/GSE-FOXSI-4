@@ -9,7 +9,7 @@ Can read:
 import struct
 import numpy as np
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
@@ -17,7 +17,7 @@ from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.collections.CdTeCollection import CdTeCollection
 
 
-class CdTeReader(ReaderBase):
+class CdTeReader(BaseReader):
     """
     Reader for the FOXSI CdTe instrument.
     """
@@ -28,7 +28,7 @@ class CdTeReader(ReaderBase):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        ReaderBase.__init__(self, datafile, parent)
+        BaseReader.__init__(self, datafile, parent)
 
         self.define_buffer_size(size=32_780)#100_000#32_780
         self.call_interval(100)

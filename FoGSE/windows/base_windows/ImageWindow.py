@@ -422,7 +422,7 @@ class ImageExample(QWidget):
     Parameters
     ----------
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -431,9 +431,9 @@ class ImageExample(QWidget):
 
     Example
     -------
-    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+    from FoGSE.readers.BaseReader import BaseReader
 
-    class ImageFakeReader(ReaderBase):
+    class ImageFakeReader(BaseReader):
         \"""
         Reader for fake image arrays.
         \"""
@@ -444,7 +444,7 @@ class ImageExample(QWidget):
             Parsed : human readable
             Collected : organised by intrumentation
             \"""
-            ReaderBase.__init__(self, "", parent)
+            BaseReader.__init__(self, "", parent)
 
             self.array_x, self.array_y = array_x, array_y
             
@@ -578,9 +578,9 @@ class ImageExample(QWidget):
 if __name__=="__main__":
     # package top-level
 
-    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+    from FoGSE.readers.BaseReader import BaseReader
 
-    class ImageFakeReader(ReaderBase):
+    class ImageFakeReader(BaseReader):
         """
         Reader for fake image arrays.
 
@@ -594,7 +594,7 @@ if __name__=="__main__":
             Parsed : human readable
             Collected : organised by intrumentation
             """
-            ReaderBase.__init__(self, "", parent)
+            BaseReader.__init__(self, "", parent)
 
             self.array_x, self.array_y = array_x, array_y
             

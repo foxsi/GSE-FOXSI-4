@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
+from FoGSE.readers.CMOSQLReader import CMOSQLReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
 
@@ -19,11 +19,11 @@ class CMOSQLWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.CMOSQLReader()`.
+        The file to be passed to `FoGSE.readers.CMOSQLReader.CMOSQLReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.ReaderBase()`
+    reader : instance of `FoGSE.readers.CMOSQLReader.BaseReader()`
         The reader already given a file.
         Default: None
 

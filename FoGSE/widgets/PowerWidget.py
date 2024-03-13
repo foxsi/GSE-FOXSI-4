@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedPower import PowerReader
+from FoGSE.readers.PowerReader import PowerReader
 # from FoGSE.windows.PowerWindow import PowerWindow
 from FoGSE.widgets.QValueWidget import QValueWidget, QValueMultiRangeWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -21,7 +21,7 @@ class PowerWidget(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedPower.PowerReader()`.
+        The file to be passed to `FoGSE.readers.PowerReader.PowerReader()`.
         Default: None
     """
     def __init__(self, data_file=None, name="Power", image_angle=0, parent=None):

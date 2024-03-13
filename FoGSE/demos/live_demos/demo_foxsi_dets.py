@@ -6,10 +6,10 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
-from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
+from FoGSE.readers.CdTePCReader import CdTeReader
+from FoGSE.readres.CMOSPCReader import CMOSPCReader
+from FoGSE.readers.CMOSQLReader import CMOSQLReader
+from FoGSE.readers.RTDReader import RTDReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow

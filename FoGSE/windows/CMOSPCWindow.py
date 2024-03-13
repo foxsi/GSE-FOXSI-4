@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.collections.CMOSPCCollection import det_pc_arcminutes
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
+from FoGSE.readers.CMOSPCReader import CMOSPCReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
 
@@ -19,11 +19,11 @@ class CMOSPCWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOS.CMOSPCReader()`.
+        The file to be passed to `FoGSE.readers.CMOSPCReader.CMOSPCReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCMOS.ReaderBase()`
+    reader : instance of `FoGSE.readers.CMOSPCReader.BaseReader()`
         The reader already given a file.
         Default: None
 

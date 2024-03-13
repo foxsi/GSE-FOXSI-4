@@ -3,17 +3,17 @@ Create a class that will read the LOG file containing raw binary data received f
 FOXSI and parse the data to be readyfor the GUI plotting windows. 
 
 Can read:
-    * CMOS
+    * CMOS PC
 """
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CMOSparser import QLimageData 
-from FoGSE.collections.CMOSQLCollection import CMOSQLCollection
+from FoGSE.parsers.CMOSparser import PCimageData
+from FoGSE.collections.CMOSPCCollection import CMOSPCCollection
 from FoGSE.utils import get_frame_size, get_system_value
 
-class CMOSQLReader(ReaderBase):
+class CMOSPCReader(BaseReader):
     """
     Reader for the FOXSI CMOS instrument.
     """
@@ -24,10 +24,10 @@ class CMOSQLReader(ReaderBase):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        ReaderBase.__init__(self, datafile, parent)
+        BaseReader.__init__(self, datafile, parent)
         # The magic number for CMOS PC data is 590,848. The magic number for CMOS QL data is 492,544.
-        self.define_buffer_size(size=get_frame_size("cmos1", "ql"))
-        self.call_interval(get_system_value("gse", "display_settings", "cmos", "ql", "read_raw_to_refined", "read_interval"))
+        self.define_buffer_size(size=get_frame_size("cmos1", "pc"))
+        self.call_interval(get_system_value("gse", "display_settings", "cmos", "pc", "readers", "read_interval"))
 
     def extract_raw_data(self):
         """
@@ -82,7 +82,7 @@ class CMOSQLReader(ReaderBase):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            linetime, gain, exposure_pc, pc_image = QLimageData(raw_data)
+            linetime, gain, exposure_pc, pc_image = PCimageData(raw_data)
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
@@ -100,12 +100,12 @@ class CMOSQLReader(ReaderBase):
 
         Returns
         -------
-        `FoGSE.detector_collections.CMOSQLCollection.CMOSQLCollection` :
+        `FoGSE.detector_collections.CMOSPCCollection.CMOSPCCollection` :
             The CMOS collection.
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = CMOSQLCollection(parsed_data, self.old_data_time)
+        col = CMOSPCCollection(parsed_data, self.old_data_time)
         if col.last_data_time>self.old_data_time:
             self.old_data_time = col.last_data_time
         return col

@@ -3,19 +3,23 @@ Create a class that will read the LOG file containing raw binary data received f
 FOXSI and parse the data to be readyfor the GUI plotting windows. 
 
 Can read:
-    * CMOS PC
+    * CdTe
 """
 
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+import struct
+import numpy as np
+
+from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CMOSparser import PCimageData
-from FoGSE.collections.CMOSPCCollection import CMOSPCCollection
+from FoGSE.parsers.CdTeparser import CdTecanisterhkparser
+# from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
+from FoGSE.collections.CdTeHKCollection import CdTeHKCollection
 from FoGSE.utils import get_frame_size, get_system_value
 
-class CMOSPCReader(ReaderBase):
+class CdTeHKReader(BaseReader):
     """
-    Reader for the FOXSI CMOS instrument.
+    Reader for the FOXSI CdTe instrument.
     """
 
     def __init__(self, datafile, parent=None):
@@ -24,10 +28,14 @@ class CMOSPCReader(ReaderBase):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        ReaderBase.__init__(self, datafile, parent)
-        # The magic number for CMOS PC data is 590,848. The magic number for CMOS QL data is 492,544.
-        self.define_buffer_size(size=get_frame_size("cmos1", "pc"))
-        self.call_interval(get_system_value("gse", "display_settings", "cmos", "pc", "read_raw_to_refined", "read_interval"))
+
+        if datafile is None:
+            return
+
+        BaseReader.__init__(self, datafile, parent)
+
+        self.define_buffer_size(size=get_frame_size("cdte1", "hk")) # 796 bytes
+        self.call_interval(get_system_value("gse", "display_settings", "cdte", "hk", "readers", "read_interval"))
 
     def extract_raw_data(self):
         """
@@ -39,11 +47,11 @@ class CMOSPCReader(ReaderBase):
         `list` :
             Data read from `self.data_file`.
         """
-        return self.extract_raw_data_cmos()
+        return self.extract_raw_data_cdtehk()
     
-    def extract_raw_data_cmos(self):
+    def extract_raw_data_cdtehk(self):
         """
-        Method to extract the CMOS data from `self.data_file` and return the 
+        Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
 
         Returns
@@ -77,17 +85,17 @@ class CMOSPCReader(ReaderBase):
         Returns
         -------
         `tuple` :
-            Output from the CMOS parser.
+            Output from the CdTe parser.
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            linetime, gain, exposure_pc, pc_image = PCimageData(raw_data)
+            parsed_data, error_flag = CdTecanisterhkparser(raw_data) #CdTerawalldata2parser(raw_data)# 
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            linetime, gain, exposure_pc, pc_image = (-1,None,None,None)
-        return linetime, gain, exposure_pc, pc_image
+            parsed_data, error_flag = ({"status": "N/A","hv_exec": "N/A","hv_set": "N/A","frame_count": "N/A"},None)
+        return parsed_data, error_flag
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -96,16 +104,18 @@ class CMOSPCReader(ReaderBase):
         Parameters
         ----------
         parsed_data : `tuple`
-            Output from the CMOS parser.
+            Output from the CdTe parser.
 
         Returns
         -------
-        `FoGSE.detector_collections.CMOSPCCollection.CMOSPCCollection` :
-            The CMOS collection.
+        `FoGSE.detector_collections.CdTeCollection.CdTeCollection` :
+            The CdTe collection.
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = CMOSPCCollection(parsed_data, self.old_data_time)
-        if col.last_data_time>self.old_data_time:
-            self.old_data_time = col.last_data_time
+        col = CdTeHKCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
+        # print("Old data time: ",self.old_data_time)
+        # print("Newest data time:",col.last_data_time)
+        if col.latest_data_time>self.old_data_time:
+            self.old_data_time = col.latest_data_time
         return col

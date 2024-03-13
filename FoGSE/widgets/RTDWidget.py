@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
+from FoGSE.readers.RTDReader import RTDReader
 from FoGSE.windows.RTDWindow import RTDWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueCheckWidget, QValueMultiRangeWidget, QValueListWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -21,7 +21,7 @@ class RTDWidget(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedRTD.RTDReader()`.
+        The file to be passed to `FoGSE.readers.RTDReader.RTDReader()`.
         Default: None
     """
     def __init__(self, data_file=None, name="RTD", image_angle=0, parent=None):

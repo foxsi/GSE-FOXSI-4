@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import QWidget
 # for example `from FoGSE.parsers.CdTeparser import CdTerawalldata2parser`
 # for example from `FoGSE.collections.CdTeCollection import CdTeCollection`
 
-class ReaderBase(QWidget):
+class BaseReader(QWidget):
     """
     General reader for the FOXSI instruments.
 

@@ -3,24 +3,18 @@ Create a class that will read the LOG file containing raw binary data received f
 FOXSI and parse the data to be readyfor the GUI plotting windows. 
 
 Can read:
-    * CdTe
+    * Timepix
 """
-
-import struct
-import numpy as np
-import os
-
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
-from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
-from FoGSE.collections.CdTeCollection import CdTeCollection
+from FoGSE.parsers.Timepixparser import timepix_parser
+from FoGSE.collections.TimepixCollection import TimepixCollection
 from FoGSE.utils import get_frame_size, get_system_value
 
-class CdTeReader(ReaderBase):
+class TimepixReader(BaseReader):
     """
-    Reader for the FOXSI CdTe instrument.
+    Reader for the FOXSI Timepix instrument.
     """
 
     def __init__(self, datafile, parent=None):
@@ -29,10 +23,10 @@ class CdTeReader(ReaderBase):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        ReaderBase.__init__(self, datafile, parent)
+        BaseReader.__init__(self, datafile, parent)
         
-        self.define_buffer_size(size=get_frame_size("cdte1", "pc")) # 32_780 bytes
-        self.call_interval(get_system_value("gse", "display_settings", "cdte", "pc", "read_raw_to_refined", "read_interval"))
+        self.define_buffer_size(size=5) # bytes, get_frame_size("timepix", "tpx")
+        self.call_interval(get_system_value("gse", "display_settings", "timepix", "tpx", "readers", "read_interval"))
 
     def extract_raw_data(self):
         """
@@ -44,9 +38,9 @@ class CdTeReader(ReaderBase):
         `list` :
             Data read from `self.data_file`.
         """
-        return self.extract_raw_data_cdte()
+        return self.extract_raw_data_timepix()
     
-    def extract_raw_data_cdte(self):
+    def extract_raw_data_timepix(self):
         """
         Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
@@ -60,11 +54,8 @@ class CdTeReader(ReaderBase):
         # forward=True: reads buffer from the back but doesn't reverse the data 
         try:
             with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
-                iterative_unpack=struct.iter_unpack("<I",f.read_block())
-                datalist=[]
-                for _,data in enumerate(iterative_unpack):
-
-                    datalist.append(data[0])
+                datalist = f.read_block()
+                
             if self._old_data==datalist:
                 return self.return_empty() 
         except FileNotFoundError:
@@ -91,12 +82,12 @@ class CdTeReader(ReaderBase):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            flags, event_df, all_hkdicts = CdTerawdataframe2parser(raw_data) #CdTerawalldata2parser(raw_data)# 
+            tot, flx, flgs = timepix_parser(raw_data)
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1]), 'unixtime':np.array([-1]), 'hitnum_al':np.array([-1]), 'hitnum_pt':np.array([-1])},None)
-        return flags, event_df, all_hkdicts
+            tot, flx, flgs = (None,None,None)
+        return tot, flx, flgs
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -114,10 +105,8 @@ class CdTeReader(ReaderBase):
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = CdTeCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
-        # print("Old data time: ",self.old_data_time)
-        # print("Newest data time:",col.last_data_time)
-        if col.latest_data_time>self.old_data_time:
-            self.old_data_time = col.latest_data_time
+        col = TimepixCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
+
+        # if col.last_data_time>self.old_data_time:
+        #     self.old_data_time = col.last_data_time
         return col
-    
