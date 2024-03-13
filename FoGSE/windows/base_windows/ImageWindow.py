@@ -110,8 +110,10 @@ class Image(QWidget):
             self.graphPane.axes.axis('off')
         if not loose_axes:
             self.graphPane.axes.axis('tight')
+            self.graphPane.fig.tight_layout(pad=0)
+            self.graphPane.fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         if keep_aspect:
-            self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio (optional)
+            self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio
 
         self.setLayout(self.layoutMain)
         
@@ -182,13 +184,19 @@ class Image(QWidget):
         self.graphPane.axes.set_ylim([np.min(new_data_corners[:,1]), 
                                       np.max(new_data_corners[:,1])])
         
-    def get_new_corners(self):
+    def get_image_extent(self):
+        """ Get the extent of the image. """
         if self.pcolormesh is not None:
             x1, x2 = self.pcolormesh["x_bins"][0], self.pcolormesh["x_bins"][-1]
             y1, y2 = self.pcolormesh["y_bins"][0], self.pcolormesh["y_bins"][-1]
         elif self.imshow is not None:
             # extent is for non-rotated array
             x1, x2, y1, y2 = self.im_obj.get_extent() 
+        return x1, x2, y1, y2
+        
+    def get_new_corners(self):
+        """ After any rotation, where are the image corners. """
+        x1, x2, y1, y2 = self.get_image_extent()
 
         return self.points_post_rotation(data_points=[(x1,y1), (x2,y1), (x1,y2), (x2,y2)])
     
@@ -352,7 +360,7 @@ class Image(QWidget):
         """
         self.graphPane.axes.add_patch(patch)
 
-    def draw_arc_distances(self, arc_distance_list, **kwargs):
+    def draw_arc_distances(self, arc_distance_list, label_pos="top", **kwargs):
         """ 
         Draw a set of arc-distance contours. 
         
@@ -361,13 +369,25 @@ class Image(QWidget):
         arc_distance_list : `list[int, float, etc]`
             The arc-distance radii from the field of view centre. Note,
             the data should already be plotted in arcminutes.
+
+        label_pos : `str`
+            Where on the circle should the text be plotted. Will always 
+            read from left to right. can pass rotation as a `kwarg` to 
+            rotate the text. Options are [\"top\", \"bottom\", \"left\", 
+            \"right\"]
+            Default: "top"
+
+        **kwargs : 
+            To be passed to `add_label`.
         """
 
         _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--"} | kwargs
+
+        label_pos_map = {"top":(0,1), "bottom":(0,-1), "left":(-1,0), "right":(1,0)}
         
         self.texts = []
         for arcds in arc_distance_list:
-            self.texts.append(self.add_label((0.0, arcds), f"{round(arcds, 2)}$'$", xycoords="data", size=5, color="w", alpha=0.75, ha="center"))
+            self.texts.append(self.add_label(np.array(label_pos_map[label_pos])*arcds, f"{round(arcds, 2)}$'$", xycoords="data", size=5, color="w", alpha=0.75, ha="center"))
             self.add_patch(circle_patch(radius=arcds, **_plotting_kwargs))
         self.graphPane.draw()
 

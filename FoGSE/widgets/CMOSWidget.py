@@ -246,6 +246,11 @@ class CMOSWidget(QWidget):
         self.pc.base_qwidget_entered_signal.connect(self.ql.add_pc_region)
         self.pc.base_qwidget_left_signal.connect(self.ql.remove_pc_region)
 
+        self.pc.base_qwidget_entered_signal.connect(self.pc.add_arc_distances)
+        self.pc.base_qwidget_left_signal.connect(self.pc.remove_arc_distances)
+        self.ql.base_qwidget_entered_signal.connect(self.ql.add_arc_distances)
+        self.ql.base_qwidget_left_signal.connect(self.ql.remove_arc_distances)
+
         # so the matplotlib ones work but aren't as reliable as the PyQt6 ones
         # self.pc.graphPane.mpl_axes_enter_signal.connect(self.ql.add_pc_region) 
         # self.pc.graphPane.mpl_axes_leave_signal.connect(self.ql.remove_pc_region)

@@ -6,6 +6,7 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
+from FoGSE.collections.CMOSPCCollection import det_pc_arcminutes
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
@@ -122,7 +123,8 @@ class CMOSPCWindow(BaseWindow):
                                keep_aspect=True,
                                custom_plotting_kwargs={"vmin":self.min_val, 
                                                        "vmax":self.max_val,
-                                                       "aspect":self.aspect_ratio},
+                                                       "aspect":self.aspect_ratio,
+                                                       "extent":det_pc_arcminutes()},
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
 
@@ -151,6 +153,20 @@ class CMOSPCWindow(BaseWindow):
 
         self.graphPane.add_plot_data(new_im)
 
+    def add_arc_distances(self, **kwargs):
+        """ A rectangle to indicate the size of the PC region. """
+        if self.plotting_product=="image":
+            cmos_x_fov, cmos_y_fov = 12.8, 6.4
+            arc_distance_list = [cmos_x_fov/4*1.5, cmos_y_fov/2, cmos_y_fov/4]
+            self.graphPane.draw_arc_distances(arc_distance_list, label_pos="left", **kwargs)
+            self.has_arc_distances = True
+
+    def remove_arc_distances(self):
+        """ Removes rectangle indicating the size of the PC region. """
+        if hasattr(self,"has_arc_distances") and (self.plotting_product=="image"):
+            self.graphPane.remove_arc_distances()
+            del self.has_arc_distances
+
     def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """
         if self.plotting_product!="image":
@@ -178,7 +194,7 @@ class CMOSPCWindow(BaseWindow):
         """ 
         Update the background image colour. 
         
-        E.g., colour=(10,40,80,100))
+        E.g., colour=(10,40,80,100)
               colour=\"white\"
               etc.
         """

@@ -6,6 +6,7 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
+from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes
 from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
@@ -122,7 +123,8 @@ class CMOSQLWindow(BaseWindow):
                                keep_aspect=True,
                                custom_plotting_kwargs={"vmin":self.min_val, 
                                                        "vmax":self.max_val,
-                                                       "aspect":self.aspect_ratio},
+                                                       "aspect":self.aspect_ratio,
+                                                       "extent":det_ql_arcminutes()},
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
 
@@ -163,8 +165,16 @@ class CMOSQLWindow(BaseWindow):
 
     def draw_pc_rect(self, **kwargs):
         """ Draw a box for the photon counting region. """
-        xs = [160, 352, 352, 160, 160]
-        ys = [192, 192, 288, 288, 192]
+        # from bottom left xs = np.array([160, 352, 352, 160, 160]) # pixels 
+        # from bottom left ys = np.array([192, 192, 288, 288, 192]) # pixels
+
+        x_pix_halfwidth, y_pix_halfwidth = (352-160)/2, (288-192)/2
+        xs = np.array([-x_pix_halfwidth, x_pix_halfwidth, x_pix_halfwidth, -x_pix_halfwidth, -x_pix_halfwidth]) # pixels, from centre
+        ys = np.array([-y_pix_halfwidth, -y_pix_halfwidth, y_pix_halfwidth, y_pix_halfwidth, -y_pix_halfwidth]) # pixels, from centre
+
+        arcsec_per_pix = 4 # binned
+        xs *= arcsec_per_pix/60
+        ys *= arcsec_per_pix/60
 
         _plotting_kwargs = {"transform":self.graphPane.affine_transform, "color":"w", "alpha":0.6} | kwargs
 
@@ -185,6 +195,20 @@ class CMOSQLWindow(BaseWindow):
             return
         
         self.rect = self.graphPane.draw_extent(**kwargs)
+
+    def add_arc_distances(self, **kwargs):
+        """ A rectangle to indicate the size of the PC region. """
+        if self.plotting_product=="image":
+            cmos_x_fov, cmos_y_fov = 34.1333333, 32
+            arc_distance_list = [cmos_x_fov/4*1.5, cmos_y_fov/4, cmos_y_fov/8]
+            self.graphPane.draw_arc_distances(arc_distance_list, **kwargs)
+            self.has_arc_distances = True
+
+    def remove_arc_distances(self):
+        """ Removes rectangle indicating the size of the PC region. """
+        if hasattr(self,"has_arc_distances") and (self.plotting_product=="image"):
+            self.graphPane.remove_arc_distances()
+            del self.has_arc_distances
 
     def remove_rotate_frame(self):
         """ Removes rectangle indicating the image rotation. """

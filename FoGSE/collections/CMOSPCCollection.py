@@ -104,3 +104,26 @@ class CMOSPCCollection:
     def get_whole_photon_rate(self):
         """ Fraction of PC pixels over a threshold to all pixels"""
         return np.sum(self._image>self.whole_photon_rate_threshold)/self._image.size
+    
+def det_pc_edges():
+    """ 
+    Function to define the physical sizes of the CMOS PC image. 
+    
+    In cm.
+    """
+    x1, x2, y1, y2 = 0, 0.8448, 0, 0.4224 # cm
+    return x1, x2, y1, y2
+
+def det_pc_arcminutes():
+    """ 
+    Function to define the physical sizes of the CMOS PC pixels. 
+    
+    Returns the edges as arcminutes from centre.
+    """
+    x_pixels, y_pixels = 768, 384
+
+    arcsec_per_pix = 1 
+
+    x_arcmin, y_arcmin = x_pixels*arcsec_per_pix/60, y_pixels*arcsec_per_pix/60
+    
+    return -x_arcmin/2, x_arcmin/2, -y_arcmin/2, y_arcmin/2
