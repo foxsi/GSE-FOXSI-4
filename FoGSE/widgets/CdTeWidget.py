@@ -61,6 +61,9 @@ class CdTeWidget(QWidget):
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
 
+        self.image.base_qwidget_entered_signal.connect(self.image.add_arc_distances)
+        self.image.base_qwidget_left_signal.connect(self.image.remove_arc_distances)
+
         ## for CdTe pedestal
         # widget for displaying the automated recommendation
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 

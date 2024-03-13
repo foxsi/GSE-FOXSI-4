@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.collections.CdTeCollection import strip_edges
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.collections.CdTeCollection import strip_edges_arcminutes
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
+from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
 from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
@@ -126,7 +126,7 @@ class CdTeWindow(BaseWindow):
         
         self.base_2d_image_settings()
 
-        _cdte_strip_edges = strip_edges()
+        _cdte_strip_edges = strip_edges_arcminutes()
         _no_of_strips = len(_cdte_strip_edges)-1
         self.graphPane = Image(pcolormesh={"x_bins":_cdte_strip_edges, 
                                             "y_bins":_cdte_strip_edges, 
@@ -222,6 +222,20 @@ class CdTeWindow(BaseWindow):
 
         # plot the newly updated x and ys
         self.graphPane.manage_plotting_ranges()
+
+    def add_arc_distances(self, **kwargs):
+        """ A rectangle to indicate the size of the PC region. """
+        if self.plotting_product=="image":
+            cdte_fov = 18.7
+            arc_distance_list = [cdte_fov/4*1.5, cdte_fov/4, cdte_fov/8]
+            self.graphPane.draw_arc_distances(arc_distance_list, **kwargs)
+            self.has_arc_distances = True
+
+    def remove_arc_distances(self):
+        """ Removes rectangle indicating the size of the PC region. """
+        if hasattr(self,"has_arc_distances") and (self.plotting_product=="image"):
+            self.graphPane.remove_arc_distances()
+            del self.has_arc_distances
         
     def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """

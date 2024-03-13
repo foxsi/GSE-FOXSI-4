@@ -775,8 +775,32 @@ def strip_edges():
     edges = np.concatenate((C,new_b,new_a,right_a,right_b,right_c))
     
     return edges
+
+def strip_edges_arcminutes():
+    """ 
+    Function to define the physical sizes of the different pitch 
+    widths and what to do as they transition. 
+    
+    Returns the edges as arcminutes from centre.
+    """
+    edges = strip_edges()
+
+    cdte_fov = 18.7 # arc-minutes
+
+    frac_dist_centred = edges/np.max(edges)-0.5
+    
+    return frac_dist_centred * cdte_fov
     
 def pixel_areas():
     """ From the pitch widths, get the strip-pixel areas. """
     strip_width_edges = strip_edges()
     return np.diff(strip_width_edges)[:,None]@np.diff(strip_width_edges)[None,:]
+
+if __name__=="__main__":
+    edges = strip_edges()
+    print(edges)
+    fov = 18.7 # arc-minutes
+    frac_dist_centred = edges/np.max(edges)-0.5
+    print(frac_dist_centred)
+    arcminutes_centred = frac_dist_centred * fov
+    print(arcminutes_centred)

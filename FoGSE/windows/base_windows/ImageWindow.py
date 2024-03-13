@@ -4,12 +4,12 @@ A class to help handle displaying a matplotlib image in a PyQt window.
 
 import numpy as np
 from matplotlib import transforms
-import matplotlib.patches as patches
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QGridLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QGridLayout, QWidget
 import pyqtgraph as pg
 
+from FoGSE.windows.images.patches import circle_patch
 from FoGSE.windows.mpl.MPLCanvas import MPLCanvas
         
 
@@ -69,7 +69,6 @@ class Image(QWidget):
         connect some `matplotlib` connections to methods that emit some 
         `PyQt6` signals.
         """
-        # pg.setConfigOption('background', (255,0,255, 0)) # needs to be first
 
         QWidget.__init__(self, parent)
 
@@ -337,7 +336,47 @@ class Image(QWidget):
             Any kwargs to be passed to `matplotlib.text.Annotation`.
         """
         label_kwargs = {"xycoords":"axes fraction"} | kwargs
-        self.graphPane.axes.annotate(label, label_pos, **label_kwargs)
+        return self.graphPane.axes.annotate(label, label_pos, **label_kwargs)
+
+    def add_patch(self, patch):
+        """ 
+        Method to add patches to the image plot. [1,2] 
+
+        [1] https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Patch.html
+        [2] https://matplotlib.org/stable/api/patches_api.html
+
+        Parameters
+        ----------
+        patch : `matplotlib.patches.Patch`
+            A patch to add to the image.
+        """
+        self.graphPane.axes.add_patch(patch)
+
+    def draw_arc_distances(self, arc_distance_list, **kwargs):
+        """ 
+        Draw a set of arc-distance contours. 
+        
+        Parameters
+        ----------
+        arc_distance_list : `list[int, float, etc]`
+            The arc-distance radii from the field of view centre. Note,
+            the data should already be plotted in arcminutes.
+        """
+
+        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--"} | kwargs
+        
+        self.texts = []
+        for arcds in arc_distance_list:
+            self.texts.append(self.add_label((0.0, arcds), f"{round(arcds, 2)}$'$", xycoords="data", size=5, color="w", alpha=0.75, ha="center"))
+            self.add_patch(circle_patch(radius=arcds, **_plotting_kwargs))
+        self.graphPane.draw()
+
+    def remove_arc_distances(self):
+        """ If the arc-distances are there then remove them. """
+        [p.remove() for p in self.graphPane.axes.patches]
+        [t.remove() for t in self.texts]     
+        del self.texts
+        self.graphPane.draw()
 
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """

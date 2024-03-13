@@ -29,7 +29,7 @@ class GSEDataDisplay(QWidget):
         QWidget.__init__(self, parent)
 
         newest_folder = newest_data_dir() 
-        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
+        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run14/gse/"
         # newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
