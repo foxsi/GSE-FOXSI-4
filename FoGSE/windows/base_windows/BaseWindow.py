@@ -56,8 +56,6 @@ class BaseWindow(QWidget):
     def __init__(self, data_file=None, reader=None, plotting_product="", image_angle=0, integrate=False, name="", colour="green", parent=None):
 
         QWidget.__init__(self, parent)
-        self.installEventFilter(self)
-        self.setMouseTracking(True)
 
         self.layoutMain = QGridLayout()
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
@@ -88,10 +86,14 @@ class BaseWindow(QWidget):
             return 
         
         setup_func()
-        self.reader.value_changed_collection.connect(self.base_essential_update_plot)
 
         set_all_spacings(self.layoutMain)
         unifrom_layout_stretch(self.layoutMain, grid=True)
+
+        self.installEventFilter(self)
+        self.setMouseTracking(True)
+
+        self.reader.value_changed_collection.connect(self.base_essential_update_plot)
 
     def base_essential_get_reader(self):
         """ Return default reader here. """

@@ -66,9 +66,9 @@ class LightCurve(QWidget):
 
         self.graphPane.axes.set_facecolor(facecolour)
         
-        self.graphPane.mpl_connect("button_press_event", self.on_click)
-        
         self.counter = 1
+        
+        self.graphPane.mpl_connect("button_press_event", self.on_click)
 
     def on_click(self, event):
         """ 
@@ -306,10 +306,10 @@ class MultiLightCurve(QWidget):
         self.setLayout(self.layoutMain)
 
         self.graphPane.axes.set_facecolor(facecolour)
-
-        self.graphPane.mpl_connect("button_press_event", self.on_click)
         
         self.counter = 1
+
+        self.graphPane.mpl_connect("button_press_event", self.on_click)
 
     def on_click(self, event):
         """ 

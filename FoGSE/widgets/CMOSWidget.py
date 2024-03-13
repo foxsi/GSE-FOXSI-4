@@ -89,13 +89,6 @@ class CMOSWidget(QWidget):
         set_all_spacings(pc_layout, grid=True)
         # self._ped_layout.setRowStretch(0, 1)
 
-        self.pc.base_qwidget_entered_signal.connect(self.ql.add_pc_region)
-        self.pc.base_qwidget_left_signal.connect(self.ql.remove_pc_region)
-
-        # so the matplotlib ones work but aren't as reliable as the PyQt6 ones
-        # self.pc.graphPane.mpl_axes_enter_signal.connect(self.ql.add_pc_region) 
-        # self.pc.graphPane.mpl_axes_leave_signal.connect(self.ql.remove_pc_region)
-
         # exposure values
         exp_layout_colour = "rgb(227, 116, 51)"
         self._exp_layout = self.layout_bkg(main_layout=exp_layout, 
@@ -207,10 +200,6 @@ class CMOSWidget(QWidget):
         self._xexp_layout.addWidget(self.exp192)
         set_all_spacings(self._xexp_layout)
 
-        self.ql.reader.value_changed_collection.connect(self.all_ql_fields)
-        self.pc.reader.value_changed_collection.connect(self.all_pc_fields)
-        self.reader_hk.value_changed_collection.connect(self.all_hk_fields)
-
         ## all widgets together
         # image
         global_layout = QGridLayout()
@@ -252,6 +241,18 @@ class CMOSWidget(QWidget):
 
         # actually display the layout
         self.setLayout(global_layout)
+
+
+        self.pc.base_qwidget_entered_signal.connect(self.ql.add_pc_region)
+        self.pc.base_qwidget_left_signal.connect(self.ql.remove_pc_region)
+
+        # so the matplotlib ones work but aren't as reliable as the PyQt6 ones
+        # self.pc.graphPane.mpl_axes_enter_signal.connect(self.ql.add_pc_region) 
+        # self.pc.graphPane.mpl_axes_leave_signal.connect(self.ql.remove_pc_region)
+
+        self.ql.reader.value_changed_collection.connect(self.all_ql_fields)
+        self.pc.reader.value_changed_collection.connect(self.all_pc_fields)
+        self.reader_hk.value_changed_collection.connect(self.all_hk_fields)
 
     def all_ql_fields(self):
         """ 

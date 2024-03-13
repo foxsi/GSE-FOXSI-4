@@ -83,13 +83,20 @@ class GSEDataDisplay(QWidget):
 
         self.setLayout(lay)
         
+        # get the currect application
+        self.app = QApplication.instance()
+        # if signals are sent before everything starts up properly they can get stuck
+        # Need to process the pending events and this seems to fix things
+        # https://doc.qt.io/qtforpython-5/PySide2/QtCore/QCoreApplication.html#PySide2.QtCore.PySide2.QtCore.QCoreApplication.processEvents
+        self.app.processEvents()
+
         if window_alert:
             self.timer = QtCore.QTimer()
-            self.timer.setInterval(0)
+            # having 0 should work but appears to be intermittent
+            # ~2 seconds seems to be the period of the Mac bounce animation
+            self.timer.setInterval(2000) 
             self.timer.timeout.connect(self.check_current_window) # call self.update_plot_data every cycle
             self.timer.start()
-            # get the currect application
-            self.app = QApplication.instance()
 
     def check_current_window(self):
         """ 

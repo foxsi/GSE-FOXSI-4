@@ -61,9 +61,6 @@ class CdTeWidget(QWidget):
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
 
-        self.image.base_qwidget_entered_signal.connect(self.image.add_arc_distances)
-        self.image.base_qwidget_left_signal.connect(self.image.remove_arc_distances)
-
         ## for CdTe pedestal
         # widget for displaying the automated recommendation
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
@@ -74,10 +71,6 @@ class CdTeWidget(QWidget):
         self.ped.setStyleSheet("border-width: 0px;")
         self._ped_layout.addWidget(self.ped) 
         self.ped_layout = ped_layout
-
-        # self.ped.mousePressEvent = self._switch2lc # with pure PyQt6 widgets, this works, but...
-        self.ped.graphPane.mpl_click_signal.connect(self._switch2lc)
-        self.lc.graphPane.mpl_click_signal.connect(self._switch2ped) # with plt, need to be more invlolved
 
         # status values
         self._value_layout = self.layout_bkg(main_layout=value_layout, 
@@ -157,10 +150,6 @@ class CdTeWidget(QWidget):
         self._value_layout.addLayout(frames_layout, 9, 0, 3, 1)
         set_all_spacings(self._value_layout)
 
-        self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
-        self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
-        self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
-
         ## all widgets together
         # image
         global_layout = QGridLayout()
@@ -184,6 +173,15 @@ class CdTeWidget(QWidget):
 
         # actually display the layout
         self.setLayout(global_layout)
+
+        self.image.base_qwidget_entered_signal.connect(self.image.add_arc_distances)
+        self.image.base_qwidget_left_signal.connect(self.image.remove_arc_distances)
+        # self.ped.mousePressEvent = self._switch2lc # with pure PyQt6 widgets, this works, but...
+        self.ped.graphPane.mpl_click_signal.connect(self._switch2lc)
+        self.lc.graphPane.mpl_click_signal.connect(self._switch2ped) # with plt, need to be more invlolved
+        self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
+        self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
+        self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
 
     def all_fields_from_data(self):
         """ 
