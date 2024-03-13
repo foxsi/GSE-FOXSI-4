@@ -27,7 +27,8 @@ class PowerWidget(QWidget):
     def __init__(self, data_file=None, name="Power", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        self.reader_power = PowerReader(datafile=data_file)
+        power_parser = self.get_power_parsers()
+        self.reader_power = power_parser(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -134,6 +135,10 @@ class PowerWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
+    def get_power_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return PowerReader
+
     def all_fields(self):
         """ Update the QValueWidgets. """
         
@@ -206,7 +211,6 @@ if __name__=="__main__":
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
     
     # w.resize(1000,500)
-    # w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
     w = PowerWidget(data_file=datafile)
     # w = QValueWidgetTest()
     w.show()

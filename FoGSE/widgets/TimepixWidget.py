@@ -27,7 +27,8 @@ class TimepixWidget(QWidget):
     def __init__(self, data_file=None, name="Timepix", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = TimepixReader(datafile=data_file)
+        timepix_parser = self.get_timepix_parsers()
+        reader = timepix_parser(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -42,13 +43,15 @@ class TimepixWidget(QWidget):
         lc_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
+
+        timepix_window = self.get_timepix_windows()
         
         ## for Timepix light curve
         # widget for displaying the automated recommendation
         self._lc_layout = self.layout_bkg(main_layout=lc_layout, 
                                              panel_name="lc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.lc = TimepixWindow(reader=reader, name=name)
+        self.lc = timepix_window(reader=reader, name=name)
         self.lc.setStyleSheet("border-width: 0px;")
         self._lc_layout.addWidget(self.lc)
 
@@ -173,6 +176,14 @@ class TimepixWidget(QWidget):
 
         # actually display the layout
         self.setLayout(global_layout)
+
+    def get_timepix_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return TimepixReader
+    
+    def get_timepix_windows(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return TimepixWindow
 
     def all_fields(self):
         """ Update the QValueWidgets. """
@@ -336,7 +347,6 @@ if __name__=="__main__":
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
     
     # w.resize(1000,500)
-    # w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
     w = TimepixWidget(data_file=datafile)
     # w = QValueWidgetTest()
     w.show()

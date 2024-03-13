@@ -6,8 +6,8 @@ import os
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
-from FoGSE.widgets.CdTeWidget import AllCdTeView
-from FoGSE.widgets.CMOSWidget import AllCMOSView
+from FoGSE.widgets.CdTeWidgetGroup import AllCdTeView
+from FoGSE.widgets.CMOSWidgetGroup import AllCMOSView
 from FoGSE.widgets.TimepixWidget import TimepixWidget
 from FoGSE.widgets.RTDWidget import RTDWidget
 from FoGSE.widgets.PowerWidget import PowerWidget
@@ -28,12 +28,14 @@ class GSEDataDisplay(QWidget):
 
         QWidget.__init__(self, parent)
 
-        newest_folder = newest_data_dir() 
+        newest_folder = self.get_data_dir() 
         # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run14/gse/"
         # newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
-        f0 = AllCdTeView((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
+        cdte_view, cmos_view, timepix_view, rtd_view, power_view = self.get_all_detector_views()
+
+        f0 = cdte_view((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte1_hk.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))), 
                         (os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
@@ -45,25 +47,25 @@ class GSEDataDisplay(QWidget):
                         (os.path.join(newest_folder, get_det_file("cdte4_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte4_hk.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))))
-        # f0 = AllCdTeView(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
+        # f0 = cdte_view(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte4.log", instruments)))
         # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
-        f1 = AllCMOSView(os.path.join(newest_folder, get_det_file("cmos1_pc.log", instruments)), 
+        f1 = cmos_view(os.path.join(newest_folder, get_det_file("cmos1_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos1_ql.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)), 
                         cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), #"/Users/kris/Downloads/cmos1_hk.log",#
                         cmos_hk1=os.path.join(newest_folder, get_det_file("cmos2_hk.log", instruments)))
         
-        f2 = TimepixWidget(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
-        # f2 = TimepixWidget("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
+        f2 = timepix_view(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
+        # f2 = timepix_view("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
-        f3 = RTDWidget(os.path.join(newest_folder, get_det_file("housekeeping_rtd.log", instruments)))
+        f3 = rtd_view(os.path.join(newest_folder, get_det_file("housekeeping_rtd.log", instruments)))
 
-        f4 = PowerWidget(os.path.join(newest_folder, get_det_file("housekeeping_pow.log", instruments)))
-        # f4 = PowerWidget("/Users/kris/Downloads/housekeeping_pow.log")
+        f4 = power_view(os.path.join(newest_folder, get_det_file("housekeeping_pow.log", instruments)))
+        # f4 = power_view("/Users/kris/Downloads/housekeeping_pow.log")
 
         lay = QGridLayout()
 
@@ -97,6 +99,14 @@ class GSEDataDisplay(QWidget):
             self.timer.setInterval(2000) 
             self.timer.timeout.connect(self.check_current_window) # call self.update_plot_data every cycle
             self.timer.start()
+
+    def get_all_detector_views(self):
+        """ A way the class can be inherited from but use different views. """
+        return AllCdTeView, AllCMOSView, TimepixWidget, RTDWidget, PowerWidget
+    
+    def get_data_dir(self):
+        """ A way the class can be inherited from but use different folders. """
+        return newest_data_dir() 
 
     def check_current_window(self):
         """ 

@@ -27,7 +27,8 @@ class RTDWidget(QWidget):
     def __init__(self, data_file=None, name="RTD", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = RTDReader(datafile=data_file)
+        rtd_parser = self.get_rtd_parsers()
+        reader = rtd_parser(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -42,13 +43,15 @@ class RTDWidget(QWidget):
         lc_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
+
+        rtd_window = self.get_rtd_windows()
         
         ## for Timepix light curve
         # widget for displaying the automated recommendation
         self._lc_layout = self.layout_bkg(main_layout=lc_layout, 
                                              panel_name="lc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.lc = RTDWindow(reader=reader, name=name)
+        self.lc = rtd_window(reader=reader, name=name)
         self.lc.setStyleSheet("border-width: 0px;")
         self._lc_layout.addWidget(self.lc)
 
@@ -73,6 +76,13 @@ class RTDWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
+    def get_rtd_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return RTDReader
+    
+    def get_rtd_windows(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return RTDWindow
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -124,7 +134,6 @@ if __name__=="__main__":
     DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run19/gse/housekeeping.log"
     
     # w.resize(1000,500)
-    # w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
     w = RTDWidget(data_file=DATAFILE)
     # w = QValueWidgetTest()
     w.show()
