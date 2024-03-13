@@ -102,3 +102,26 @@ class CMOSQLCollection:
         """ Return the exposure time of QL image. """
         print("Do not use CMOSPCCollection's get_gain, it is wrong I say!")
         return self.gain_ql
+    
+def det_ql_edges():
+    """ 
+    Function to define the physical sizes of the CMOS PC image. 
+    
+    In cm.
+    """
+    x1, x2, y1, y2 = 0, 2.2528, 0, 2.112 # y has an unused 0.0704 cm strip top and bottom
+    return x1, x2, y1, y2
+
+def det_ql_arcminutes():
+    """ 
+    Function to define the physical sizes of the CMOS PC pixels. 
+    
+    Returns the edges as arcminutes from centre.
+    """
+    x_pixels, y_pixels = 512, 480
+
+    arcsec_per_pix = 4 # binned
+
+    x_arcmin, y_arcmin = x_pixels*arcsec_per_pix/60, y_pixels*arcsec_per_pix/60
+    
+    return -x_arcmin/2, x_arcmin/2, -y_arcmin/2, y_arcmin/2

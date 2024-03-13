@@ -80,7 +80,7 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name, integrate=True, image_angle=image_angle)
+        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name, integrate=True, image_angle=0)#image_angle)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")
@@ -88,9 +88,6 @@ class CMOSWidget(QWidget):
         # self._ped_layout.setColumnStretch(0, 1)
         set_all_spacings(pc_layout, grid=True)
         # self._ped_layout.setRowStretch(0, 1)
-
-        self.pc.add_box_signal.connect(self.ql.add_pc_region)
-        self.pc.remove_box_signal.connect(self.ql.remove_pc_region)
 
         # exposure values
         exp_layout_colour = "rgb(227, 116, 51)"
@@ -203,10 +200,6 @@ class CMOSWidget(QWidget):
         self._xexp_layout.addWidget(self.exp192)
         set_all_spacings(self._xexp_layout)
 
-        self.ql.reader.value_changed_collection.connect(self.all_ql_fields)
-        self.pc.reader.value_changed_collection.connect(self.all_pc_fields)
-        self.reader_hk.value_changed_collection.connect(self.all_hk_fields)
-
         ## all widgets together
         # image
         global_layout = QGridLayout()
@@ -248,6 +241,23 @@ class CMOSWidget(QWidget):
 
         # actually display the layout
         self.setLayout(global_layout)
+
+
+        self.pc.base_qwidget_entered_signal.connect(self.ql.add_pc_region)
+        self.pc.base_qwidget_left_signal.connect(self.ql.remove_pc_region)
+
+        self.pc.base_qwidget_entered_signal.connect(self.pc.add_arc_distances)
+        self.pc.base_qwidget_left_signal.connect(self.pc.remove_arc_distances)
+        self.ql.base_qwidget_entered_signal.connect(self.ql.add_arc_distances)
+        self.ql.base_qwidget_left_signal.connect(self.ql.remove_arc_distances)
+
+        # so the matplotlib ones work but aren't as reliable as the PyQt6 ones
+        # self.pc.graphPane.mpl_axes_enter_signal.connect(self.ql.add_pc_region) 
+        # self.pc.graphPane.mpl_axes_leave_signal.connect(self.ql.remove_pc_region)
+
+        self.ql.reader.value_changed_collection.connect(self.all_ql_fields)
+        self.pc.reader.value_changed_collection.connect(self.all_pc_fields)
+        self.reader_hk.value_changed_collection.connect(self.all_hk_fields)
 
     def all_ql_fields(self):
         """ 
@@ -364,12 +374,14 @@ class AllCMOSView(QWidget):
         # data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
         # data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
 
-        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180)
+        _reflection = -180 # degrees
+
+        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180+_reflection)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(f0)
 
-        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180)
+        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180+_reflection)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(f1, 0, 0)
@@ -389,16 +401,22 @@ class AllCMOSView(QWidget):
 
         self.setLayout(lay)
 
-        f0.ql.add_box_signal.connect(f1.ql.add_pc_region)
+        f0.ql.base_qwidget_entered_signal.connect(f0.ql.add_pc_region)
+        f0.ql.base_qwidget_entered_signal.connect(f1.ql.add_pc_region)
         # f0.ql.add_box_signal.connect(f1.ql.add_rotate_frame)
         
-        f0.ql.remove_box_signal.connect(f1.ql.remove_pc_region)
+        f0.ql.base_qwidget_left_signal.connect(f0.ql.remove_pc_region)
+        f0.ql.base_qwidget_left_signal.connect(f1.ql.remove_pc_region)
         # f0.ql.remove_box_signal.connect(f1.ql.remove_rotate_frame)
 
-        f1.ql.add_box_signal.connect(f0.ql.add_pc_region)
+        f1.ql.base_qwidget_entered_signal.connect(f0.ql.add_pc_region)
+        f1.ql.base_qwidget_entered_signal.connect(f1.ql.add_pc_region)
+        # f1.ql.add_box_signal.connect(f0.ql.add_pc_region)
         # f1.ql.add_box_signal.connect(f0.ql.add_rotate_frame)
 
-        f1.ql.remove_box_signal.connect(f0.ql.remove_pc_region)
+        f1.ql.base_qwidget_left_signal.connect(f0.ql.remove_pc_region)
+        f1.ql.base_qwidget_left_signal.connect(f1.ql.remove_pc_region)
+        #f1.ql.remove_box_signal.connect(f0.ql.remove_pc_region)
         # f1.ql.remove_box_signal.connect(f0.ql.remove_rotate_frame)
 
     def resizeEvent(self,event):

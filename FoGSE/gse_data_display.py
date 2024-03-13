@@ -24,12 +24,12 @@ def get_det_file(want_filename, filename_list):
     return ""
 
 class GSEDataDisplay(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, window_alert=False, parent=None):
 
         QWidget.__init__(self, parent)
 
         newest_folder = newest_data_dir() 
-        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run18/gse/"
+        # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run14/gse/"
         # newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
@@ -82,11 +82,38 @@ class GSEDataDisplay(QWidget):
         unifrom_layout_stretch(lay, grid=True)
 
         self.setLayout(lay)
+        
+        # get the currect application
+        self.app = QApplication.instance()
+        # if signals are sent before everything starts up properly they can get stuck
+        # Need to process the pending events and this seems to fix things
+        # https://doc.qt.io/qtforpython-5/PySide2/QtCore/QCoreApplication.html#PySide2.QtCore.PySide2.QtCore.QCoreApplication.processEvents
+        self.app.processEvents()
+
+        if window_alert:
+            self.timer = QtCore.QTimer()
+            # having 0 should work but appears to be intermittent
+            # ~2 seconds seems to be the period of the Mac bounce animation
+            self.timer.setInterval(2000) 
+            self.timer.timeout.connect(self.check_current_window) # call self.update_plot_data every cycle
+            self.timer.start()
+
+    def check_current_window(self):
+        """ 
+        Method to alert the user if this widget is not the active window.
+        
+        On Mac at least, this will bounce the icon in the dock to show
+        the window isn't active. Of course this helps when the window has 
+        to be active for Tooltops and other things relying on QEvents to 
+        work.
+        """
+        self.app.alert(self,0)
 
 if __name__=="__main__":
+    import time
     app = QApplication([])
 
-    w = GSEDataDisplay()
+    w = GSEDataDisplay(window_alert=True)
 
     _s = 122
     w.setGeometry(0,0, 12*_s, 8*_s) # 12 to 8

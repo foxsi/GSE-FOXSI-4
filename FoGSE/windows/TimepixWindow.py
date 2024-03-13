@@ -1,21 +1,17 @@
 """
-A demo to walk through an existing CdTe raw file.
+A demo to walk through a Timepix raw file.
 """
 
 import numpy as np
 
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget
-import pyqtgraph as pg
+from PyQt6.QtWidgets import QApplication
 
 from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
-from FoGSE.windows.LightCurveWindow import LightCurve
-
-from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
-from FoGSE.widgets.layout_tools.spacing import set_all_spacings
+from FoGSE.windows.base_windows.BaseWindow import BaseWindow
+from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
 
 
-class TimepixWindow(QWidget):
+class TimepixWindow(BaseWindow):
     """
     An individual window to display Timepix data read from a file.
 
@@ -29,58 +25,72 @@ class TimepixWindow(QWidget):
     reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
         The reader already given a file.
         Default: None
+
+    plotting_product : `str`
+        String to determine whether an \"image\", \"spectrogram\", or \"lightcurve\" 
+        should be shown. Only \"lightcurve\"  is supported here.
+        Default: \"lightcurve\"
+    
+    name : `str`
+        A useful string that can be used as a label.
+        Default: \"Timepix\"
     """
-    def __init__(self, data_file=None, reader=None, parent=None, name="Timepix"):
+    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="Timepix", parent=None):
 
-        pg.setConfigOption('background', (255,255,255, 0)) # needs to be first
+        BaseWindow.__init__(self, data_file=data_file, 
+                            reader=reader, 
+                            plotting_product=plotting_product, 
+                            image_angle=0, 
+                            integrate="integrate", 
+                            name=name, 
+                            colour="", 
+                            parent=parent)
 
-        QWidget.__init__(self, parent)
+    def base_essential_get_reader(self):
+        """ Return default reader here. """
+        return TimepixReader
+    
+    def products(self):
+        """ Define the products for the class. """
+        return {"lightcurve":None}
+    
+    def base_essential_setup_product(self, product):
+        """ 
+        Given a plotting product, return a function to set up that product.
+        """
+        product_setup_map = self.products()
 
-        # decide how to read the data
-        if data_file is not None:
-            # probably the main way to use it
-            self.reader = TimepixReader(data_file)
-        elif reader is not None:
-            # useful for testing and if multiple windows need to share the same file
-            self.reader = reader
-        else:
-            print("How do I read the Timepix data?")
+        product_setup_map["lightcurve"] = self.lightcurve_setup
 
-        self.mean_tot = LightCurve(reader=self.reader, name="Mean ToT")
-        self.flux = LightCurve(reader=self.reader, name="Flux", colour="purple")
+        return product_setup_map.get(product, None)
+    
+    def update_product(self, product):
+        """ 
+        Given a plotting product, return a function to update that product.
+        """
+        product_update_map = self.products()
 
-        self.mean_tot.set_labels(self.mean_tot.graphPane, xlabel="", ylabel="Mean ToT", title=" ", font_size="12pt", title_font_size="1pt")
-        self.flux.set_labels(self.flux.graphPane, xlabel="Time (frame #)", ylabel="Flux", title="", font_size="12pt", title_font_size="0pt")
+        product_update_map["lightcurve"] = self.lightcurve_update
 
-        self.reader.value_changed_collection.connect(self.update_plot)
+        return product_update_map.get(product, None)
 
-        self.layoutMain = QVBoxLayout()
-        self.layoutMain.setContentsMargins(0, 0, 0, 0)
-        self.layoutMain.setSpacing(0)
+    def lightcurve_setup(self):
+        """ Sets up the class for a time profile product. """
+
+        self.mean_tot = LightCurve()
+        self.flux = LightCurve(colour="purple")
+        
         self.layoutMain.addWidget(self.mean_tot)
         self.layoutMain.addWidget(self.flux)
 
-        set_all_spacings(self.layoutMain)
-        unifrom_layout_stretch(self.layoutMain)
-
-        self.setLayout(self.layoutMain)
-
+        self.mean_tot.set_labels(xlabel="", ylabel="Mean ToT", title=" ", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.flux.set_labels(xlabel="Time (frame #)", ylabel="Flux", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        
         self.detw, self.deth = self.mean_tot.detw, self.mean_tot.deth+self.flux.deth
         self.aspect_ratio = self.detw / self.deth
 
-        # self.setMinimumSize(self.detw, self.deth)
-        # self.resize(self.detw, self.deth)
-
-    def update_plot(self):
-        """
-        Defines how the plot window is updated for time series.
-
-        In subclass define methods: 
-        *`get_data` to extract the new image frame from `self.data_file`, 
-        *`update_image` to define how the new image affects the current one,
-        *`process_data` to perform any last steps before updating the plot.
-        """
-        
+    def lightcurve_update(self):
+        """ Define how the time profile product should updated. """
         new_mean_tot = self.reader.collection.get_mean_tot()
         new_flux = self.reader.collection.get_flux()
         
@@ -92,22 +102,11 @@ class TimepixWindow(QWidget):
         self.mean_tot.manage_plotting_ranges()
         self.flux.manage_plotting_ranges()
 
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+    def base_essential_update_plot(self):
+        """Defines how the plot window is updated. """
+        self.update_product(self.plotting_product)()
 
-        self.resize(new_size)
+        self.update()
 
 
 if __name__=="__main__":
@@ -118,22 +117,11 @@ if __name__=="__main__":
     def initiate_gui():
         app = QApplication([])
 
-        # R = TimepixFileReader(DATAFILE)
         R = TimepixReader(DATAFILE)
 
         f0 = TimepixWindow(reader=R)
 
         f0.show()
         app.exec()
-
-    # from multiprocessing import Process
-
-    # fake temps
-    # p1 = Process(target = initiate_fake_Timepixs)
-    # p1.start()
-    # live plot
-    # p2 = Process(target = initiate_gui)
-    # p2.start()
-    # p2.join()
 
     initiate_gui()
