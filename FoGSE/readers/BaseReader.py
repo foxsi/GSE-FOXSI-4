@@ -67,8 +67,6 @@ class BaseReader(QWidget):
         # read 25,000 bytes from the end of `self.data_file` at a time
         self.define_buffer_size(size=25_000)
 
-        self.setup_and_start_timer()
-
     def define_buffer_size(self, size):
         """
         Method to set or change the file buffer size.
@@ -80,7 +78,7 @@ class BaseReader(QWidget):
         """
         if size%4!=0:
             new_size = int(int(size/4)*4)
-            print(f"Buffer size might need to be divisable by 4 for parser code, maybe try {new_size}?")
+            print(f"Buffer size might need to be divisable by 4 for (CdTe) parser code, maybe try {new_size}?")
             # self.buffer_size = new_size
         self.buffer_size = size
 
@@ -92,11 +90,12 @@ class BaseReader(QWidget):
         ----------
         call_interval : int
             Check the file every `call_interval` milliseconds.
-            Default: 1000
+            Default: 100
         """
         self._call_interval = call_interval
         if hasattr(self,"timer"):
             self.timer.stop()
+            del self.timer
         self.setup_and_start_timer()
 
     def setup_and_start_timer(self):

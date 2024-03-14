@@ -148,7 +148,7 @@ class LightCurve(QWidget):
     def plot(self, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """
         self._plot_ref.set_data(x, y)
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
 
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None, tick_kwargs=None, offsetsize=1):
         """
@@ -398,7 +398,7 @@ class MultiLightCurve(QWidget):
     def plot(self, graph_widget_plot_ref, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """
         graph_widget_plot_ref.set_data(x, y)
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
     
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None, tick_kwargs=None, offsetsize=1):
         """

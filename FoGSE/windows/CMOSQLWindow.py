@@ -179,7 +179,7 @@ class CMOSQLWindow(BaseWindow):
         _plotting_kwargs = {"transform":self.graphPane.affine_transform, "color":"w", "alpha":0.6} | kwargs
 
         self.pc_box = self.graphPane.im_obj.axes.plot(xs, ys, **_plotting_kwargs)
-        self.graphPane.graphPane.draw()
+        self.graphPane.graphPane.fig.canvas.draw()
 
     def remove_pc_rect(self):
         """ If the photon counting region box is there, remove it. """
@@ -187,7 +187,7 @@ class CMOSQLWindow(BaseWindow):
             line = self.pc_box.pop(0)
             line.remove()
             del self.pc_box
-            self.graphPane.graphPane.draw()
+            self.graphPane.graphPane.fig.canvas.draw()
 
     def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """

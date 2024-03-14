@@ -3,6 +3,9 @@ Create a class that will read the LOG file containing raw binary data received f
 the RTDs
 """
 
+import numpy as np
+from PyQt6.QtCore import QTimer
+
 from FoGSE.readers.RTDReader import RTDReader
 
 from FoGSE.readBackwards import BackwardsReader
@@ -20,6 +23,12 @@ class RTDPlaybackReader(RTDReader):
         Collected : organised by intrumentation
         """
         RTDReader.__init__(self, datafile, parent)
+        self.timer.stop()
+
+        # 4 CdTe, 2 CMOS, 1 Timepix, 1 HK, so each gets 1/8 s
+        delay = 7*125
+        call_interval = 1_000
+        self.delay_timer(delay, call_interval)
         
         self.frame_size = get_frame_size("housekeeping", "rtd")*2 # 84 bytes
         self.frame_counter = 0
@@ -33,6 +42,25 @@ class RTDPlaybackReader(RTDReader):
         Just skip this from `FoGSE.readers.BaseReader.BaseReader`.
         """
         return True
+    
+    def delay_timer(self, delay, call_interval):
+        """ 
+        Handles a delay in starting the `QTimer` to simulate data for 
+        the readers coming in at different rates.
+
+        Parameters
+        ----------
+        delay : `int`
+            The delay before the new timer will start in milliseconds.
+
+        call_interval : `int`
+            The new timer's call interval.
+        """
+        self._delay_timer = QTimer()
+        self._delay_timer.setSingleShot(True)
+        self._delay_timer.setInterval(delay)
+        self._delay_timer.timeout.connect(lambda : self.call_interval(call_interval))
+        self._delay_timer.start()
     
     def extract_raw_data_rtd(self):
         """
