@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedPower import PowerReader
+from FoGSE.readers.PowerReader import PowerReader
 # from FoGSE.windows.PowerWindow import PowerWindow
 from FoGSE.widgets.QValueWidget import QValueWidget, QValueMultiRangeWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -21,13 +21,14 @@ class PowerWidget(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedPower.PowerReader()`.
+        The file to be passed to `FoGSE.readers.PowerReader.PowerReader()`.
         Default: None
     """
     def __init__(self, data_file=None, name="Power", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        self.reader_power = PowerReader(datafile=data_file)
+        power_parser = self.get_power_parsers()
+        self.reader_power = power_parser(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -134,6 +135,10 @@ class PowerWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
+    def get_power_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return PowerReader
+
     def all_fields(self):
         """ Update the QValueWidgets. """
         
@@ -206,7 +211,6 @@ if __name__=="__main__":
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
     
     # w.resize(1000,500)
-    # w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
     w = PowerWidget(data_file=datafile)
     # w = QValueWidgetTest()
     w.show()

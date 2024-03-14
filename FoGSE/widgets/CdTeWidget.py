@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTeHK import CdTeHKReader
-from FoGSE.read_raw_to_refined.readRawToRefinedDE import DEReader
+from FoGSE.readers.CdTePCReader import CdTePCReader
+from FoGSE.readers.CdTeHKReader import CdTeHKReader
+from FoGSE.readers.DEReader import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -23,7 +23,7 @@ class CdTeWidget(QWidget):
     Parameters
     ----------
     data_file_pc : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        The file to be passed to `FoGSE.readers.CdTePCReader.CdTePCReader()`.
         Default: None
 
     plotting_product : `str`
@@ -33,9 +33,10 @@ class CdTeWidget(QWidget):
     def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file_pc)
-        self.reader_hk = CdTeHKReader(datafile=data_file_hk)
-        self.reader_de = DEReader(datafile=data_file_de)
+        pc_parser, hk_parser, de_parser = self.get_cdte_parsers()
+        reader = pc_parser(datafile=data_file_pc)
+        self.reader_hk = hk_parser(datafile=data_file_hk)
+        self.reader_de = de_parser(datafile=data_file_de)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -51,13 +52,15 @@ class CdTeWidget(QWidget):
         value_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
+
+        cdte_window = self.get_cdte_windows()
         
         ## for CdTe image
         # widget for displaying the automated recommendation
         self._image_layout = self.layout_bkg(main_layout=image_layout, 
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
+        self.image = cdte_window(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
 
@@ -66,8 +69,8 @@ class CdTeWidget(QWidget):
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
-        self.lc = CdTeWindow(reader=reader, plotting_product="lightcurve", name="")
+        self.ped = cdte_window(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
+        self.lc = cdte_window(reader=reader, plotting_product="lightcurve", name="")
         self.ped.setStyleSheet("border-width: 0px;")
         self._ped_layout.addWidget(self.ped) 
         self.ped_layout = ped_layout
@@ -182,6 +185,14 @@ class CdTeWidget(QWidget):
         self.image.reader.value_changed_collection.connect(self.all_fields_from_data)
         self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
         self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
+
+    def get_cdte_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return CdTePCReader, CdTeHKReader, DEReader
+    
+    def get_cdte_windows(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return CdTeWindow
 
     def all_fields_from_data(self):
         """ 
@@ -319,72 +330,6 @@ class CdTeWidget(QWidget):
 
         self.resize(new_size)
 
-class AllCdTeView(QWidget):
-    def __init__(self, cdte0, cdte1, cdte2, cdte3):
-        super().__init__()     
-        
-        # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,500
-        self.setGeometry(100,100,self.detw, self.deth)
-        self.setMinimumSize(600,150)
-        self.setWindowTitle("All CdTe View")
-        self.aspect_ratio = self.detw/self.deth
-
-        # datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-        # datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-        # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-        # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
-
-        _reflection = -180 # degrees
-
-        f0 = CdTeWidget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=150+_reflection)
-        # f0.resize(QtCore.QSize(150, 190))
-        _f0 =QHBoxLayout()
-        _f0.addWidget(f0)
-
-        f1 = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=30+_reflection)
-        # f1.resize(QtCore.QSize(150, 150))
-        _f1 =QGridLayout()
-        _f1.addWidget(f1, 0, 0)
-
-        f2 = CdTeWidget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=90+_reflection)
-        # f2.resize(QtCore.QSize(150, 150))
-        _f2 =QGridLayout()
-        _f2.addWidget(f2, 0, 0)
-
-        f3 = CdTeWidget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=-30+_reflection)
-        # f3.resize(QtCore.QSize(150, 150))
-        _f3 =QGridLayout()
-        _f3.addWidget(f3, 0, 0)
-
-        lay = QGridLayout(spacing=0)
-        # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-
-        # lay.addWidget(f0, 0, 0, 1, 1)
-        # lay.addWidget(f1, 0, 1, 1, 1)
-        lay.addLayout(_f0, 0, 0, 1, 1)
-        lay.addLayout(_f1, 0, 1, 1, 1)
-        lay.addLayout(_f2, 0, 2, 1, 1)
-        lay.addLayout(_f3, 0, 3, 1, 1)
-
-        lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
-        lay.setHorizontalSpacing(5)
-        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
-
-        self.setLayout(lay)
-
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.resize(new_size)
-
 if __name__=="__main__":
     app = QApplication([])
 
@@ -458,8 +403,7 @@ if __name__=="__main__":
              "/Users/kris/Downloads/16-2-2024_15-9-8/cdtede_hk.log")
     
     # w.resize(1000,500)
-    w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
-    # w = CdTeWidget(data_file_pc=datafile)
+    w = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=30)
     
     w.show()
     app.exec()

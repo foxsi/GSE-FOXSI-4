@@ -10,7 +10,7 @@ import pyqtgraph as pg
 
 from FoGSE.windows.mpl.MPLCanvas import MPLCanvas
 
-from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
+from FoGSE.readers.TimepixReader import TimepixReader
         
 
 class LightCurve(QWidget):
@@ -148,7 +148,7 @@ class LightCurve(QWidget):
     def plot(self, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """
         self._plot_ref.set_data(x, y)
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
 
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None, tick_kwargs=None, offsetsize=1):
         """
@@ -398,7 +398,7 @@ class MultiLightCurve(QWidget):
     def plot(self, graph_widget_plot_ref, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """
         graph_widget_plot_ref.set_data(x, y)
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
     
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None, tick_kwargs=None, offsetsize=1):
         """
@@ -491,11 +491,11 @@ class LightCurveExample(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
 

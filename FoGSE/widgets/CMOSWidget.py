@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC import CMOSPCReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSHK import CMOSHKReader
+from FoGSE.readers.CMOSPCReader import CMOSPCReader
+from FoGSE.readers.CMOSQLReader import CMOSQLReader
+from FoGSE.readers.CMOSHKReader import CMOSHKReader
 from FoGSE.windows.CMOSPCWindow import CMOSPCWindow
 from FoGSE.windows.CMOSQLWindow import CMOSQLWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueChangeWidget, QValueTimeWidget, QValueCheckWidget, QValueMultiRangeWidget
@@ -24,8 +24,8 @@ class CMOSWidget(QWidget):
     Parameters
     ----------
     data_file_pc, data_file_ql : `str`, `str`
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOSPC.CMOSPCReader()` 
-        and `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.CMOSQLReader()`,
+        The file to be passed to `FoGSE.readers.CMOSPCReader.CMOSPCReader()` 
+        and `FoGSE.readers.CMOSQLReader.CMOSQLReader()`,
         respectively.
         Default: None
 
@@ -36,9 +36,10 @@ class CMOSWidget(QWidget):
     def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader_pc = CMOSPCReader(datafile=data_file_pc)
-        reader_ql = CMOSQLReader(datafile=data_file_ql)
-        self.reader_hk = CMOSHKReader(datafile=data_file_hk)
+        pc_parser, ql_parser, hk_parser = self.get_cmos_parsers()
+        reader_pc = pc_parser(datafile=data_file_pc)
+        reader_ql = ql_parser(datafile=data_file_ql)
+        self.reader_hk = hk_parser(datafile=data_file_hk)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -58,13 +59,15 @@ class CMOSWidget(QWidget):
         # image_layout.setRowStretch(0,1)
 
         self.panels = dict() # for all the background panels
+
+        cmosql_window, cmospc_window = self.get_cmos_windows()
         
         ## for CdTe image
         # widget for displaying the automated recommendation
         self._ql_layout = self.layout_bkg(main_layout=ql_layout, 
                                              panel_name="ql_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ql = CMOSQLWindow(reader=reader_ql, plotting_product="image", name=name, integrate=True, image_angle=image_angle)
+        self.ql = cmosql_window(reader=reader_ql, plotting_product="image", name=name, integrate=True, image_angle=image_angle)
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ql.setStyleSheet("border-width: 0px;")
@@ -80,7 +83,7 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = CMOSPCWindow(reader=reader_pc, plotting_product="image", name=name, integrate=True, image_angle=0)#image_angle)
+        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, integrate=True, image_angle=0)#image_angle)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")
@@ -259,6 +262,14 @@ class CMOSWidget(QWidget):
         self.pc.reader.value_changed_collection.connect(self.all_pc_fields)
         self.reader_hk.value_changed_collection.connect(self.all_hk_fields)
 
+    def get_cmos_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return CMOSPCReader, CMOSQLReader, CMOSHKReader
+    
+    def get_cmos_windows(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return CMOSQLWindow, CMOSPCWindow
+
     def all_ql_fields(self):
         """ 
         Update the:
@@ -360,81 +371,6 @@ class CMOSWidget(QWidget):
 
         self.resize(new_size)
 
-class AllCMOSView(QWidget):
-    def __init__(self, cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1, cmos_hk0=None, cmos_hk1=None):
-        super().__init__()     
-        
-        # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,500
-        self.setGeometry(100,100,self.detw, self.deth)
-        self.setMinimumSize(600,150)
-        self.setWindowTitle("All CdTe View")
-        self.aspect_ratio = self.detw/self.deth
-
-        # data_file_pc = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example1/cmos.log"
-        # data_file_ql = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log" #QL
-
-        _reflection = -180 # degrees
-
-        f0 = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180+_reflection)
-        # f0.resize(QtCore.QSize(150, 190))
-        _f0 =QHBoxLayout()
-        _f0.addWidget(f0)
-
-        f1 = CMOSWidget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180+_reflection)
-        # f1.resize(QtCore.QSize(150, 150))
-        _f1 =QGridLayout()
-        _f1.addWidget(f1, 0, 0)
-
-        lay = QGridLayout(spacing=0)
-        # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-
-        lay.addLayout(_f0, 0, 0, 1, 1)
-        lay.addLayout(_f1, 0, 1, 1, 1)
-
-        unifrom_layout_stretch(lay, grid=True)
-
-        lay.setContentsMargins(1, 1, 1, 1) # left, top, right, bottom
-        lay.setHorizontalSpacing(0)
-        lay.setVerticalSpacing(0)
-        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
-
-        self.setLayout(lay)
-
-        f0.ql.base_qwidget_entered_signal.connect(f0.ql.add_pc_region)
-        f0.ql.base_qwidget_entered_signal.connect(f1.ql.add_pc_region)
-        # f0.ql.add_box_signal.connect(f1.ql.add_rotate_frame)
-        
-        f0.ql.base_qwidget_left_signal.connect(f0.ql.remove_pc_region)
-        f0.ql.base_qwidget_left_signal.connect(f1.ql.remove_pc_region)
-        # f0.ql.remove_box_signal.connect(f1.ql.remove_rotate_frame)
-
-        f1.ql.base_qwidget_entered_signal.connect(f0.ql.add_pc_region)
-        f1.ql.base_qwidget_entered_signal.connect(f1.ql.add_pc_region)
-        # f1.ql.add_box_signal.connect(f0.ql.add_pc_region)
-        # f1.ql.add_box_signal.connect(f0.ql.add_rotate_frame)
-
-        f1.ql.base_qwidget_left_signal.connect(f0.ql.remove_pc_region)
-        f1.ql.base_qwidget_left_signal.connect(f1.ql.remove_pc_region)
-        #f1.ql.remove_box_signal.connect(f0.ql.remove_pc_region)
-        # f1.ql.remove_box_signal.connect(f0.ql.remove_rotate_frame)
-
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # image_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.image.resize(image_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.resize(new_size)
 
 if __name__=="__main__":
     app = QApplication([])
@@ -451,15 +387,15 @@ if __name__=="__main__":
     cmos_pc1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run22/gse/cmos2_pc.log"
     cmos_ql1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run22/gse/cmos2_ql.log"
     
-    cmos_pc0 = "/Users/kris/Downloads/PC_check_downlink_new.dat"
-    cmos_ql0 = "/Users/kris/Downloads/QL_check_downlink_new.dat"
-    cmos_pc1 = "/Users/kris/Downloads/PC_check_downlink_new.dat"
-    cmos_ql1 = "/Users/kris/Downloads/QL_check_downlink_new.dat"
+    # cmos_pc0 = "/Users/kris/Downloads/PC_check_downlink_new.dat"
+    # cmos_ql0 = "/Users/kris/Downloads/QL_check_downlink_new.dat"
+    # cmos_pc1 = "/Users/kris/Downloads/PC_check_downlink_new.dat"
+    # cmos_ql1 = "/Users/kris/Downloads/QL_check_downlink_new.dat"
     
     
     # w.resize(1000,500)
-    w = AllCMOSView(cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1)
-    # w = CMOSWidget(data_file_pc=data_file_pc, data_file_ql=data_file_ql)
+    # w = AllCMOSView(cmos_pc0, cmos_ql0, cmos_pc1, cmos_ql1)
+    w = CMOSWidget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk="")
     
     w.show()
     app.exec()

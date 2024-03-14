@@ -6,7 +6,7 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
+from FoGSE.readers.RTDReader import RTDReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.LightCurveWindow import MultiLightCurve
 
@@ -18,11 +18,11 @@ class RTDWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedRTD.RTDReader()`.
+        The file to be passed to `FoGSE.readers.RTDReader.RTDReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.RTDReader.BaseReader()`
         The reader already given a file.
         Default: None
 

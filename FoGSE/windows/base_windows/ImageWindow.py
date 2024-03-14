@@ -109,7 +109,6 @@ class Image(QWidget):
         if not keep_axes:
             self.graphPane.axes.axis('off')
         if not loose_axes:
-            self.graphPane.axes.axis('tight')
             self.graphPane.fig.tight_layout(pad=0)
             self.graphPane.fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         if keep_aspect:
@@ -216,7 +215,7 @@ class Image(QWidget):
         
         # still have to apply rotation afterwords for some reason
         self.extent_box = self.im_obj.axes.plot(xs, ys, **_plotting_kwargs)
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
     
     def remove_extent(self):
         """ Remove the extent box drawn by `draw_extent`."""
@@ -224,7 +223,7 @@ class Image(QWidget):
             line = self.extent_box.pop(0)
             line.remove()
             del self.extent_box
-            self.graphPane.draw()
+            self.graphPane.fig.canvas.draw()
 
     def get_new_axes_post_rotation(self):
         """
@@ -289,8 +288,7 @@ class Image(QWidget):
         new_matrix = self._replace_values(new_matrix, replace)
 
         self.im_obj.set_array(new_matrix)
-
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
 
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None):
         """
@@ -381,7 +379,7 @@ class Image(QWidget):
             To be passed to `add_label`.
         """
 
-        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--"} | kwargs
+        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--", "zorder":1} | kwargs
 
         label_pos_map = {"top":(0,1), "bottom":(0,-1), "left":(-1,0), "right":(1,0)}
         
@@ -389,14 +387,16 @@ class Image(QWidget):
         for arcds in arc_distance_list:
             self.texts.append(self.add_label(np.array(label_pos_map[label_pos])*arcds, f"{round(arcds, 2)}$'$", xycoords="data", size=5, color="w", alpha=0.75, ha="center"))
             self.add_patch(circle_patch(radius=arcds, **_plotting_kwargs))
-        self.graphPane.draw()
+            
+        self.graphPane.fig.canvas.draw()
 
     def remove_arc_distances(self):
         """ If the arc-distances are there then remove them. """
         [p.remove() for p in self.graphPane.axes.patches]
         [t.remove() for t in self.texts]     
         del self.texts
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
+
 
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
@@ -422,7 +422,7 @@ class ImageExample(QWidget):
     Parameters
     ----------
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -431,9 +431,9 @@ class ImageExample(QWidget):
 
     Example
     -------
-    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+    from FoGSE.readers.BaseReader import BaseReader
 
-    class ImageFakeReader(ReaderBase):
+    class ImageFakeReader(BaseReader):
         \"""
         Reader for fake image arrays.
         \"""
@@ -444,7 +444,7 @@ class ImageExample(QWidget):
             Parsed : human readable
             Collected : organised by intrumentation
             \"""
-            ReaderBase.__init__(self, "", parent)
+            BaseReader.__init__(self, "", parent)
 
             self.array_x, self.array_y = array_x, array_y
             
@@ -578,9 +578,9 @@ class ImageExample(QWidget):
 if __name__=="__main__":
     # package top-level
 
-    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+    from FoGSE.readers.BaseReader import BaseReader
 
-    class ImageFakeReader(ReaderBase):
+    class ImageFakeReader(BaseReader):
         """
         Reader for fake image arrays.
 
@@ -594,11 +594,11 @@ if __name__=="__main__":
             Parsed : human readable
             Collected : organised by intrumentation
             """
-            ReaderBase.__init__(self, "", parent)
+            BaseReader.__init__(self, "", parent)
 
             self.array_x, self.array_y = array_x, array_y
             
-            self.call_interval(1000)
+            self.call_interval(100)
 
         def extract_raw_data(self):
             """
@@ -628,7 +628,7 @@ if __name__=="__main__":
 
     def initiate_gui():
         app = QApplication([])
-        array_x, array_y = 30, 20
+        array_x, array_y = 30, 25
         R = ImageFakeReader(array_x, array_y)
 
         f0 = ImageExample(R, array_x, array_y)

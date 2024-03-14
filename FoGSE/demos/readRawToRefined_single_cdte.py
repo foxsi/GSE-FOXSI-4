@@ -9,11 +9,11 @@ from FoGSE.demos.CdTerawalldata2parser_existingFile import CdTerawalldata2parser
 from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
 from FoGSE.parsers.CdTeparser import CdTerawalldata2parser
 from FoGSE.demos.readRawToRefined_single_det import Reader
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.readers.BaseReader import BaseReader
 from FoGSE.collections.CdTeCollection import CdTeCollection
     
 
-class CdTeFileReader(ReaderBase):
+class CdTeFileReader(BaseReader):
     """ A reader for a CdTe data file already obtained. """
     def __init__(self, datafile, parent=None):
         """
@@ -22,7 +22,7 @@ class CdTeFileReader(ReaderBase):
         Collected : organised by intrumentation
         """
         
-        ReaderBase.__init__(self, datafile, parent)
+        BaseReader.__init__(self, datafile, parent)
         self.define_buffer_size(size=25_000)
         self._read_counter = 0#28983837-self.buffer_size#-0
 

@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication
 
 from FoGSE.collections.CdTeCollection import strip_edges_arcminutes
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.readers.CdTePCReader import CdTePCReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
 from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
@@ -21,11 +21,11 @@ class CdTeWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        The file to be passed to `FoGSE.readers.CdTePCReader.CdTePCReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.ReaderBase()`
+    reader : instance of `FoGSE.readers.CdTePCReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -71,7 +71,7 @@ class CdTeWindow(BaseWindow):
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
-        return CdTeReader
+        return CdTePCReader
     
     def base_essential_get_name(self):
         """ Define a custom way to get the name. Can be used as a label. """
@@ -308,7 +308,7 @@ if __name__=="__main__":
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
     datafile = "/Users/kris/Downloads/16-2-2024_15-9-8/"
     reader1 = CdTeFileReader(datafile)
-    reader2 = CdTeReader(datafile)
+    reader2 = CdTePCReader(datafile)
 
     f0 = CdTeWindow(reader=reader1, plotting_product="spectrogram")
     f1 = CdTeWindow(reader=reader2, plotting_product="image")
