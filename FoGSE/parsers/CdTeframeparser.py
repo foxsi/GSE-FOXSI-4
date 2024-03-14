@@ -118,6 +118,7 @@ def CdTerawdataframe2parser(datalist):
     Lhitnum_al =[]
     Lhitnum_pt =[]
     Lflag_pseudo=[]
+    Lpseudo_counter=[]
     #all_array_chflag=[]
     all_array_adc=[]
     all_array_index=[]
@@ -410,6 +411,7 @@ def CdTerawdataframe2parser(datalist):
                     Lhitnum_al.append(hitnum_al)
                     Lhitnum_pt.append(hitnum_pt)
                     Lflag_pseudo.append(flag_pseudo)
+                    Lpseudo_counter.append(pseudo_counter)
                     #Filling in values is ended.
                 #repeated for event data
             #the process for an event data frame is finished.
@@ -419,10 +421,29 @@ def CdTerawdataframe2parser(datalist):
     if(eventflag and hkflag):
         errorflag = True
         print("CAUTION!! : INPUT DATA IS FRAME DATA? BOTH HK AND EVENT DATA ARE FOUND")
+    # #the process for an data frame is finished.
+    # df  = pl.DataFrame(
+    #     {
+    #        "ti":np.array(Lti,dtype=np.uint32),
+    #         "unixtime":np.array(Lunixtime,dtype=np.uint32),
+    #         "livetime":np.array(Llivetime,dtype=np.uint32),
+    #         "adc_cmn_al":np.array(Ladccmn_al,dtype=np.int16),
+    #         "adc_cmn_pt":np.array(Ladccmn_pt,dtype=np.int16),
+    #         "cmn_al":np.array(Lcmn_al,dtype=np.uint16),
+    #         "cmn_pt":np.array(Lcmn_pt,dtype=np.uint16),
+    #         "index_al":np.array(Lindex_al,dtype=np.uint8),
+    #         "index_pt":np.array(Lindex_pt,dtype=np.uint8),
+    #         "hitnum_al":np.array(Lhitnum_al,dtype=np.uint8),
+    #         "hitnum_pt":np.array(Lhitnum_pt,dtype=np.uint8),
+    #         "flag_pseudo":np.array(Lflag_pseudo,dtype=np.uint8),
+    #         #"all_adc":np.array(all_array_adc,dtype=np.uint8),
+    #         #"all_index":np.array(all_array_index,dtype=np.uint8),
+    #     }
+    # )
 
     evt_num = len(Lti)
-    dt = np.dtype({'names':('ti', 'unixtime', 'livetime', 'adc_cmn_al', 'adc_cmn_pt', 'cmn_al', 'cmn_pt', 'index_al', 'index_pt', 'hitnum_al', 'hitnum_pt', 'flag_pseudo'),
-                   'formats':('u4', 'u4', 'u4', '(128,)i4', '(128,)i4', '(2,)i4', '(2,)i4', '(128,)u1', '(128,)u1', 'u1', 'u1', 'u1')}) # u1==np.uint8,u4==np.uint32, i4==int32
+    dt = np.dtype({'names':('ti', 'unixtime', 'livetime', 'adc_cmn_al', 'adc_cmn_pt', 'cmn_al', 'cmn_pt', 'index_al', 'index_pt', 'hitnum_al', 'hitnum_pt', 'flag_pseudo',"pseudo_counter"),
+                   'formats':('u4', 'u4', 'u4', '(128,)i4', '(128,)i4', '(2,)i4', '(2,)i4', '(128,)u1', '(128,)u1', 'u1', 'u1', 'u1','u4')}) # u1==np.uint8,u4==np.uint32, i4==int32
     df = np.zeros(evt_num, dtype=dt)
     df['ti'] = np.array(Lti,dtype=np.uint32)
     df['unixtime'] = np.array(Lunixtime,dtype=np.uint32)
@@ -436,6 +457,8 @@ def CdTerawdataframe2parser(datalist):
     df['hitnum_al'] = np.array(Lhitnum_al,dtype=np.uint8)
     df['hitnum_pt'] = np.array(Lhitnum_pt,dtype=np.uint8)
     df['flag_pseudo'] = np.array(Lflag_pseudo,dtype=np.uint8)
+    df['pseudo_counter'] = np.array(Lpseudo_counter,dtype=np.uint32)
+    
 
     Flags=[hkflag,eventflag, errorflag]
     
