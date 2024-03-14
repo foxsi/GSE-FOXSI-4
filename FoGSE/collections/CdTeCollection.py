@@ -26,6 +26,9 @@ class CdTeCollection:
             used. Default is `0` and so should take all data.
             Default: 0
 
+    bad_strips : `dict(\"pt\":list[int], \"al\":list[int])`
+            A list of any bad strips for the Pt- and Al-side to be filtered out.
+
     Example
     -------
     with readBackwards.BackwardsReader(file=directory+raw_file, blksize=20_000_000, forward=True) as f:
@@ -46,7 +49,7 @@ class CdTeCollection:
     plt.show()
     """
     
-    def __init__(self, parsed_data, old_data_time=0):
+    def __init__(self, parsed_data, old_data_time=0, bad_strips=None):
         # bring in the parsed data
         _, self.event_dataframe, _ = parsed_data
         
@@ -55,6 +58,9 @@ class CdTeCollection:
         
         # for easy remapping of channels
         self.channel_map = self.remap_strip_dict()
+
+        self.bad_pt_strips = [self.channel_map[p] for p in bad_strips.get("pt", None)] if bad_strips is not None else None
+        self.bad_al_strips = [self.channel_map[a] for a in bad_strips.get("al", None)] if bad_strips is not None else None
 
         # dont include data more than a second older than the previous frames latest data
         self.new_entries = self.event_dataframe['ti']>=0#old_data_time
@@ -211,9 +217,13 @@ class CdTeCollection:
         pt_adc = event_dataframe['adc_cmn_pt'][new]
         al_adc = event_dataframe['adc_cmn_al'][new]
 
+        # get bad strip values, else return that there aren't any
+        bad_pt_indices = np.isin(pt, self.bad_pt_strips) if self.bad_pt_strips is not None else False
+        bad_al_indices = np.isin(al, self.bad_al_strips) if self.bad_al_strips is not None else False
+
         # for more filtering `pt_min_adc, al_min_adc = self.single_event(pt_adc, al_adc, style="simple1")`
-        pt_selection = ((pt<59) | (pt>68)) #& (pt_adc>pt_min_adc) & (pt_adc<800)
-        al_selection = ((al>131) & (al<252)) #& (al_adc>al_min_adc) & (al_adc<800)
+        pt_selection = ((pt<59) | (pt>68)) & ~bad_pt_indices #& (pt_adc>pt_min_adc) & (pt_adc<800)
+        al_selection = ((al>131) & (al<252)) & ~bad_al_indices #& (al_adc>al_min_adc) & (al_adc<800)
 
         # get matrices for Pt and Al that have a single True value for every readout
         pt_selection_new = self.get_event_grade(event_selection=pt_selection, grade=grade_pt, data_indices=pt, data_adc=pt_adc)
@@ -573,6 +583,13 @@ class CdTeCollection:
                                         self.side_strip_bins])
         
         return im
+    
+    def bad_strips_pt(self):
+        """ Given a CdTe detector, return the noisy Pt-side strips"""
+        pt_noisy_mapping = {"cdte1":[47, 59],
+                            "cdte2":[53, 55, 60, 63, 65],
+                            "cdte3":[51, 62, 63, 64, 65],
+                            "cdte4":[53, 65]}
     
     def _remap_strip_values(self, pt_strips, al_strips):
         """ Remap the strip values to their physical location. """
