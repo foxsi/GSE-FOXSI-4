@@ -15,6 +15,12 @@ class BaseWindow(QWidget):
     """
     An individual window to display CdTe data read from a file.
 
+    Notes
+    -----
+    When a window is closed, it's `reader` object's `QTimer` is stopped 
+    also. This avoids the possibility of the `reader` continuing to cycle 
+    even when the application has been closed.
+
     Parameters
     ----------
     data_file : `str` 
@@ -327,10 +333,7 @@ class BaseWindow(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # if self.plotting_product=="spectrogram":
-        #     print("ere", event.size().width(), event.size().height())
+        
         if event is None:
             return 
         
@@ -338,4 +341,19 @@ class BaseWindow(QWidget):
         new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         self.resize(new_size)
+
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+
+        If the reader and plot updating are going quick enough this 
+        start to go a bit mad. This can mean that when the window is
+        closed that the reader is too quick to be stopped automatically.
+        This method ensure that, as part of the window closing process, 
+        the `QTimer` in `reader` is stopped allowing everything to close
+        properly.
+        """
+        self.reader.timer.stop()
+        self.deleteLater()
 

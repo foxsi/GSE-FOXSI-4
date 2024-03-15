@@ -2,6 +2,7 @@
 First go at a full GSE (data viewing only).
 """
 import os
+import sys
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
@@ -118,6 +119,20 @@ class GSEDataDisplay(QWidget):
         work.
         """
         self.app.alert(self,0)
+        self.app.processEvents()
+
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        # self.f0.closeEvent(event)
+        # self.f1.closeEvent(event)
+        # self.f2.closeEvent(event)
+        # self.f3.closeEvent(event)
+        # self.f4.closeEvent(event)
+        # self.deleteLater()
+        sys.exit()
 
 if __name__=="__main__":
     import time

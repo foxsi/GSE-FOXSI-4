@@ -30,25 +30,25 @@ class AllCdTeView(QWidget):
 
         cdte_widget = self.get_cdte_widget()
 
-        f0 = cdte_widget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=150+_reflection)
+        self.f0 = cdte_widget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=150+_reflection)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
-        _f0.addWidget(f0)
+        _f0.addWidget(self.f0)
 
-        f1 = cdte_widget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=30+_reflection)
+        self.f1 = cdte_widget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=30+_reflection)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
-        _f1.addWidget(f1, 0, 0)
+        _f1.addWidget(self.f1, 0, 0)
 
-        f2 = cdte_widget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=90+_reflection)
+        self.f2 = cdte_widget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=90+_reflection)
         # f2.resize(QtCore.QSize(150, 150))
         _f2 =QGridLayout()
-        _f2.addWidget(f2, 0, 0)
+        _f2.addWidget(self.f2, 0, 0)
 
-        f3 = cdte_widget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=-30+_reflection)
+        self.f3 = cdte_widget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=-30+_reflection)
         # f3.resize(QtCore.QSize(150, 150))
         _f3 =QGridLayout()
-        _f3.addWidget(f3, 0, 0)
+        _f3.addWidget(self.f3, 0, 0)
 
         lay = QGridLayout(spacing=0)
         # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -82,6 +82,17 @@ class AllCdTeView(QWidget):
         new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         self.resize(new_size)
+
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        self.f0.closeEvent(event)
+        self.f1.closeEvent(event)
+        self.f2.closeEvent(event)
+        self.f3.closeEvent(event)
+        self.deleteLater()
 
 if __name__=="__main__":
     app = QApplication([])

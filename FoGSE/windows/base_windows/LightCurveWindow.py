@@ -53,8 +53,8 @@ class LightCurve(QWidget):
         self.layoutMain.setSpacing(0)
 
         self._plot_ref = None
-        self.plot_data_ys = np.array([0]).astype(float)
-        self.plot_data_xs = np.array([0]).astype(float)
+        self.plot_data_ys = np.array([-1]).astype(float)
+        self.plot_data_xs = np.array([-1]).astype(float)
         self._remove_first = True
 
         plot_refs = self.graphPane.axes.plot(self.plot_data_xs, self.plot_data_ys, colour, marker="o", ms=6)
@@ -140,10 +140,12 @@ class LightCurve(QWidget):
 
         # deal with the plotting limits
         self._minmax_y = np.array([np.nanmin(self.plot_data_ys), np.nanmax(self.plot_data_ys)])
-        self.graphPane.axes.set_ylim([np.nanmin(self._minmax_y[0])*0.95, np.nanmax(self._minmax_y[1])*1.05])
+        if len(self._minmax_y)==2:
+            self.graphPane.axes.set_ylim([np.nanmin(self._minmax_y[0])*0.95, np.nanmax(self._minmax_y[1])*1.05])
 
         self._minmax_x = np.array([np.nanmin(self.plot_data_xs), np.nanmax(self.plot_data_xs)])
-        self.graphPane.axes.set_xlim([np.nanmin(self._minmax_x[0]), np.nanmax(self._minmax_x[1])+1])
+        if len(self._minmax_x)==2:
+            self.graphPane.axes.set_xlim([np.nanmin(self._minmax_x[0]), np.nanmax(self._minmax_x[1])+1])
 
     def plot(self, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """

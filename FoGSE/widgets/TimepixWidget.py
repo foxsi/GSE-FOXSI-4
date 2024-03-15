@@ -292,6 +292,14 @@ class TimepixWidget(QWidget):
 
         self.resize(new_size)
 
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        self.lc.closeEvent(event)
+        self.deleteLater()
+
 class  QValueWidgetTest(QWidget):
     """ 
     A test widget class to use QValueWidget. 
