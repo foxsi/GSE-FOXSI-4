@@ -206,20 +206,22 @@ class CdTeWidget(QWidget):
 
         total_counts = self.image.reader.collection.total_counts()
         self.cts.update_label(total_counts)
-        _lc_info = self._get_lc_info()
+        _lc_count_info = self._get_lc_count_info()
         self.cts.update_tool_tip({"Ct Now":total_counts, 
-                                  "Ct Mean":round(_lc_info["Ct Mean"], 1), 
-                                  "Ct Median":round(_lc_info["Ct Median"], 1), 
-                                  "Ct Max.":_lc_info["Ct Max."], 
-                                  "Ct Min.":_lc_info["Ct Min."]})
+                                  "Ct Mean":round(_lc_count_info["Ct Mean"], 1), 
+                                  "Ct Median":round(_lc_count_info["Ct Median"], 1), 
+                                  "Ct Max.":_lc_count_info["Ct Max."], 
+                                  "Ct Min.":_lc_count_info["Ct Min."]})
         
-        delta_time = self.image.reader.collection.delta_time()
-        self.ctr.update_label(round(total_counts/delta_time, 1))
-        self.ctr.update_tool_tip({"Ct/s Now":round(total_counts/delta_time, 1), 
-                                  "Ct/s Mean":round(_lc_info["Ct Mean"]/delta_time, 1), 
-                                  "Ct/s Median":round(_lc_info["Ct Median"]/delta_time, 1), 
-                                  "Ct/s Max.":round(_lc_info["Ct Max."]/delta_time, 1), 
-                                  "Ct/s Min.":round(_lc_info["Ct Min."]/delta_time, 1)})
+        # delta_time = self.image.reader.collection.delta_time()
+        _lc_count_rate_info = self._get_lc_count_rate_info()
+        total_count_rate = self.image.reader.collection.total_count_rate()
+        self.ctr.update_label(round(total_count_rate, 1))
+        self.ctr.update_tool_tip({"Ct/s Now":round(total_count_rate, 1), 
+                                  "Ct/s Mean":round(_lc_count_rate_info["Ct/s Mean"], 1), 
+                                  "Ct/s Median":round(_lc_count_rate_info["Ct/s Median"], 1), 
+                                  "Ct/s Max.":round(_lc_count_rate_info["Ct/s Max."], 1), 
+                                  "Ct/s Min.":round(_lc_count_rate_info["Ct/s Min."], 1)})
 
         self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
         self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
@@ -260,22 +262,29 @@ class CdTeWidget(QWidget):
         # self.reader_de.collection. methods
         # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
         
-    def _get_lc_info(self):
+    def _get_lc_count_info(self):
         """ To update certain fields, we look to the lightcurve information. """
-        if len(self.lc.graphPane.plot_data_ys)<2:
+        if len(self.lc.total_counts)==0:
             return {"Ct Mean":self._default_qvaluewidget_value,
                     "Ct Median":self._default_qvaluewidget_value, 
                     "Ct Max.":self._default_qvaluewidget_value, 
                     "Ct Min.":self._default_qvaluewidget_value}
-        elif len(self.lc.graphPane.plot_data_ys)==2:
-            lc_data = self.lc.graphPane.plot_data_ys[1:] 
-        else:
-            lc_data = self.lc.graphPane.plot_data_ys
-
-        return {"Ct Mean":np.nanmean(lc_data),
-                "Ct Median":np.nanmedian(lc_data), 
-                "Ct Max.":np.nanmax(lc_data), 
-                "Ct Min.":np.nanmin(lc_data)}
+        return {"Ct Mean":np.nanmean(self.lc.total_counts),
+                "Ct Median":np.nanmedian(self.lc.total_counts), 
+                "Ct Max.":np.nanmax(self.lc.total_counts), 
+                "Ct Min.":np.nanmin(self.lc.total_counts)}
+    
+    def _get_lc_count_rate_info(self):
+        """ To update certain fields, we look to the lightcurve information. """
+        if len(self.lc.total_counts)==0:
+            return {"Ct/s Mean":self._default_qvaluewidget_value,
+                    "Ct/s Median":self._default_qvaluewidget_value, 
+                    "Ct/s Max.":self._default_qvaluewidget_value, 
+                    "Ct/s Min.":self._default_qvaluewidget_value}
+        return {"Ct/s Mean":np.nanmean(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes),
+                "Ct/s Median":np.nanmedian(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes), 
+                "Ct/s Max.":np.nanmax(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes), 
+                "Ct/s Min.":np.nanmin(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes)}
         
     def _switch2lc(self, event=None):
         """ Switch from pedestal to lightcurve. """

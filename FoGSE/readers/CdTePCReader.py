@@ -95,7 +95,14 @@ class CdTePCReader(BaseReader):
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            flags, event_df, all_hkdicts = (None,{'ti':np.array([-1]), 'unixtime':np.array([-1]), 'hitnum_al':np.array([-1]), 'hitnum_pt':np.array([-1])},None)
+            flags, event_df, all_hkdicts = (None,
+                                            {'ti':np.array([-1]), 
+                                             'unixtime':np.array([-1]), 
+                                             'hitnum_al':np.array([-1]), 
+                                             'hitnum_pt':np.array([-1]), 
+                                             'pseudo_counter':np.array([-1]),
+                                             'livetime':np.array([-1])},
+                                             None)
         return flags, event_df, all_hkdicts
 
     def parsed_2_collection(self, parsed_data):
@@ -112,6 +119,8 @@ class CdTePCReader(BaseReader):
         `FoGSE.detector_collections.CdTeCollection.CdTeCollection` :
             The CdTe collection.
         """
+        if parsed_data[1]['ti'][0]==-1:
+            return 
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = CdTeCollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)

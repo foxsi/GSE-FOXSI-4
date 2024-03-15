@@ -723,20 +723,30 @@ class CdTeCollection:
         _ti_time = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
         return _ti_time*ti_clock_interval
         
-    def total_count_rate(self):
+    def total_count_rate(self, frame_livetime_uncorrected=False):
         """ Just return the present total counts for the collection. """
         if self.delta_time()==0:
             return np.inf
-        return self.total_counts()/self.delta_time()
+        
+        if frame_livetime_uncorrected:
+            return self.total_counts()/self.delta_time()
+        return self.total_counts()/self.get_frame_seconds_livetime()
     
     def mean_num_of_al_strips(self):
-        """ Get the total number of Al strips with measured ADC values for the frame"""
+        """ Get the total number of Al strips with measured ADC values for the frame. """
         return np.mean(self.event_dataframe['hitnum_al'])
     
     def mean_num_of_pt_strips(self):
-        """ Get the total number of Pt strips with measured ADC values for the frame"""
+        """ Get the total number of Pt strips with measured ADC values for the frame. """
         return np.mean(self.event_dataframe['hitnum_pt'])
     
+    def get_frame_seconds_livetime(self):
+        """ Get the livetime in seconds of the frame. """
+        return self.event_dataframe['livetime'].sum()* 1e-8
+    
+    def get_frame_fraction_livetime(self):
+        """ Get the livetime fraction of the frame. """
+        return self.get_frame_seconds_livetime()/self.delta_time()
 
 def channel_bins():
     """ Define the strip and ADC bins. """
