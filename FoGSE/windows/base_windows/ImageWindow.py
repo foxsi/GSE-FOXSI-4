@@ -4,6 +4,7 @@ A class to help handle displaying a matplotlib image in a PyQt window.
 
 import numpy as np
 from matplotlib import transforms
+import sys
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QGridLayout, QWidget
@@ -92,7 +93,7 @@ class Image(QWidget):
 
         tr = transforms.Affine2D().rotate_deg(self.rotation) #rotation_in_degrees
         # "cmap" is ignored if data is RGB(A)
-        _plotting_kwargs = {"origin":"lower", "interpolation":"nearest", "rasterized":True, "cmap":"viridis", "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
+        _plotting_kwargs = {"origin":"lower", "interpolation":"nearest", "rasterized":True, "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
         self.affine_transform =_plotting_kwargs["transform"]
 
         # Create the pcolormesh plot
@@ -289,6 +290,7 @@ class Image(QWidget):
 
         self.im_obj.set_array(new_matrix)
         self.graphPane.fig.canvas.draw()
+        self.graphPane.fig.canvas.flush_events()
 
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None):
         """
@@ -518,8 +520,6 @@ class ImageExample(QWidget):
         self.imsh2.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Imshow: rot of {r2_imsh} deg (RGBA)")
         self.pcol2.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Pcolormesh: rot of {r2_pcol} deg (RGBA)")
 
-        self.reader.value_changed_collection.connect(self.update_plot)
-
         self.layoutMain = QGridLayout()
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.setSpacing(0)
@@ -537,6 +537,8 @@ class ImageExample(QWidget):
         self.setMinimumSize(self.detw, self.deth)
         self.resize(self.detw, self.deth)
 
+        self.reader.value_changed_collection.connect(self.update_plot)
+
     def update_plot(self):
         """
         Defines how the plot window is updated for time series.
@@ -548,6 +550,7 @@ class ImageExample(QWidget):
         """
         
         new_array = self.reader.collection
+        print("adding data")
         
         # defined how to add/append onto the new data arrays
         self.imsh0.add_plot_data(new_array)
@@ -573,6 +576,20 @@ class ImageExample(QWidget):
         new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         self.resize(new_size)
+
+    def closeEvent(self, event):
+        """ 
+        On close, ensure that the reader's timer is stop.
+        
+        If the reader and plot updating are going quick enough this 
+        start to go a bit mad. This can mean that when the window is
+        closed that the reader is too quick to be stopped automatically.
+        This method ensure that, as part of the window closing process, 
+        the `QTimer` in `reader` is stopped allowing everything to close
+        properly.
+        """
+        self.reader.timer.stop()
+        self.deleteLater()
     
 
 if __name__=="__main__":
@@ -598,7 +615,7 @@ if __name__=="__main__":
 
             self.array_x, self.array_y = array_x, array_y
             
-            self.call_interval(100)
+            self.call_interval(10)
 
         def extract_raw_data(self):
             """
@@ -623,17 +640,23 @@ if __name__=="__main__":
             """
 
             # assign the collected data and trigger the `emit`
+            print("new data")
             self.collection = self.extract_raw_data()
-            self.value_changed_collection.emit()
+
 
     def initiate_gui():
         app = QApplication([])
-        array_x, array_y = 30, 25
+        array_x, array_y = 700, 650
         R = ImageFakeReader(array_x, array_y)
 
         f0 = ImageExample(R, array_x, array_y)
 
         f0.show()
-        app.exec()
+
+        f1 = ImageExample(R, array_x, array_y)
+
+        f1.show()
+
+        sys.exit(app.exec())
 
     initiate_gui()

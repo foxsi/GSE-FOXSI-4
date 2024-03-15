@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.collections.CdTeCollection import strip_edges_arcminutes
+from FoGSE.collections.CdTeCollection import CDTE_STRIP_EDGES_ARCMINUTES
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 from FoGSE.readers.CdTePCReader import CdTePCReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
@@ -126,7 +126,7 @@ class CdTeWindow(BaseWindow):
         
         self.base_2d_image_settings()
 
-        _cdte_strip_edges = strip_edges_arcminutes()
+        _cdte_strip_edges = CDTE_STRIP_EDGES_ARCMINUTES
         _no_of_strips = len(_cdte_strip_edges)-1
         self.graphPane = Image(pcolormesh={"x_bins":_cdte_strip_edges, 
                                             "y_bins":_cdte_strip_edges, 

@@ -29,15 +29,15 @@ class AllCMOSView(QWidget):
 
         cmos_widget = self.get_cmos_widget()
 
-        f0 = cmos_widget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180+_reflection)
+        self.f0 = cmos_widget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180+_reflection)
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
-        _f0.addWidget(f0)
+        _f0.addWidget(self.f0)
 
-        f1 = cmos_widget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180+_reflection)
+        self.f1 = cmos_widget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180+_reflection)
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
-        _f1.addWidget(f1, 0, 0)
+        _f1.addWidget(self.f1, 0, 0)
 
         lay = QGridLayout(spacing=0)
         # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -54,21 +54,21 @@ class AllCMOSView(QWidget):
 
         self.setLayout(lay)
 
-        f0.ql.base_qwidget_entered_signal.connect(f0.ql.add_pc_region)
-        f0.ql.base_qwidget_entered_signal.connect(f1.ql.add_pc_region)
+        self.f0.ql.base_qwidget_entered_signal.connect(self.f0.ql.add_pc_region)
+        self.f0.ql.base_qwidget_entered_signal.connect(self.f1.ql.add_pc_region)
         # f0.ql.add_box_signal.connect(f1.ql.add_rotate_frame)
         
-        f0.ql.base_qwidget_left_signal.connect(f0.ql.remove_pc_region)
-        f0.ql.base_qwidget_left_signal.connect(f1.ql.remove_pc_region)
+        self.f0.ql.base_qwidget_left_signal.connect(self.f0.ql.remove_pc_region)
+        self.f0.ql.base_qwidget_left_signal.connect(self.f1.ql.remove_pc_region)
         # f0.ql.remove_box_signal.connect(f1.ql.remove_rotate_frame)
 
-        f1.ql.base_qwidget_entered_signal.connect(f0.ql.add_pc_region)
-        f1.ql.base_qwidget_entered_signal.connect(f1.ql.add_pc_region)
+        self.f1.ql.base_qwidget_entered_signal.connect(self.f0.ql.add_pc_region)
+        self.f1.ql.base_qwidget_entered_signal.connect(self.f1.ql.add_pc_region)
         # f1.ql.add_box_signal.connect(f0.ql.add_pc_region)
         # f1.ql.add_box_signal.connect(f0.ql.add_rotate_frame)
 
-        f1.ql.base_qwidget_left_signal.connect(f0.ql.remove_pc_region)
-        f1.ql.base_qwidget_left_signal.connect(f1.ql.remove_pc_region)
+        self.f1.ql.base_qwidget_left_signal.connect(self.f0.ql.remove_pc_region)
+        self.f1.ql.base_qwidget_left_signal.connect(self.f1.ql.remove_pc_region)
         #f1.ql.remove_box_signal.connect(f0.ql.remove_pc_region)
         # f1.ql.remove_box_signal.connect(f0.ql.remove_rotate_frame)
 
@@ -92,6 +92,15 @@ class AllCMOSView(QWidget):
         new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         self.resize(new_size)
+
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        self.f0.closeEvent(event)
+        self.f1.closeEvent(event)
+        self.deleteLater()
 
 if __name__=="__main__":
     app = QApplication([])

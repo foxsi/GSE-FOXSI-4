@@ -339,6 +339,16 @@ class CdTeWidget(QWidget):
 
         self.resize(new_size)
 
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        self.image.closeEvent(event)
+        self.ped.closeEvent(event)
+        self.lc.closeEvent(event)
+        self.deleteLater()
+
 if __name__=="__main__":
     app = QApplication([])
 

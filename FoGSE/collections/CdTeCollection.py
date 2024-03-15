@@ -466,9 +466,9 @@ class CdTeCollection:
 
         #**********************************************************************
         # ******** remove default strip values for quickness just now *********
-        default_strip_inds = (all_strips==0) | (all_strips==64) | (all_strips==128) | (all_strips==192)
-        all_strips = all_strips[~default_strip_inds]
-        all_adc = all_adc[~default_strip_inds]
+        # default_strip_inds = (all_strips==0) | (all_strips==64) | (all_strips==128) | (all_strips==192)
+        # all_strips = all_strips[~default_strip_inds]
+        # all_adc = all_adc[~default_strip_inds]
         #**********************************************************************
         
         self.adc_counts_arr, _, _ = np.histogram2d(all_strips, all_adc, 
@@ -668,8 +668,7 @@ class CdTeCollection:
         Define dictionary for easy remapping of channels to physical 
         location. 
         """
-
-        return remap_strip_dict()
+        return CDTE_REMAP_DICT
     
     def reverse_rows(self, arr):
         """ Reverse the rows of a 2D numpy array. """
@@ -702,11 +701,11 @@ class CdTeCollection:
         and 70 um (100/2+80/2 and 80/2+60/2, respectively).
         """
         
-        return strip_edges()
+        return CDTE_STRIP_EDGES_MICROMETRES
     
     def pixel_areas(self):
         """ From the pitch widths, get the strip-pixel areas. """
-        return np.diff(self.strip_width_edges)[:,None]@np.diff(self.strip_width_edges)[None,:]
+        return CDTE_PIXEL_AREAS_MICROMETRES
     
     def total_counts(self):
         """ Just return the present total counts for the collection. """
@@ -810,7 +809,7 @@ def strip_edges_arcminutes():
     
     Returns the edges as arcminutes from centre.
     """
-    edges = strip_edges()
+    edges = CDTE_STRIP_EDGES_MICROMETRES
 
     cdte_fov = 18.7 # arc-minutes
 
@@ -820,8 +819,14 @@ def strip_edges_arcminutes():
     
 def pixel_areas():
     """ From the pitch widths, get the strip-pixel areas. """
-    strip_width_edges = strip_edges()
+    strip_width_edges = CDTE_STRIP_EDGES_MICROMETRES
     return np.diff(strip_width_edges)[:,None]@np.diff(strip_width_edges)[None,:]
+
+
+CDTE_REMAP_DICT = remap_strip_dict()
+CDTE_STRIP_EDGES_MICROMETRES = strip_edges()
+CDTE_STRIP_EDGES_ARCMINUTES = strip_edges_arcminutes()
+CDTE_PIXEL_AREAS_MICROMETRES = pixel_areas()
 
 if __name__=="__main__":
     edges = strip_edges()
