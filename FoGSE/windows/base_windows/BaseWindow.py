@@ -220,6 +220,18 @@ class BaseWindow(QWidget):
 
         self.base_turn_pixels_on_and_off()
 
+    def base_clear_image(self):
+        """ A class to restart the image integration.
+        
+        Attributes needed to be set are:
+        * `my_array`
+        * `no_new_hits_counter_array`
+        * `deth` 
+        * `detw`
+        * `colour_mode`
+        """
+        self.base_set_image_ndarray()
+
     def base_turn_pixels_on_and_off(self):
         """
         Turn pixels alpha channels on and off. 

@@ -190,7 +190,6 @@ class LightCurve(QWidget):
 
         _tick_kwargs = {"axis":"both", "which":"major", "labelsize":5} | tick_kwargs
         self.graphPane.axes.tick_params(**_tick_kwargs)
-        self.graphPane.axes.tick_params(**_tick_kwargs)
 
         # this handles the exponent, if the data is in 1e10 then it is 
         # usually plotted in smaller numbers with 1e10 off to the side.
@@ -485,6 +484,151 @@ class MultiLightCurve(QWidget):
 
         self.resize(new_size)
 
+class LightCurveTwinX(LightCurve):
+    """
+    A line profile class.
+
+    Updated with the `add_plot_data()` method.
+
+    Parameters
+    ----------
+    colour : `str`, `tuple[float]`
+        This is the colour of the line being plotted. It could actually 
+        be anything a `matplotlib.pyplot` plot will accept as a colour.
+        Default: "b"
+
+    facecolour : `str`, `tuple[float]`
+        This sets the colour inside the plot axes.
+        Default: "w"
+    """
+
+    mpl_click_signal = QtCore.pyqtSignal()
+
+    def __init__(self, colour="b", facecolour="w", colour_twin="r", parent=None):
+        """ 
+        Set up the plot with the initial plot settings and connect some 
+        `matplotlib` connections to methods that emit some `PyQt6` signals.
+        """
+        LightCurve.__init__(self, colour=colour, facecolour=facecolour, parent=parent)
+
+        # now instantiate the second axis
+        self.axes_twin = self.graphPane.axes.twinx() 
+
+        self.colour_twin = colour_twin
+
+        self._plot_ref_twin = None
+        self.plot_data_ys_twin = np.array([-1]).astype(float)
+        self._remove_first_twin = True
+
+        plot_refs = self.axes_twin.plot(self.plot_data_xs, self.plot_data_ys_twin, colour_twin, marker="o", ms=6)
+        self._plot_ref_twin = plot_refs[0]
+
+    def manage_plotting_ranges_twin(self):
+        """ Plot the new data and keep track of what's plotted for the ranges. """
+        # plot the newly updated x and ys
+        self.manage_plotting_ranges()
+        _no_nans = ~np.isnan(self.plot_data_ys_twin) # avoid plotting nans
+        if len(self.plot_data_ys_twin[_no_nans])>1:
+            # easier to start with an initial value
+            self.plot_twin(self.plot_data_xs[_no_nans], self.plot_data_ys_twin[_no_nans])
+            self.counter += 1
+
+    def _remove_first_artificial_point_twin(self):
+        """ 
+        First point is artificial since PlotWidget object won't plot 
+        a single datapoint by itself.
+        """
+        self._remove_first_artificial_point()
+        if self._remove_first_twin and not self._remove_first:
+            self._remove_first_twin = False
+            self.plot_data_ys_twin = self.plot_data_ys_twin[1:]
+
+    def _replace_values_twin(self, replace):
+        """
+        Given a dictionary, replace the entries with values "this" with 
+        the value indicated by "with" in `self.plot_data_ys`.
+
+        E.g., replace = {"this":[0, 500, 453], "with":[np.nan, 475, 450]}
+        would mean to replace all 0s, 500s, and 453s in `self.plot_data_ys` 
+        with np.nan, 475, and 450, respectively.
+        """
+        self._replace_values(replace)
+
+        if replace is None:
+            return
+        
+        if len(self.plot_data_ys_twin)>=3:
+            if len(replace["this"])!=len(replace["with"]):
+                print("`replace` 'this' and 'with' keys do not have lists the same length.")
+
+            for t, w in zip(replace["this"],replace["with"]):
+                self.plot_data_ys_twin[np.nonzero(self.plot_data_ys_twin==t)] = w
+
+    def add_plot_data_twin(self, new_data_y, new_data_y_twin, new_data_x=None, replace=None):
+        """ Adds the new data to the array to be plotted. """
+
+        self.add_plot_data(new_data_y, new_data_x=new_data_x, replace=replace)
+
+        # get new lists
+        self.plot_data_ys_twin = np.append(self.plot_data_ys_twin, new_data_y_twin)
+        
+        self._remove_first_artificial_point_twin()
+        self._replace_values_twin(replace)
+        
+        if len(self.plot_data_ys_twin)>self.keep_entries:
+            self.plot_data_ys_twin = self.plot_data_ys_twin[-self.keep_entries:]
+
+        # deal with the plotting limits
+        self._minmax_y_twin = np.array([np.nanmin(self.plot_data_ys_twin), np.nanmax(self.plot_data_ys_twin)])
+        if len(self._minmax_y_twin)==2:
+            self.axes_twin.set_ylim([np.nanmin(self._minmax_y_twin[0])*0.95, np.nanmax(self._minmax_y_twin[1])*1.05])
+
+    def plot_twin(self, x, y_twin):
+        """ Define so easy to plot new data and make sure the plot updates. """
+        self._plot_ref_twin.set_data(x, y_twin)
+        self.graphPane.fig.canvas.draw()
+
+    def set_labels_twin(self, ylabel_twin="", ylabel_twin_kwargs=None, tick_twin_kwargs=None, offsetsize_twin=1, **kwargs):
+        """
+        Helps set the labels of the twin axes.
+
+        Parameters
+        ----------
+
+        ylabel_twin : `str`
+            The strings relating to each label to be set.
+            Defaults: "", "", ""
+
+        ylabel_twin_kwargs, tick_twin_kwargs : `dict` or `NoneType`
+            Keywords to be passed to the title and axis labels.
+            Defaults: None, None, None, None
+
+        offsetsize_twin : `int`, `float`, etc.
+            The `offsetsize` handles the size of any text offsets (like 
+            when values are too large then text appears like "1e9" so the
+            tick values can be shown as 1,2, 3 etc.).
+            Defaults: 1
+
+        **kwargs :
+            Passed to `set_labels`.
+        """
+        self.set_labels(**kwargs)
+        ylabel_kwargs = {} if ylabel_twin_kwargs is None else ylabel_twin_kwargs
+        tick_kwargs = {} if tick_twin_kwargs is None else tick_twin_kwargs
+
+        # Set label for twin axes
+        _ylabel_kwargs = {"size":9, "color":self.colour_twin} | ylabel_kwargs
+        self.axes_twin.set_ylabel(ylabel_twin, **_ylabel_kwargs)
+
+        _tick_kwargs = {"axis":"both", "which":"major", "labelsize":5, "labelcolor":self.colour_twin} | tick_kwargs
+        self.axes_twin.tick_params(**_tick_kwargs)
+
+        # this handles the exponent, if the data is in 1e10 then it is 
+        # usually plotted in smaller numbers with 1e10 off to the side.
+        # `get_offset_text` controls the "1e10"
+        t = self.axes_twin.yaxis.get_offset_text()
+        t.set_size(offsetsize_twin)
+
 
 class LightCurveExample(QWidget):
     """
@@ -535,9 +679,11 @@ class LightCurveExample(QWidget):
 
         self.lc = LightCurve()
         self.mlc = MultiLightCurve(ids=["first", "second"], colours=["b", "k"], names=["1","2"])
+        self.lct = LightCurveTwinX()
 
         self.lc.set_labels(xlabel="", ylabel="Some Light Curve", title=" ")
         self.mlc.set_labels(xlabel="", ylabel="Multi Light Curve", title=" ")
+        self.lct.set_labels_twin(xlabel="", ylabel="Some Light Curve", title=" ", ylabel_twin="Second Light Curve")
 
         self.reader.value_changed_collection.connect(self.update_plot)
 
@@ -546,9 +692,10 @@ class LightCurveExample(QWidget):
         self.layoutMain.setSpacing(0)
         self.layoutMain.addWidget(self.lc)
         self.layoutMain.addWidget(self.mlc)
+        self.layoutMain.addWidget(self.lct)
         self.setLayout(self.layoutMain)
 
-        self.detw, self.deth = self.lc.detw, self.lc.deth*2
+        self.detw, self.deth = self.lc.detw, self.lc.deth*3
         self.aspect_ratio = self.detw / self.deth
 
         self.setMinimumSize(self.detw, self.deth)
@@ -569,10 +716,12 @@ class LightCurveExample(QWidget):
         # defined how to add/append onto the new data arrays
         self.lc.add_plot_data(new_mean_tot)
         self.mlc.add_plot_data([new_mean_tot, new_mean_tot-100])
+        self.lct.add_plot_data_twin(new_mean_tot, new_mean_tot**2)
 
         # plot the newly updated x and ys
         self.lc.manage_plotting_ranges()
         self.mlc.manage_plotting_ranges()
+        self.lct.manage_plotting_ranges_twin()
 
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """

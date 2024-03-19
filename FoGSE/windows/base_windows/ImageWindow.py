@@ -381,7 +381,7 @@ class Image(QWidget):
             To be passed to `add_label`.
         """
 
-        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--", "zorder":1} | kwargs
+        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.8, "linestyle":"--", "linewidth":1, "zorder":1} | kwargs
 
         label_pos_map = {"top":(0,1), "bottom":(0,-1), "left":(-1,0), "right":(1,0)}
         

@@ -238,8 +238,8 @@ class CdTeWindow(BaseWindow):
     def add_arc_distances(self, **kwargs):
         """ A rectangle to indicate the size of the PC region. """
         if self.plotting_product=="image":
-            cdte_fov = 18.7
-            arc_distance_list = [cdte_fov/4*1.5, cdte_fov/4, cdte_fov/8]
+            # cdte_fov = 18.7
+            arc_distance_list = [2, 4, 6, 8, 10]
             self.graphPane.draw_arc_distances(arc_distance_list, **kwargs)
             self.has_arc_distances = True
 
