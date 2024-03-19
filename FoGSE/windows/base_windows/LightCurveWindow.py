@@ -29,11 +29,13 @@ class LightCurve(QWidget):
     facecolour : `str`, `tuple[float]`
         This sets the colour inside the plot axes.
         Default: "w"
+
+    ylim : `list[float, float]` or `NoneType`
     """
 
     mpl_click_signal = QtCore.pyqtSignal()
 
-    def __init__(self, colour="b", facecolour="w", parent=None):
+    def __init__(self, colour="b", facecolour="w", ylim=None, parent=None):
         """ 
         Set up the plot with the initial plot settings and connect some 
         `matplotlib` connections to methods that emit some `PyQt6` signals.
@@ -43,6 +45,8 @@ class LightCurve(QWidget):
 
         self.detw, self.deth = 400, 150
         self.aspect_ratio = self.detw / self.deth
+
+        self.ylim = ylim
 
         self.graphPane = MPLCanvas(self)
 
@@ -57,7 +61,7 @@ class LightCurve(QWidget):
         self.plot_data_xs = np.array([-1]).astype(float)
         self._remove_first = True
 
-        plot_refs = self.graphPane.axes.plot(self.plot_data_xs, self.plot_data_ys, colour, marker="o", ms=6)
+        plot_refs = self.graphPane.axes.plot(self.plot_data_xs, self.plot_data_ys, colour, marker="o", ms=4)
         self._plot_ref = plot_refs[0]
 
         self.keep_entries = 60 # entries
@@ -139,13 +143,15 @@ class LightCurve(QWidget):
             self.plot_data_xs = self.plot_data_xs[-self.keep_entries:]
 
         # deal with the plotting limits
-        self._minmax_y = np.array([np.nanmin(self.plot_data_ys), np.nanmax(self.plot_data_ys)])
-        if len(self._minmax_y)==2:
-            self.graphPane.axes.set_ylim([np.nanmin(self._minmax_y[0])*0.95, np.nanmax(self._minmax_y[1])*1.05])
-
         self._minmax_x = np.array([np.nanmin(self.plot_data_xs), np.nanmax(self.plot_data_xs)])
         if len(self._minmax_x)==2:
             self.graphPane.axes.set_xlim([np.nanmin(self._minmax_x[0]), np.nanmax(self._minmax_x[1])+1])
+
+        if self.ylim is None:
+            self._minmax_y = np.array([np.nanmin(self.plot_data_ys), np.nanmax(self.plot_data_ys)])
+            if len(self._minmax_y)==2:
+                self.graphPane.axes.set_ylim([np.nanmin(self._minmax_y[0])*0.95, np.nanmax(self._minmax_y[1])*1.05])
+        self.graphPane.axes.set_ylim(self.ylim)
 
     def plot(self, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """
@@ -267,7 +273,7 @@ class MultiLightCurve(QWidget):
 
     mpl_click_signal = QtCore.pyqtSignal()
 
-    def __init__(self, ids=["first"], colours=["b"], names=None, facecolour="w", parent=None):
+    def __init__(self, ids=["first"], colours=["b"], names=None, facecolour="w", ylim=None, parent=None):
         """ 
         Set up the plot with the initial plot settings and connect some 
         `matplotlib` connections to methods that emit some `PyQt6` signals.
@@ -276,6 +282,8 @@ class MultiLightCurve(QWidget):
 
         self.detw, self.deth = 400, 150
         self.aspect_ratio = self.detw / self.deth
+
+        self.ylim = ylim
 
         self.graphPane = MPLCanvas(self)
 
@@ -393,8 +401,11 @@ class MultiLightCurve(QWidget):
             _xmins.append(np.nanmin(self.plot_data_xs[p]))
             _xmaxs.append(np.nanmax(self.plot_data_xs[p]))
 
-        self.graphPane.axes.set_ylim([np.nanmin(_ymins)*0.95, np.nanmax(_ymaxs)*1.05])
         self.graphPane.axes.set_xlim([np.nanmin(_xmins), np.nanmax(_xmaxs)+1])
+
+        if self.ylim is None:
+            self.graphPane.axes.set_ylim([np.nanmin(_ymins)*0.95, np.nanmax(_ymaxs)*1.05])
+        self.graphPane.axes.set_ylim(self.ylim)
 
     def plot(self, graph_widget_plot_ref, x, y):
         """ Define so easy to plot new data and make sure the plot updates. """
@@ -504,23 +515,24 @@ class LightCurveTwinX(LightCurve):
 
     mpl_click_signal = QtCore.pyqtSignal()
 
-    def __init__(self, colour="b", facecolour="w", colour_twin="r", parent=None):
+    def __init__(self, colour="b", facecolour="w", ylim=None, colour_twin="r", ylim_twin=None, parent=None):
         """ 
         Set up the plot with the initial plot settings and connect some 
         `matplotlib` connections to methods that emit some `PyQt6` signals.
         """
-        LightCurve.__init__(self, colour=colour, facecolour=facecolour, parent=parent)
+        LightCurve.__init__(self, colour=colour, facecolour=facecolour, ylim=ylim, parent=parent)
 
         # now instantiate the second axis
         self.axes_twin = self.graphPane.axes.twinx() 
 
         self.colour_twin = colour_twin
+        self.ylim_twin = ylim_twin
 
         self._plot_ref_twin = None
         self.plot_data_ys_twin = np.array([-1]).astype(float)
         self._remove_first_twin = True
 
-        plot_refs = self.axes_twin.plot(self.plot_data_xs, self.plot_data_ys_twin, colour_twin, marker="o", ms=6)
+        plot_refs = self.axes_twin.plot(self.plot_data_xs, self.plot_data_ys_twin, colour_twin, marker="+", ms=4)
         self._plot_ref_twin = plot_refs[0]
 
     def manage_plotting_ranges_twin(self):
@@ -579,9 +591,11 @@ class LightCurveTwinX(LightCurve):
             self.plot_data_ys_twin = self.plot_data_ys_twin[-self.keep_entries:]
 
         # deal with the plotting limits
-        self._minmax_y_twin = np.array([np.nanmin(self.plot_data_ys_twin), np.nanmax(self.plot_data_ys_twin)])
-        if len(self._minmax_y_twin)==2:
-            self.axes_twin.set_ylim([np.nanmin(self._minmax_y_twin[0])*0.95, np.nanmax(self._minmax_y_twin[1])*1.05])
+        if self.ylim_twin is None:
+            self._minmax_y_twin = np.array([np.nanmin(self.plot_data_ys_twin), np.nanmax(self.plot_data_ys_twin)])
+            if len(self._minmax_y_twin)==2:
+                self.axes_twin.set_ylim([np.nanmin(self._minmax_y_twin[0])*0.95, np.nanmax(self._minmax_y_twin[1])*1.05])
+        self.axes_twin.set_ylim(self.ylim_twin)
 
     def plot_twin(self, x, y_twin):
         """ Define so easy to plot new data and make sure the plot updates. """

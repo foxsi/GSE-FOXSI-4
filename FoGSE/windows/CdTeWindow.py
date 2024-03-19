@@ -12,7 +12,7 @@ from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
 from FoGSE.readers.CdTePCReader import CdTePCReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
-from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
+from FoGSE.windows.base_windows.LightCurveWindow import LightCurveTwinX
 
 class CdTeWindow(BaseWindow):
     """
@@ -57,7 +57,9 @@ class CdTeWindow(BaseWindow):
     add_box_signal = QtCore.pyqtSignal()
     remove_box_signal = QtCore.pyqtSignal()
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", colour_twin="red", parent=None):
+        
+        self.colour_twin = colour_twin
 
         BaseWindow.__init__(self, 
                             data_file=data_file, 
@@ -207,9 +209,12 @@ class CdTeWindow(BaseWindow):
 
     def lightcurve_setup(self):
         """ Sets up the class for a time profile product. """
-        self.graphPane = LightCurve(colour=self.colour)
+        self.graphPane = LightCurveTwinX(colour=self.colour, colour_twin=self.colour_twin, ylim_twin=[0,1])
         self.layoutMain.addWidget(self.graphPane)
-        self.graphPane.set_labels(xlabel="Unixtime", ylabel="Counts", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.graphPane.set_labels_twin(xlabel="Unixtime", ylabel="Counts", title="",
+                                       ylabel_twin="Livetime Frac.", ylabel_twin_kwargs={"size":5}, tick_twin_kwargs={"labelsize":4}, offsetsize_twin=1, 
+                                       xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, 
+                                       offsetsize=1)
         self.graphPane.detw, self.graphPane.deth = 2, 1
         self.graphPane.aspect_ratio = self.graphPane.detw/self.graphPane.deth
         self.detw, self.deth = 256, 1024
@@ -222,7 +227,10 @@ class CdTeWindow(BaseWindow):
     def lightcurve_update(self):
         """ Define how the time profile product should updated. """
         # defined how to add/append onto the new data arrays
-        self.graphPane.add_plot_data(self.reader.collection.total_count_rate(), new_data_x=self.reader.collection.mean_unixtime(), replace={"this":[0], "with":[np.nan]})
+        self.graphPane.add_plot_data_twin(self.reader.collection.total_counts(),
+                                          self.reader.collection.get_frame_fraction_livetime(), 
+                                          new_data_x=self.reader.collection.mean_unixtime(), 
+                                          replace={"this":[0], "with":[np.nan]})
 
         self.total_counts.append(self.reader.collection.total_counts())
         self.frame_livetimes.append(self.reader.collection.get_frame_seconds_livetime())
@@ -233,7 +241,7 @@ class CdTeWindow(BaseWindow):
         self.frame_livetimes = self.frame_livetimes[_keep:]
 
         # plot the newly updated x and ys
-        self.graphPane.manage_plotting_ranges()
+        self.graphPane.manage_plotting_ranges_twin()
 
     def add_arc_distances(self, **kwargs):
         """ A rectangle to indicate the size of the PC region. """

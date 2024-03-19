@@ -110,7 +110,7 @@ class Image(QWidget):
         if not keep_axes:
             self.graphPane.axes.axis('off')
         if not loose_axes:
-            self.graphPane.fig.tight_layout(pad=0)
+            self.graphPane.fig.tight_layout(pad=1)
             self.graphPane.fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         if keep_aspect:
             self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio
