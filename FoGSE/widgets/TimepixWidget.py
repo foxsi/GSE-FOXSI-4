@@ -1,7 +1,6 @@
 """
 A widget to show off CdTe data.
 """
-import os
 
 import numpy as np
 from PyQt6 import QtCore, QtWidgets

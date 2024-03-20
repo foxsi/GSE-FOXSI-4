@@ -32,7 +32,7 @@ class DisplayCommandWidget(QWidget):
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 700, 500
+        self.detw, self.deth = 695, 350
         self.setGeometry(100,100,self.detw, self.deth)
         # self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
@@ -52,7 +52,7 @@ class DisplayCommandWidget(QWidget):
         self.rotation_slider.setStyleSheet("border-width: 0px;")
         self._rotation_slider_layout.addWidget(self.rotation_slider, 1, 0, 1, 3)
 
-        self._rotation_slider_layout.addWidget(QtWidgets.QLabel("Rotation", alignment=QtCore.Qt.AlignmentFlag.AlignCenter), 0, 1, 1, 1)
+        self._rotation_slider_layout.addWidget(QtWidgets.QLabel("Roll", alignment=QtCore.Qt.AlignmentFlag.AlignCenter), 0, 1, 1, 1)
 
         label_text = QtWidgets.QLabel(
             "{}°".format(self.rotation_slider.value()), alignment=QtCore.Qt.AlignmentFlag.AlignCenter
@@ -62,7 +62,7 @@ class DisplayCommandWidget(QWidget):
         )
         self._rotation_slider_layout.addWidget(label_text, 2, 1, 1, 1)
 
-        self.default_rotation_button = QtWidgets.QPushButton("Default", self)
+        self.default_rotation_button = QtWidgets.QPushButton("Solar North is Up", self)
         self._rotation_slider_layout.addWidget(self.default_rotation_button, 2, 0, 1, 1)
         self.default_rotation_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
 

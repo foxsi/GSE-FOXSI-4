@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import QApplication
 from FoGSE.playback.widgets.CdTePlaybackWidgetGroup import AllPlaybackCdTeView
 from FoGSE.playback.widgets.CMOSPlaybackWidgetGroup import AllPlaybackCMOSView
 from FoGSE.playback.widgets.TimepixPlaybackWidget import TimepixPlaybackWidget
-from FoGSE.playback.widgets.DisplayCommandPlaybackWidget import DisplayCommandWidget
+from FoGSE.playback.widgets.DisplayCommandPlaybackWidget import DisplayCommandPlaybackWidget
+from FoGSE.playback.widgets.CatchPlaybackWidget import CatchPlaybackWidget
 
 from FoGSE.io.newest_data import newest_data_dir
 
@@ -20,7 +21,7 @@ class GSEPlaybackDataDisplay(GSEDataDisplay):
 
     def get_all_detector_views(self):
         """ A way the class can be inherited from but use different views. """
-        return AllPlaybackCdTeView, AllPlaybackCMOSView, TimepixPlaybackWidget, DisplayCommandWidget
+        return AllPlaybackCdTeView, AllPlaybackCMOSView, TimepixPlaybackWidget, DisplayCommandPlaybackWidget, CatchPlaybackWidget
     
     def get_data_dir(self):
         """ A way the class can be inherited from but use different folders. """

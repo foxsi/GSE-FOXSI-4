@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 from FoGSE.widgets.CdTeWidgetGroup import AllCdTeView
 from FoGSE.widgets.CMOSWidgetGroup import AllCMOSView
 from FoGSE.widgets.TimepixWidget import TimepixWidget
+from FoGSE.widgets.CatchWidget import CatchWidget
 from FoGSE.widgets.DisplayCommandWidget import DisplayCommandWidget
 
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
@@ -33,7 +34,7 @@ class GSEDataDisplay(QWidget):
         # newest_folder = "/Users/kris/Downloads/16-2-2024_15-9-8/"
         instruments = [inst for inst in os.listdir(newest_folder) if inst.endswith("log")]
 
-        cdte_view, cmos_view, timepix_view, disp_comm_view = self.get_all_detector_views()
+        cdte_view, cmos_view, timepix_view, disp_comm_view, catch_view = self.get_all_detector_views()
 
         self.f0 = cdte_view((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte1_hk.log", instruments)), 
@@ -67,12 +68,16 @@ class GSEDataDisplay(QWidget):
         self.f3.default_rotation_button.clicked.connect(self.default_rotation)
         self.f3.clear_image_button.clicked.connect(self.clear_images)
 
+        self.f4 = catch_view(data_file=os.path.join(newest_folder, get_det_file("catch.log", instruments)))
+        
+
         lay = QGridLayout()
 
         lay.addWidget(self.f0, 0, 0, 3, 12)
         lay.addWidget(self.f1, 3, 0, 3, 12)
         lay.addWidget(self.f2, 6, 0, 2, 4)
         lay.addWidget(self.f3, 6, 4, 2, 4)
+        lay.addWidget(self.f4, 6, 8, 2, 4)
         
         # w.resize(1000,500)
         # _s = 122
@@ -101,7 +106,7 @@ class GSEDataDisplay(QWidget):
 
     def get_all_detector_views(self):
         """ A way the class can be inherited from but use different views. """
-        return AllCdTeView, AllCMOSView, TimepixWidget, DisplayCommandWidget
+        return AllCdTeView, AllCMOSView, TimepixWidget, DisplayCommandWidget, CatchWidget
     
     def get_data_dir(self):
         """ A way the class can be inherited from but use different folders. """
