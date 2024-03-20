@@ -399,7 +399,6 @@ class Image(QWidget):
         del self.texts
         self.graphPane.fig.canvas.draw()
 
-
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
         self.aspect_ratio = aspect_ratio

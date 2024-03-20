@@ -170,9 +170,10 @@ class BaseWindow(QWidget):
         """
         self.layoutMain.addWidget(self.graphPane)
 
-        self.base_set_image_ndarray()
+        if not hasattr(self, "my_array"):
+            self.base_set_image_ndarray()
 
-        self.base_set_image_colour(self.colour)
+            self.base_set_image_colour(self.colour)
 
     def base_apply_update_style(self, existing_frame, new_frame):
         """
