@@ -25,7 +25,7 @@ class TimepixReader(BaseReader):
         """
         BaseReader.__init__(self, datafile, parent)
         
-        self.define_buffer_size(size=5) # bytes, get_frame_size("timepix", "tpx")
+        self.define_buffer_size(size=get_frame_size("timepix", "tpx")) # bytes, 
         self.call_interval(get_system_value("gse", "display_settings", "timepix", "tpx", "readers", "read_interval"))
 
     def extract_raw_data(self):

@@ -227,6 +227,8 @@ class CdTeWindow(BaseWindow):
     def lightcurve_update(self):
         """ Define how the time profile product should updated. """
         # defined how to add/append onto the new data arrays
+        if self.reader.collection is None:
+            return
         self.graphPane.add_plot_data_twin(self.reader.collection.total_counts(),
                                           self.reader.collection.get_frame_fraction_livetime(), 
                                           new_data_x=self.reader.collection.mean_unixtime(), 

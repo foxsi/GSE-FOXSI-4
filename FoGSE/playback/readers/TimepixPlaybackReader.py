@@ -33,7 +33,7 @@ class TimepixPlaybackReader(TimepixReader):
         call_interval = 1_000
         self.delay_timer(delay, call_interval)
         
-        self.frame_size = 5 # bytes, get_frame_size("timepix", "tpx")
+        self.frame_size = get_frame_size("timepix", "tpx") # bytes
         self.frame_counter = 0
 
         self.define_buffer_size(size=0) # read whole file
