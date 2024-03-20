@@ -79,7 +79,7 @@ class GSEDataDisplay(QWidget):
         # w.setGeometry(0,0, 12*_s, 8*_s) # 12 to 8
         # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
-        set_all_spacings(lay)
+        set_all_spacings(lay, s=1)
         unifrom_layout_stretch(lay, grid=True)
 
         self.setLayout(lay)
