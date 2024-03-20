@@ -200,7 +200,7 @@ class CMOSQLWindow(BaseWindow):
         """ A rectangle to indicate the size of the PC region. """
         if self.plotting_product=="image":
             cmos_x_fov, cmos_y_fov = 34.1333333, 32
-            arc_distance_list = [cmos_x_fov/4*1.5, cmos_y_fov/4, cmos_y_fov/8]
+            arc_distance_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
             self.graphPane.draw_arc_distances(arc_distance_list, **kwargs)
             self.has_arc_distances = True
 

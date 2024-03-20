@@ -170,9 +170,10 @@ class BaseWindow(QWidget):
         """
         self.layoutMain.addWidget(self.graphPane)
 
-        self.base_set_image_ndarray()
+        if not hasattr(self, "my_array"):
+            self.base_set_image_ndarray()
 
-        self.base_set_image_colour(self.colour)
+            self.base_set_image_colour(self.colour)
 
     def base_apply_update_style(self, existing_frame, new_frame):
         """
@@ -219,6 +220,18 @@ class BaseWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] += new_frame
 
         self.base_turn_pixels_on_and_off()
+
+    def base_clear_image(self):
+        """ A class to restart the image integration.
+        
+        Attributes needed to be set are:
+        * `my_array`
+        * `no_new_hits_counter_array`
+        * `deth` 
+        * `detw`
+        * `colour_mode`
+        """
+        self.base_set_image_ndarray()
 
     def base_turn_pixels_on_and_off(self):
         """

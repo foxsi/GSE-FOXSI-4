@@ -6,17 +6,15 @@ Can read:
     * Timepix
 """
 
-import numpy as np
 from PyQt6.QtCore import QTimer
 
-from FoGSE.readers.TimepixReader import TimepixReader
+from FoGSE.readers.CatchReader import CatchReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.utils import get_frame_size
 
-class TimepixPlaybackReader(TimepixReader):
+class CatchPlaybackReader(CatchReader):
     """
-    Reader for the FOXSI Timepix instrument.
+    Reader for the FOXSI catch logging file.
     """
 
     def __init__(self, datafile, parent=None):
@@ -25,15 +23,16 @@ class TimepixPlaybackReader(TimepixReader):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        TimepixReader.__init__(self, datafile, parent)
+        CatchReader.__init__(self, datafile, parent)
+        
         self.timer.stop()
 
         # 4 CdTe, 2 CMOS, 1 Timepix, 1 HK, so each gets 1/8 s
-        delay = 6*125
+        delay = 8*125
         call_interval = 1_000
         self.delay_timer(delay, call_interval)
         
-        self.frame_size = get_frame_size("timepix", "tpx") # bytes
+        self.frame_size = 1 # bytes
         self.frame_counter = 0
 
         self.define_buffer_size(size=0) # read whole file
@@ -65,7 +64,7 @@ class TimepixPlaybackReader(TimepixReader):
         self._delay_timer.timeout.connect(lambda : self.call_interval(call_interval))
         self._delay_timer.start()
     
-    def extract_raw_data_timepix(self):
+    def extract_raw_data_catch(self):
         """
         Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
@@ -75,6 +74,8 @@ class TimepixPlaybackReader(TimepixReader):
         `list` :
             Data read from `self.data_file`.
         """
+        # read the file `self.bufferSize` bytes from the end and extract the lines
+        # forward=True: reads buffer from the back but doesn't reverse the data 
         if self.frame_counter==0:
             try:
                 with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
@@ -92,3 +93,5 @@ class TimepixPlaybackReader(TimepixReader):
         next_frame = self.datalist[self.frame_size*self.frame_counter:self.frame_size*(self.frame_counter+1)]
         self.frame_counter += 1
         return next_frame
+
+    

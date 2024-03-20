@@ -8,13 +8,12 @@ Can read:
 from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.Timepixparser import timepix_parser
-from FoGSE.collections.TimepixCollection import TimepixCollection
-from FoGSE.utils import get_frame_size, get_system_value
+from FoGSE.collections.CatchCollection import CatchCollection
+from FoGSE.utils import get_system_value
 
-class TimepixReader(BaseReader):
+class CatchReader(BaseReader):
     """
-    Reader for the FOXSI Timepix instrument.
+    Reader for the FOXSI catch logging file.
     """
 
     def __init__(self, datafile, parent=None):
@@ -25,7 +24,7 @@ class TimepixReader(BaseReader):
         """
         BaseReader.__init__(self, datafile, parent)
         
-        self.define_buffer_size(size=get_frame_size("timepix", "tpx")) # bytes, 
+        self.define_buffer_size(size=100) # bytes, 
         self.call_interval(get_system_value("gse", "display_settings", "timepix", "tpx", "readers", "read_interval"))
 
     def extract_raw_data(self):
@@ -38,9 +37,9 @@ class TimepixReader(BaseReader):
         `list` :
             Data read from `self.data_file`.
         """
-        return self.extract_raw_data_timepix()
+        return self.extract_raw_data_catch()
     
-    def extract_raw_data_timepix(self):
+    def extract_raw_data_catch(self):
         """
         Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
@@ -82,12 +81,12 @@ class TimepixReader(BaseReader):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            tot, flx, flgs = timepix_parser(raw_data)
+            lines = raw_data
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
-            print("No data from parser.")
-            tot, flx, flgs = (None,None,None)
-        return tot, flx, flgs
+            print("No data from catch.log.")
+            lines = ""
+        return lines
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -105,7 +104,7 @@ class TimepixReader(BaseReader):
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = TimepixCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
+        col = CatchCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
 
         # if col.last_data_time>self.old_data_time:
         #     self.old_data_time = col.last_data_time

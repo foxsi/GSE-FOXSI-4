@@ -203,6 +203,8 @@ class CdTeWidget(QWidget):
         # self.canister_mode.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
+        if self.image.reader.collection is None:
+            return
 
         total_counts = self.image.reader.collection.total_counts()
         self.cts.update_label(total_counts)

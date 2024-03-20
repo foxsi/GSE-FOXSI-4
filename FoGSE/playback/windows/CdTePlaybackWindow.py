@@ -46,7 +46,7 @@ class CdTePlaybackWindow(CdTeWindow):
         Default: \"green\"
     """
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", colour_twin="red", parent=None):
 
         CdTeWindow.__init__(self, 
                             data_file=data_file, 
@@ -56,6 +56,7 @@ class CdTePlaybackWindow(CdTeWindow):
                             integrate=integrate, 
                             name=name, 
                             colour=colour, 
+                            colour_twin=colour_twin,
                             parent=parent)
 
     def base_essential_get_reader(self):

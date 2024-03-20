@@ -110,7 +110,7 @@ class Image(QWidget):
         if not keep_axes:
             self.graphPane.axes.axis('off')
         if not loose_axes:
-            self.graphPane.fig.tight_layout(pad=0)
+            self.graphPane.fig.tight_layout(pad=1)
             self.graphPane.fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         if keep_aspect:
             self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio
@@ -381,7 +381,7 @@ class Image(QWidget):
             To be passed to `add_label`.
         """
 
-        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--", "zorder":1} | kwargs
+        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.8, "linestyle":"--", "linewidth":1, "zorder":1} | kwargs
 
         label_pos_map = {"top":(0,1), "bottom":(0,-1), "left":(-1,0), "right":(1,0)}
         
@@ -398,7 +398,6 @@ class Image(QWidget):
         [t.remove() for t in self.texts]     
         del self.texts
         self.graphPane.fig.canvas.draw()
-
 
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
