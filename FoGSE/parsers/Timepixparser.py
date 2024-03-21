@@ -149,7 +149,8 @@ def timepix_parser(byte_data):
     timepix_dict["board_t2"] = received_data.board_t2
     timepix_dict["asic_voltages"] = received_data.asic_voltages
     timepix_dict["asic_currents"] = received_data.asic_currents
-    timepix_dict["fpga_voltages"] = received_data.fpga_values
+    timepix_dict["fpga_voltages"] = received_data.fpga_values[:2]
+    timepix_dict["fpga_temp"] = received_data.fpga_values[-1]
     timepix_dict["storage_fill"] = received_data.rpi_storage_fill
 
     # get the actual data info
@@ -168,7 +169,8 @@ def timepix_parser(byte_data):
 
 # test from file
 def timepix_parser_test():
-    with open('./timepix_fake_log.txt','rb') as f: 
+    # file is "timepix_fake_log.txt"
+    with open('/Users/kris/Downloads/timepix_fake_log.txt','rb') as f: 
         data = f.read()
 
     # Savannah's code directly
@@ -197,7 +199,7 @@ def timepix_parser_test():
     assert timepix_data["board_t2"]==received_data.board_t2, "Board T2 does not match."
     assert timepix_data["asic_voltages"]==received_data.asic_voltages, "ASIC Voltages does not match."
     assert timepix_data["asic_currents"]==received_data.asic_currents, "ASIC Curents does not match."
-    assert timepix_data["fpga_voltages"]==received_data.fpga_values, "FPGA Voltages does not match."
+    assert timepix_data["fpga_voltages"]+[timepix_data["fpga_temp"]]==received_data.fpga_values, "FPGA Voltages does not match."
     assert timepix_data["storage_fill"]==received_data.rpi_storage_fill, "Storage Fill does not match."
     assert timepix_data["mean_tot"]==mean_tot, "Mean TOT does not match."
     assert timepix_data["flx_rate"]==flx_rate, "Flux Rate does not match."

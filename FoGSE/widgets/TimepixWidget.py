@@ -126,11 +126,11 @@ class TimepixWidget(QWidget):
         storage = {"too_low":0, "nom_low":1000, "nom_high":3000, "too_high":np.inf}
         storage_cond = {"range1":[storage["nom_low"],storage["nom_high"],"white"], "range2":[storage["too_low"],storage["nom_low"],"red"], "other":"orange", "error":"orange"}
         storage_name = "RPi Remaining Storage"
-        self.health = QValueCheckWidget(name="Health", 
+        self.health = QValueCheckWidget(name="HVPS", 
                                         value=self._default_qvaluewidget_value, 
-                                        condition={"acceptable":[(0, "white"), (1, "red")]}, 
+                                        condition={"acceptable":[("on", "white"), ("off", "red")]}, 
                                         border_colour=first_layout_colour,
-                                        tool_tip_values={"Health":self._default_qvaluewidget_value, storage_name:QValueMultiRangeWidget(name=storage_name, value=self._default_qvaluewidget_value, condition=storage_cond)},
+                                        tool_tip_values={"HVPS":self._default_qvaluewidget_value, storage_name:QValueMultiRangeWidget(name=storage_name, value=self._default_qvaluewidget_value, condition=storage_cond)},
                                         name_plus="<sup>*</sup>")
         self._first_layout.addWidget(self.bt1, 0, 0, 1, 2) 
         self._first_layout.addWidget(self.asic0_i, 1, 0, 1, 2) 
@@ -186,27 +186,34 @@ class TimepixWidget(QWidget):
 
     def all_fields(self):
         """ Update the QValueWidgets. """
-        # t1 = self.lc.reader.collection.board_temp1()
-        # self.bt1.update_label(t1)
-        # self.bt1.update_tool_tip({"Board T1":t1, "Board T2":...})
+        t1 = self.lc.reader.collection.get_board_t1()
+        self.bt1.update_label(t1)
+        self.bt1.update_tool_tip({"Board T1":t1, 
+                                  "Board T2":self.lc.reader.collection.get_board_t2()})
 
         # need to update all keys
-        # self.asic0_i.update_label(...)
-        # self.asic0_i.update_tool_tip({"ASIC0 I":..., 
-        #                               "ASIC0 V":..., 
-        #                               "ASIC1 I":..., 
-        #                               "ASIC1 V":..., 
-        #                               "ASIC2 I":..., 
-        #                               "ASIC2 V":..., 
-        #                               "ASIC3 I":..., 
-        #                               "ASIC3 V":...})
+        ai = self.lc.reader.collection.get_asic_currents()
+        av = self.lc.reader.collection.get_asic_voltages()
+        self.asic0_i.update_label(ai[0])
+        self.asic0_i.update_tool_tip({"ASIC0 I":ai[0], 
+                                      "ASIC0 V":av[0], 
+                                      "ASIC1 I":ai[1], 
+                                      "ASIC1 V":av[1], 
+                                      "ASIC2 I":ai[2], 
+                                      "ASIC2 V":av[2], 
+                                      "ASIC3 I":ai[3], 
+                                      "ASIC3 V":av[3]})
 
-        # self.fpga_v1.update_label(...)
-        # self.fpga_v1.update_tool_tip("FPGA V1":..., "FPGA V2":...)
+        fv = self.lc.reader.collection.get_fpga_voltages()
+        self.fpga_v1.update_label(fv[0])
+        self.fpga_v1.update_tool_tip({"FPGA V1":fv[0], "FPGA V2":fv[1]})
 
-        # self.fpga_t.update_label(...)
+        self.fpga_t.update_label(self.lc.reader.collection.get_fpga_temp())
 
-        # self.health.update_tool_tip({"Health":6, "RPi Remaining Storage":7)
+        hvps = self.lc.reader.collection.get_hvps_status()
+        self.health.update_label(hvps)
+        self.health.update_tool_tip({"HVPS":hvps, 
+                                     "RPi Remaining Storage":self.lc.reader.collection.get_storage_fill})
 
         mtot = self.lc.reader.collection.get_mean_tot()
         mtot_extra = self._get_lc_info(self.lc.mean_tot)
@@ -227,9 +234,6 @@ class TimepixWidget(QWidget):
                                   "Flux Min.":flx_extra["Min."]})
 
         self.flgs.update_label(self.lc.reader.collection.get_flags())
-
-        # self.health.update_label(...)
-        # self.health.update_tool_tip("Health":..., "RPi Remaining Storage":...)
 
     def _get_lc_info(self, lc_plot):
         """ To update certain fields, we look to the lightcurve information. """

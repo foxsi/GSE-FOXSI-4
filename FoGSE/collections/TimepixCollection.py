@@ -41,20 +41,23 @@ class TimepixCollection:
     
     def __init__(self, parsed_data, old_data_time=0):
         # bring in the parsed data
-        self.mean_tot, self.flux, self.flags = parsed_data
-        self.flags = []
+        self.data = parsed_data
         # # filter data to only include the new stuff
         # self.last_data_time = old_data_time
         # self.new_entries = self.event['ti']>self.last_data_time
         # self.last_data_time = self.event['ti'][-1]
 
+    def get_unixtime(self):
+        """ Return the unix time for the frame. """
+        return self.data["unixtime"]
+    
     def get_mean_tot(self):
         """ Return the mean time-over-threshold. """
-        return self.mean_tot
+        return self.data["mean_tot"]
     
     def get_flux(self):
         """ Return the flux. """
-        return self.flux
+        return self.data["flx_rate"]
 
     def get_flags(self):
         """ Return the flags. """
@@ -62,7 +65,43 @@ class TimepixCollection:
         _flags_status = np.zeros(8).astype(int)
 
         # set the flag indices, if any, then set to one
-        if len(self.flags)>0:
+        if len(self.data["flags"])>0:
             _flags_status[np.array(self.flags)-1] = 1
             
         return '-'.join(map(str, self.flags))
+    
+    def get_defined_flags(self):
+        """ Return the descriptions of the raised flags. """
+        return self.data["defined_flags"]
+
+    def get_board_t1(self):
+        """ Return the first temperature for the board. """
+        return self.data["board_t1"]
+
+    def get_board_t2(self):
+        """ Return the second temperature for the board. """
+        return self.data["board_t2"]
+
+    def get_asic_voltages(self):
+        """ Return the ASIC voltages. """
+        return self.data["asic_voltages"]
+
+    def get_asic_currents(self):
+        """ Return the ASIC currents. """
+        return self.data["asic_currents"]
+
+    def get_fpga_voltages(self):
+        """ Return the FPGA voltages. """
+        return self.data["fpga_voltages"]
+    
+    def get_fpga_temp(self):
+        """ Return the FPGA temperature. """
+        return self.data["fpga_temp"]
+
+    def get_storage_fill(self):
+        """ Return the storage reading. """
+        return self.data["storage_fill"]
+
+    def get_hvps_status(self):
+        """ Return the storage reading. """
+        return self.data["hvps_status"]

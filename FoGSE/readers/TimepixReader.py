@@ -82,12 +82,13 @@ class TimepixReader(BaseReader):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            tot, flx, flgs = timepix_parser(raw_data)
+            data = timepix_parser(raw_data)
+
+            return data
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            tot, flx, flgs = (None,None,None)
-        return tot, flx, flgs
+            return None
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -103,6 +104,8 @@ class TimepixReader(BaseReader):
         `FoGSE.detector_collections.CdTeCollection.CdTeCollection` :
             The CdTe collection.
         """
+        if parsed_data is None:
+            return
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
         col = TimepixCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)

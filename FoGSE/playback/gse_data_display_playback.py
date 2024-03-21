@@ -26,6 +26,7 @@ class GSEPlaybackDataDisplay(GSEDataDisplay):
     def get_data_dir(self):
         """ A way the class can be inherited from but use different folders. """
         # return newest_data_dir() 
+        # return "/Users/kris/Downloads/March 20 2024/mar20/run10/20-3-2024_17-42-30/"
         return "/Users/kris/Downloads/feb17_no_cmos/run22/17-2-2024_21-2-23/"
 
 if __name__=="__main__":
