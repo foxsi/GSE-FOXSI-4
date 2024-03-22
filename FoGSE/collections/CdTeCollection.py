@@ -713,7 +713,7 @@ class CdTeCollection:
     
     def mean_unixtime(self):
         """ Get the mean unixtime of the frame. """
-        return np.mean(self.event_dataframe['unixtime'])
+        return np.median(self.event_dataframe['unixtime'])
     
     def delta_time(self, handle_jumps=False):
         """ Get the delta-t of the frame. """

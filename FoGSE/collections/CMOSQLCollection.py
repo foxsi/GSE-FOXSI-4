@@ -125,3 +125,13 @@ def det_ql_arcminutes():
     x_arcmin, y_arcmin = x_pixels*arcsec_per_pix/60, y_pixels*arcsec_per_pix/60
     
     return -x_arcmin/2, x_arcmin/2, -y_arcmin/2, y_arcmin/2
+
+def get_cmos1_ql_ave_background():
+    bkg = np.random.rand(480, 512) * 0
+    return bkg
+
+def get_cmos2_ql_ave_background():
+    return np.random.rand(480, 512) * 0
+
+CMOS1_QL_AVE_BACKGROUND = get_cmos1_ql_ave_background()
+CMOS2_QL_AVE_BACKGROUND = get_cmos2_ql_ave_background()

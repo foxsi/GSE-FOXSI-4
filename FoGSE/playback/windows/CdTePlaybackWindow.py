@@ -31,10 +31,10 @@ class CdTePlaybackWindow(CdTeWindow):
         negative is clockwise.
         Default: 0
     
-    integrate : `bool`
+    update_method : `str`
         Indicates whether the frames (if that is relevant `plotting_product`)
         should be summed continously, unless told otherwise.
-        Default: False
+        Default: \"integrate\"
     
     name : `str`
         A useful string that can be used as a label.
@@ -46,14 +46,14 @@ class CdTePlaybackWindow(CdTeWindow):
         Default: \"green\"
     """
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", colour_twin="red", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, update_method="integrate", name="CdTe", colour="green", colour_twin="red", parent=None):
 
         CdTeWindow.__init__(self, 
                             data_file=data_file, 
                             reader=reader, 
                             plotting_product=plotting_product, 
                             image_angle=image_angle, 
-                            integrate=integrate, 
+                            update_method=update_method, 
                             name=name, 
                             colour=colour, 
                             colour_twin=colour_twin,
