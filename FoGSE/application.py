@@ -6,6 +6,7 @@ from PyQt6.QtGui import QIcon
 from FoGSE.visualization import DetectorArrayDisplay, DetectorGridDisplay, DetectorPlotView, GlobalCommandPanel, PowerMonitorView
 from FoGSE.communication import FormatterUDPInterface
 from FoGSE.configuration import SystemConfiguration, SettingsPanel
+from FoGSE.widgets.CommandUplinkWidget import CommandUplinkWidget
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -80,5 +81,5 @@ class GSECommand(QMainWindow):
         self.fmtrif = FormatterUDPInterface(logging=True, logfilename=None)
         self.config = SystemConfiguration(formatter_if=self.fmtrif)
 
-        self.setCentralWidget(GlobalCommandPanel(self, name="Command", configuration=self.config, formatter_if=self.fmtrif))
+        self.setCentralWidget(CommandUplinkWidget(self, name="Command", configuration=self.config, formatter_if=self.fmtrif))
         # self.setCentralWidget(PowerMonitorView(self, configuration=self.config, formatter_if=self.fmtrif))

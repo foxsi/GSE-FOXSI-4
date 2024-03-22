@@ -295,11 +295,12 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
     """
 
     # def __init__(self, addr=params.GSE_IP, port=params.GSE_PORT, logging=True, logfilename=None):
-    def __init__(self, configfile="foxsi4-commands/systems.json", logging=True, logfilename=None, end_background_process_on_close=True):
+    def __init__(self, configfile=os.path.normpath(os.path.join(__file__, "..", "foxsi4-commands", "systems.json")), logging=True, logfilename=None, end_background_process_on_close=True, command_interface="umbi"):
         
         # configure sockets and endpoints
+        self.configfile = configfile
         try:
-            with open(configfile) as json_file:
+            with open(self.configfile) as json_file:
                 data = json.load(json_file)
                 local = get_field_with_name(data, "gse")
                 remote = get_field_with_name(data, "formatter")
@@ -315,12 +316,13 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
                 # try to build `UplinkCommandDeck`
                 try:
                     self.deck = UplinkCommandDeck(configfile)
-                    self.deck.print()
+                    # self.deck.print()
                 except Exception as e:
                     print("couldn't create uplink command deck!")
                     print(e)
         except:
-            self.unix_local_socket_path = "/tmp/foxsi_gse_unix_udp_socket"
+            self.unix_local_socket_path = os.path.join(os.sep, "tmp","foxsi_gse_unix_udp_socket")
+            print(self.unix_local_socket_path)
         
         # set up socket to listen
         self.unix_local_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
@@ -329,14 +331,17 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
         # log sent packets to file
         self.do_logging = logging
         self.end_background_process_on_close = end_background_process_on_close
-        if self.do_logging:
-            print("\nstarting logger in subprocess...")
-            self.background_listen_process = subprocess.Popen(["python3","FoGSE/listening.py", configfile])
-            # using QProcess for this because it cleans up correctly on exit, unlike 
-            # self.background_listen_process = QProcess()
-            # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
-            print("started listen for downlink\n")
-            time.sleep(2)
+        self.background_listen_process = None
+        self.command_interface = command_interface
+        self.start_listening()
+        # if self.do_logging:
+        #     print("\nstarting logger in subprocess...")
+        #     self.background_listen_process = subprocess.Popen(["python3","FoGSE/listening.py", self.configfile])
+        #     # using QProcess for this because it cleans up correctly on exit, unlike 
+        #     # self.background_listen_process = QProcess()
+        #     # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile])
+        #     print("started listen for downlink\n")
+        #     time.sleep(2)
             # sleep so the subprocess can start
             
         # connect local socket
@@ -370,6 +375,18 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
             params.DEBUG_PRINT("got bad uplink command! ignoring.")
             return
 
+    def start_listening(self):
+        if self.do_logging:
+            print("\nstarting logger in subprocess...")
+            self.background_listen_process = subprocess.Popen(["python3", os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile, self.command_interface])
+            # or, if using QProcess:
+            # self.background_listen_process = QProcess()
+            # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile, interface])
+
+            print("started listen for downlink")
+            print("using",self.command_interface,"to send commands")
+            time.sleep(2)
+            # sleep so the subprocess can start
 
 
 # free functions (utilities)---todo: move to parameters.py

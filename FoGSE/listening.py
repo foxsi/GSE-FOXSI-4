@@ -22,9 +22,9 @@ DOWNLINK_TYPE_ENUM = {
     "intro":0x13,
     "stat": 0x14,
     "err":  0x15,
+    "reply":0x30,
     "none": 0xff
 }
-
 
 class LogFileManager:
     """
@@ -204,8 +204,9 @@ class Listener():
             logs--raw frames-->gse
             
     """
-    def __init__(self, json_config_file="foxsi4-commands/systems.json",
-                 local_system="gse", remote_system="formatter"):
+    def __init__(self, json_config_file=os.path.join(__file__, "..", "..", "foxsi4-commands", "systems.json"),
+                 command_interface="uplink", local_system="gse", 
+                 remote_system="formatter"):
         """
         Creates a `Listener` instance.
 
@@ -277,7 +278,7 @@ class Listener():
 
                 self.log_out_file = os.path.join(
                     self.log_out_folder, "uplink.log")
-                self.log_out = open(self.log_out_file, "wb")
+                self.log_out = open(self.log_out_file, "w")
                 self.downlink_catch_file = os.path.join(
                     self.log_in_folder, "catch.log")
                 self.downlink_catch = open(self.downlink_catch_file, "w")
@@ -288,30 +289,24 @@ class Listener():
                 raise RuntimeError
 
             self.unix_socket_path = self.local_system_config["logger_interface"]["unix_listen_socket"]
+
             try:
                 os.unlink(self.unix_socket_path)
             except OSError:
                 if os.path.exists(self.unix_socket_path):
                     raise RuntimeError
-                
-            try:
-                self.uplink_port_path = self.local_system_config["logger_interface"]["uplink_device"]
-                
-                self.uplink_port = serial.Serial(
-                    self.uplink_port_path,
-                    baudrate=self.uplink_system_config["uart_interface"]["baud_rate"],
-                    timeout=1
-                )
-                print("opened uplink serial port at",self.uplink_port_path)
-            except:
-                print("could not open uplink serial port at",self.uplink_port_path)
-
+            
+            # initialize these, in case they are populated by `.set_command_interface()`
+            self.uplink_port_path = None
+            self.uplink_port = None
+            self.local_send_socket = None
+            self.local_recv_socket = None
+            
             try:
                 self.mcast_group = self.local_system_config["ethernet_interface"]["mcast_group"]
-                self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
             except KeyError:
                 self.mcast_group = None
-                self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
+            self.local_recv_address = self.local_system_config["ethernet_interface"]["address"]
             
             self.local_recv_port = self.local_system_config["ethernet_interface"]["port"]
             self.local_recv_endpoint = (self.local_recv_address, self.local_recv_port)
@@ -323,54 +318,18 @@ class Listener():
             self.remote_address = self.remote_system_config["ethernet_interface"]["address"]
             self.remote_port = self.local_recv_port
             self.remote_endpoint = (self.remote_address, self.remote_port)
-
+            
             self.unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             self.unix_socket.bind(self.unix_socket_path)
             self.unix_socket.settimeout(0.001)
 
+            self.set_command_interface(command_interface)
+
             print("listening for command (to forward) on Unix datagram socket at:\t",
                   self.unix_socket_path)
             
-            self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.local_send_socket.bind(("192.168.1.118", 9999))
-            self.local_send_socket.connect(self.remote_endpoint)
-
-            # setup UDP interface
-            if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
-                print("got multicast address")
-                # open the socket for standard use
-                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
-                self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
-                mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
-
-                # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
-                self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-
-                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                    self.mcast_group + ":" + str(self.local_recv_port))
-            
-            else:
-                # listen on a unicast socket
-                self.local_recv_socket = socket.socket(
-                    socket.AF_INET, socket.SOCK_DGRAM)
-                self.local_recv_socket.bind((self.local_recv_address, self.local_port))
-                self.local_recv_socket.connect(self.remote_endpoint)
-                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                    self.local_recv_address + ":" + str(self.local_recv_port))
-            
-            self.local_recv_socket.settimeout(0.01)
-            self.local_send_socket.settimeout(0.001)
-            # print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-            #       self.local_recv_endpoint[0] + ":" + str(self.local_recv_endpoint[1]))
-
-            print("sending uplink on serial port at:\t",
-                  self.uplink_port_path)
-            
             self._uplink_message_queue = queue.Queue()
-
-            self.print()
+            # self.print()
 
             try:
                 self._run_log()
@@ -392,6 +351,84 @@ class Listener():
             for data in self.downlink_lookup[system].keys():
                 self.downlink_lookup[system][data].file.close()
 
+    def set_command_interface(self, interface:str):
+        success = False
+        if interface == "uplink" or interface == "umbi":
+            self.command_interface = interface
+            success = self.start_interface()
+        
+        return success
+
+    def start_interface(self):
+        if self.command_interface == "uplink":
+            try:
+                self.uplink_port_path = self.local_system_config["logger_interface"]["uplink_device"]
+                
+                self.uplink_port = serial.Serial(
+                    self.uplink_port_path,
+                    baudrate=self.uplink_system_config["uart_interface"]["baud_rate"],
+                    timeout=1
+                )
+                print("opened uplink serial port at",self.uplink_port_path)
+                return True
+            except:
+                print("could not open uplink serial port at",self.uplink_port_path)
+                return False
+            
+
+        if self.command_interface == "umbi":
+            self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                self.local_send_socket.bind(self.local_send_endpoint)
+            except OSError as e:
+                print("Exception:", e, "for endpoint",self.local_send_endpoint)
+            try:
+                self.local_send_socket.connect(self.remote_endpoint)
+                print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
+            except OSError as e:
+                print("Exception:",e, "for connection to remote", self.remote_endpoint)
+
+            # setup UDP interface
+            if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
+                print("got multicast address")
+                # open the socket for standard use
+                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
+                self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
+                mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
+
+                # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
+                self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                    self.mcast_group + ":" + str(self.local_recv_port))
+            
+            else:
+                # listen on a unicast socket
+                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.local_recv_socket.bind((self.local_recv_address, self.local_port))
+                self.local_recv_socket.connect(self.remote_endpoint)
+                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                    self.local_recv_address + ":" + str(self.local_recv_port))
+            
+            self.local_recv_socket.settimeout(0.01)
+            self.local_send_socket.settimeout(0.001)
+    
+    def send_command(self, command:bytes):
+        try:
+            if self.command_interface == "uplink":
+                self.uplink_port.write(command)
+                print("transmitted","0x" + command.hex(),"to Formatter via",self.command_interface,self.uplink_port_path)
+            
+            if self.command_interface == "umbi":
+                self.local_send_socket.sendall(command)
+                print("transmitted","0x" + command.hex(),"to Formatter via",self.command_interface,self.local_send_endpoint[0]+":"+str(self.local_send_endpoint[1]))
+            
+            self.write_to_uplink_log(command)
+        except Exception as e:
+            print("Got Exception while sending uplink command: ", e)
+    
     def read_unix_socket_to_queue(self):
         """
         Checks for available commands in local Unix socket.
@@ -461,13 +498,13 @@ class Listener():
                 # expect all `command` to be <system> <command> `int` pairs
                 try:
                     if len(message) == 2:
-                        print(message)
                         # print(self.local_send_socket.getsockname())
                         # print(self.local_send_socket.getpeername())
                         # self.local_send_socket.sendall(bytes(message))
-                        self.uplink_port.write(bytes(message))
-                        print("transmitted " +
-                                str(message) + " to Formatter on", self.local_send_endpoint[0], ":", self.local_send_endpoint[1])
+                        self.send_command(bytes(message))
+                        # self.uplink_port.write(bytes(message))
+                        # print("transmitted " +
+                                # str(message) + " to Formatter on", self.local_send_endpoint[0], ":", self.local_send_endpoint[1])
                     else:
                         print("found bad uplink command in queue! discarding.")
                 except Exception as e:
@@ -517,6 +554,25 @@ class Listener():
                         print("\tcouldn't create log dictionary for ", name, key)
         return lookup
 
+    def write_to_uplink_log(self, data: bytes):
+        """
+        Writes uplink commands data to log file.
+
+        Parameters
+        ----------
+        data : bytes
+            The raw command (2 bytes) to write to the file.
+
+        """
+
+        delta = datetime.now() - self.start
+        header = "[" + str(delta) + "]" + " "
+        content = "0x" + str(data.hex()) + "\n"
+        self.log_out.write(header + content)
+        self.log_out.flush()
+        print("\twrote " + str(len(data)) +
+              " bytes to " + self.log_out_file)
+        
     def write_to_catch(self, data: bytes):
         """
         Writes raw data to catch-all log file.
@@ -550,10 +606,14 @@ class Listener():
 
 if __name__ == "__main__":
     print("starting listener...")
-    pass_arg = ""
+    config_arg = ""
+    interface_arg = ""
+    if len(sys.argv) == 3:
+        config_arg = sys.argv[1]
+        interface_arg = sys.argv[2]
+        log = Listener(config_arg, interface_arg)
     if len(sys.argv) == 2:
-        print(sys.argv[1])
-        pass_arg = sys.argv[1]
-        log = Listener(pass_arg)
+        config_arg = sys.argv[1]
+        log = Listener(config_arg)
     else:
         Listener()

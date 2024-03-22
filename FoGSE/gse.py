@@ -2,12 +2,12 @@
 First go at a full GSE (data viewing only).
 """
 import os
-
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QVBoxLayout
 
 from FoGSE.gse_data_display import GSEDataDisplay
 
-from FoGSE.visualization import GlobalCommandPanel
+from FoGSE.widgets.CommandUplinkWidget import CommandUplinkWidget
 
 
 def get_det_file(want_filename, filename_list):
@@ -18,7 +18,8 @@ def get_det_file(want_filename, filename_list):
 
 if __name__=="__main__":
     app = QApplication([])
-
+    icon_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'FOXSI4_32.png')
+    app.setWindowIcon(QtGui.QIcon(icon_path))
     w = GSEDataDisplay()
 
     _s = 122
@@ -29,7 +30,7 @@ if __name__=="__main__":
 
     x = QWidget()
     lay = QVBoxLayout(x)
-    glc = GlobalCommandPanel()
+    glc = CommandUplinkWidget()
     lay.addWidget(glc)
     x.show()
     
