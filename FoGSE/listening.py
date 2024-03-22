@@ -360,6 +360,7 @@ class Listener():
         return success
 
     def start_interface(self):
+        print("self.command_interface", self.command_interface)
         if self.command_interface == "uplink":
             try:
                 self.uplink_port_path = self.local_system_config["logger_interface"]["uplink_device"]
@@ -370,50 +371,51 @@ class Listener():
                     timeout=1
                 )
                 print("opened uplink serial port at",self.uplink_port_path)
-                return True
             except:
                 print("could not open uplink serial port at",self.uplink_port_path)
-                return False
+        else:
+            print("ERROR: can only use uplink interface for commanding")
+            raise RuntimeError
             
 
-        if self.command_interface == "umbi":
-            self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            try:
-                self.local_send_socket.bind(self.local_send_endpoint)
-            except OSError as e:
-                print("Exception:", e, "for endpoint",self.local_send_endpoint)
-            try:
-                self.local_send_socket.connect(self.remote_endpoint)
-                print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
-            except OSError as e:
-                print("Exception:",e, "for connection to remote", self.remote_endpoint)
+        self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            self.local_send_socket.bind(self.local_send_endpoint)
+        except OSError as e:
+            print("Exception:", e, "for endpoint",self.local_send_endpoint)
+        try:
+            self.local_send_socket.connect(self.remote_endpoint)
+            print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
+        except OSError as e:
+            print("Exception:",e, "for connection to remote", self.remote_endpoint)
 
-            # setup UDP interface
-            if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
-                print("got multicast address")
-                # open the socket for standard use
-                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-                self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # setup UDP interface
+        if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
+            print("got multicast address")
+            # open the socket for standard use
+            self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            self.local_recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-                self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
-                mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
+            self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
+            mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
 
-                # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
-                self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
+            self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
-                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                    self.mcast_group + ":" + str(self.local_recv_port))
+            print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                self.mcast_group + ":" + str(self.local_recv_port))
+        
+        else:
+            # listen on a unicast socket    
+            self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.local_recv_socket.bind((self.local_recv_address, self.local_port))
+            self.local_recv_socket.connect(self.remote_endpoint)
+            print("listening for downlink (to log) on Ethernet datagram socket at:\t",
+                self.local_recv_address + ":" + str(self.local_recv_port))
             
-            else:
-                # listen on a unicast socket
-                self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                self.local_recv_socket.bind((self.local_recv_address, self.local_port))
-                self.local_recv_socket.connect(self.remote_endpoint)
-                print("listening for downlink (to log) on Ethernet datagram socket at:\t",
-                    self.local_recv_address + ":" + str(self.local_recv_port))
-            
-            self.local_recv_socket.settimeout(0.01)
-            self.local_send_socket.settimeout(0.001)
+        self.local_recv_socket.settimeout(0.01)
+        self.local_send_socket.settimeout(0.001)
+        return True
     
     def send_command(self, command:bytes):
         try:

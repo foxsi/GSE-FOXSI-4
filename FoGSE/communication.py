@@ -295,7 +295,8 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
     """
 
     # def __init__(self, addr=params.GSE_IP, port=params.GSE_PORT, logging=True, logfilename=None):
-    def __init__(self, configfile=os.path.normpath(os.path.join(__file__, "..", "foxsi4-commands", "systems.json")), logging=True, logfilename=None, end_background_process_on_close=True, command_interface="umbi"):
+    def __init__(self, configfile=os.path.normpath(os.path.join(__file__, "..", "..", "foxsi4-commands", "systems.json")), logging=True, logfilename=None, end_background_process_on_close=True, command_interface="uplink"):
+        print("CONFIGFILE: ", configfile)
         
         # configure sockets and endpoints
         self.configfile = configfile
