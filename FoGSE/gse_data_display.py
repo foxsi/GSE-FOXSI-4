@@ -3,7 +3,7 @@ First go at a full GSE (data viewing only).
 """
 import os
 
-from PyQt6 import QtCore
+from PyQt6 import QtCore, QtGui
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.widgets.CdTeWidget import AllCdTeView
@@ -112,7 +112,9 @@ class GSEDataDisplay(QWidget):
 if __name__=="__main__":
     import time
     app = QApplication([])
-
+    icon_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'FOXSI4_32.png')
+    print(icon_path)
+    app.setWindowIcon(QtGui.QIcon(icon_path))
     w = GSEDataDisplay(window_alert=True)
 
     _s = 122

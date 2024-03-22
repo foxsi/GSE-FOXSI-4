@@ -37,6 +37,8 @@ class AbstractVisualization(QWidget):
 
 class GlobalCommandPanel(QWidget):
     """
+    .. deprecated
+    
     `GlobalCommandPanel` provides a unified interface to send any uplink commands to the Formatter. This is enabled by `communication.FormatterUDPInterface`, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
 
     :param name: Unique name of this panel interface.
