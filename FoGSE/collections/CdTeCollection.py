@@ -715,20 +715,37 @@ class CdTeCollection:
         """ Get the mean unixtime of the frame. """
         return np.mean(self.event_dataframe['unixtime'])
     
-    def delta_time(self):
+    def delta_time(self, handle_jumps=False):
         """ Get the delta-t of the frame. """
         # not using_unixtime = (np.max(self.event_dataframe['unixtime'])-np.min(self.event_dataframe['unixtime'])) anymore
         ti_clock_interval = get_system_value("gse", "display_settings", "cdte", "pc", "collections", "ti_clock_interval")# 10.24e-6 # 10.24 usec -> 10.24 change in `ti`` every usec?`
-        _ti_time = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
-        return _ti_time*ti_clock_interval
+        if not handle_jumps:
+            _ti_time = np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti'])
+            return _ti_time*ti_clock_interval
+        
+        evt_ti = self.event_dataframe['ti'].astype(np.float64) # avoid overflow
+        _ti_time = evt_ti[-1]-evt_ti[0]
+        if ((_ti_time>-4e9) and (_ti_time<-2e8)) or ((_ti_time>2e8) and (_ti_time<4e9)):
+            hj_ti_time = np.nan
+        elif (_ti_time<-4e9) or (_ti_time>4e9):
+            #overflow, so add
+            _larger_value = np.max([evt_ti[-1], evt_ti[0]])
+            _before_overflow = 2**32 - _larger_value
+            hj_ti_time = _before_overflow + np.min([evt_ti[-1], evt_ti[0]])
+        else:
+            hj_ti_time = abs(_ti_time)
+
+        return hj_ti_time*ti_clock_interval
+
         
     def total_count_rate(self, frame_livetime_uncorrected=False):
         """ Just return the present total counts for the collection. """
-        if self.delta_time()==0:
+        dt = self.delta_time(handle_jumps=True)
+        if dt==0:
             return np.inf
         
         if frame_livetime_uncorrected:
-            return self.total_counts()/self.delta_time()
+            return self.total_counts()/dt
         return self.total_counts()/self.get_frame_seconds_livetime()
     
     def mean_num_of_al_strips(self):
@@ -745,7 +762,7 @@ class CdTeCollection:
     
     def get_frame_fraction_livetime(self):
         """ Get the livetime fraction of the frame. """
-        return self.get_frame_seconds_livetime()/self.delta_time()
+        return self.get_frame_seconds_livetime()/self.delta_time(handle_jumps=True)
 
 def channel_bins():
     """ Define the strip and ADC bins. """
