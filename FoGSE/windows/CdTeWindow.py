@@ -39,10 +39,10 @@ class CdTeWindow(BaseWindow):
         negative is clockwise.
         Default: 0
     
-    integrate : `bool`
+    update_method : `str`
         Indicates whether the frames (if that is relevant `plotting_product`)
         should be summed continously, unless told otherwise.
-        Default: False
+        Default: \"integrate\"
     
     name : `str`
         A useful string that can be used as a label.
@@ -57,7 +57,7 @@ class CdTeWindow(BaseWindow):
     add_box_signal = QtCore.pyqtSignal()
     remove_box_signal = QtCore.pyqtSignal()
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", colour_twin="red", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, update_method="integrate", name="CdTe", colour="green", colour_twin="red", parent=None):
         
         self.colour_twin = colour_twin
 
@@ -66,7 +66,7 @@ class CdTeWindow(BaseWindow):
                             reader=reader, 
                             plotting_product=plotting_product, 
                             image_angle=image_angle, 
-                            integrate=integrate, 
+                            update_method=update_method, 
                             name=name, 
                             colour=colour, 
                             parent=parent)
@@ -79,7 +79,7 @@ class CdTeWindow(BaseWindow):
         """ Define a custom way to get the name. Can be used as a label. """
         _pos = self.name_to_position(self.name)
         self.name = self.name+f": pos#{_pos}"
-        self.name = self.name+": Integrated" if self.integrate else self.name
+        self.name = self.name+f": {self.update_method}"
         return self.name
     
     def name_to_position(self, data_file):
@@ -155,9 +155,9 @@ class CdTeWindow(BaseWindow):
     def image_update(self):
         """ Define how the image product should updated. """
         new_frame = self.reader.collection.image_array(area_correction=False)[:,::-1]
-        self.update_method = "fade"
+        # self.update_method = "fade"
     
-        self.update_method = "integrate" if self.integrate else self.update_method
+        # self.update_method = "integrate" if self.integrate else self.update_method
 
         self.base_apply_update_style(existing_frame=self.my_array, new_frame=new_frame)
         
@@ -200,7 +200,7 @@ class CdTeWindow(BaseWindow):
         print("New Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
         self.update_method = "replace"
 
-        self.update_method = "integrate" if self.integrate else self.update_method
+        # self.update_method = "integrate" if self.integrate else self.update_method
 
         # update current plotted data with new frame
         self.base_apply_update_style(existing_frame=self.my_array, new_frame=new_frame)

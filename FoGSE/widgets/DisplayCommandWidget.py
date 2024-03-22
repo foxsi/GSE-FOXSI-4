@@ -62,7 +62,7 @@ class DisplayCommandWidget(QWidget):
         )
         self._rotation_slider_layout.addWidget(label_text, 2, 1, 1, 1)
 
-        self.default_rotation_button = QtWidgets.QPushButton("Solar North is Up", self)
+        self.default_rotation_button = QtWidgets.QPushButton("Make Solar North Up", self)
         self._rotation_slider_layout.addWidget(self.default_rotation_button, 2, 0, 1, 1)
         self.default_rotation_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
 

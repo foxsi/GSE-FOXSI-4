@@ -42,10 +42,10 @@ class BaseWindow(QWidget):
         negative is clockwise.
         Default: 0
     
-    integrate : `bool`
+    update_method : `str`
         Indicates whether the frames (if that is relevant `plotting_product`)
         should be summed continously, unless told otherwise.
-        Default: False
+        Default: "integrate"
     
     name : `str`
         A useful string that can be used as a label.
@@ -59,7 +59,7 @@ class BaseWindow(QWidget):
     base_qwidget_entered_signal = QtCore.pyqtSignal()
     base_qwidget_left_signal = QtCore.pyqtSignal()
 
-    def __init__(self, data_file=None, reader=None, plotting_product="", image_angle=0, integrate=False, name="", colour="green", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="", image_angle=0, update_method="integrate", name="", colour="green", parent=None):
 
         QWidget.__init__(self, parent)
 
@@ -68,7 +68,7 @@ class BaseWindow(QWidget):
         self.setLayout(self.layoutMain)
 
         self.name = name
-        self.integrate = integrate
+        self.update_method = update_method
         self.colour = colour
 
         # decide how to read the data
@@ -103,7 +103,6 @@ class BaseWindow(QWidget):
 
         self._frame_counter = 0
         self._frame_pixel_counter = 0
-        self._background_frame = 0
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
@@ -222,11 +221,15 @@ class BaseWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] = new_frame
         elif self.update_method=="integrate":
             self.my_array[:,:,self.channel[self.image_colour]] += new_frame
-        elif self.update_method=="average-background":
+        elif self.update_method=="average":
             _frame_pixel_counter = new_frame
-            _frame_pixel_counter[self._frame_pixel_counter>0] = 1
+            _frame_pixel_counter[_frame_pixel_counter>0] = 1
+            old_array_values = self.my_array[:,:,self.channel[self.image_colour]] * self._frame_pixel_counter
             self._frame_pixel_counter += _frame_pixel_counter
-            self.my_array[:,:,self.channel[self.image_colour]] += new_frame/self._frame_pixel_counter - self._background_frame
+            _where_zero = np.where(self._frame_pixel_counter==0)
+            self._frame_pixel_counter[_where_zero] = 1
+            self.my_array[:,:,self.channel[self.image_colour]] = (old_array_values + new_frame)/self._frame_pixel_counter 
+            self._frame_pixel_counter[_where_zero] = 0
 
         self._frame_counter += 1
 
@@ -243,6 +246,9 @@ class BaseWindow(QWidget):
         * `colour_mode`
         """
         self.base_set_image_ndarray()
+
+        self._frame_pixel_counter = 0
+        self._frame_counter = 0
 
     def base_turn_pixels_on_and_off(self):
         """

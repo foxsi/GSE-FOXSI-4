@@ -30,10 +30,10 @@ class CMOSPCPlaybackWindow(CMOSPCWindow):
         negative is clockwise.
         Default: 0
     
-    integrate : `bool`
+    update_method : `str`
         Indicates whether the frames (if that is relevant `plotting_product`)
         should be summed continously, unless told otherwise.
-        Default: False
+        Default: \"integrate\"
     
     name : `str`
         A useful string that can be used as a label.
@@ -45,17 +45,18 @@ class CMOSPCPlaybackWindow(CMOSPCWindow):
         Default: \"green\"
     """
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", colour="green", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, update_method="integrate", name="CMOS", colour="green", parent=None, ave_background_frame=0):
 
         CMOSPCWindow.__init__(self, 
                               data_file=data_file, 
                               reader=reader, 
                               plotting_product=plotting_product, 
                               image_angle=image_angle, 
-                              integrate=integrate, 
+                              update_method=update_method, 
                               name=name, 
                               colour=colour, 
-                              parent=parent)
+                              parent=parent,
+                              ave_background_frame=ave_background_frame)
 
     def base_essential_get_reader(self):
         """ Return default reader here. """

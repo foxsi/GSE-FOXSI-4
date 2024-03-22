@@ -33,7 +33,7 @@ class CMOSWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None, ave_background_frame={"pc":0, "ql":0}):
 
         QWidget.__init__(self, parent)
         pc_parser, ql_parser, hk_parser = self.get_cmos_parsers()
@@ -67,7 +67,8 @@ class CMOSWidget(QWidget):
         self._ql_layout = self.layout_bkg(main_layout=ql_layout, 
                                              panel_name="ql_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ql = cmosql_window(reader=reader_ql, plotting_product="image", name=name, integrate=True, image_angle=image_angle)
+        
+        self.ql = cmosql_window(reader=reader_ql, plotting_product="image", name=name, image_angle=image_angle, update_method="average", ave_background_frame=ave_background_frame["ql"])
         # self.image.setMinimumSize(QtCore.QSize(400,400)) # was 250,250
         # self.image.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.ql.setStyleSheet("border-width: 0px;")
@@ -83,7 +84,7 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, integrate=True, image_angle=0)#image_angle)
+        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, image_angle=0, update_method="average", ave_background_frame=ave_background_frame["pc"])#image_angle)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")

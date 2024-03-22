@@ -7,6 +7,8 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
+from FoGSE.collections.CMOSPCCollection import get_cmos1_pc_ave_background, get_cmos2_pc_ave_background, CMOS1_PC_AVE_BACKGROUND, CMOS2_PC_AVE_BACKGROUND
+from FoGSE.collections.CMOSQLCollection import get_cmos1_ql_ave_background, get_cmos2_ql_ave_background, CMOS1_QL_AVE_BACKGROUND, CMOS2_QL_AVE_BACKGROUND
 from FoGSE.widgets.CMOSWidget import CMOSWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 
@@ -28,13 +30,13 @@ class AllCMOSView(QWidget):
         _reflection = -180 # degrees
 
         cmos_widget = self.get_cmos_widget()
-
-        self.f0 = cmos_widget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180+_reflection)
+        
+        self.f0 = cmos_widget(data_file_pc=cmos_pc0, data_file_ql=cmos_ql0, data_file_hk=cmos_hk0, name=os.path.basename(cmos_pc0), image_angle=180+_reflection, ave_background_frame={"pc":CMOS1_PC_AVE_BACKGROUND, "ql":CMOS1_QL_AVE_BACKGROUND})
         # f0.resize(QtCore.QSize(150, 190))
         _f0 =QHBoxLayout()
         _f0.addWidget(self.f0)
 
-        self.f1 = cmos_widget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180+_reflection)
+        self.f1 = cmos_widget(data_file_pc=cmos_pc1, data_file_ql=cmos_ql1, data_file_hk=cmos_hk1, name=os.path.basename(cmos_pc1), image_angle=180+_reflection, ave_background_frame={"pc":CMOS2_PC_AVE_BACKGROUND, "ql":CMOS2_QL_AVE_BACKGROUND})
         # f1.resize(QtCore.QSize(150, 150))
         _f1 =QGridLayout()
         _f1.addWidget(self.f1, 0, 0)
