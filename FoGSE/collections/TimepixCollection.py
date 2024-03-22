@@ -61,14 +61,8 @@ class TimepixCollection:
 
     def get_flags(self):
         """ Return the flags. """
-        # assume no flags
-        _flags_status = np.zeros(8).astype(int)
-
-        # set the flag indices, if any, then set to one
-        if len(self.data["flags"])>0:
-            _flags_status[np.array(self.flags)-1] = 1
             
-        return '-'.join(map(str, self.flags))
+        return self.data["flags"]
     
     def get_defined_flags(self):
         """ Return the descriptions of the raised flags. """

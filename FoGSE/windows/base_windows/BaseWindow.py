@@ -101,6 +101,10 @@ class BaseWindow(QWidget):
 
         self.reader.value_changed_collection.connect(self.base_essential_update_plot)
 
+        self._frame_counter = 0
+        self._frame_pixel_counter = 0
+        self._background_frame = 0
+
     def base_essential_get_reader(self):
         """ Return default reader here. """
         pass
@@ -218,6 +222,13 @@ class BaseWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] = new_frame
         elif self.update_method=="integrate":
             self.my_array[:,:,self.channel[self.image_colour]] += new_frame
+        elif self.update_method=="average-background":
+            _frame_pixel_counter = new_frame
+            _frame_pixel_counter[self._frame_pixel_counter>0] = 1
+            self._frame_pixel_counter += _frame_pixel_counter
+            self.my_array[:,:,self.channel[self.image_colour]] += new_frame/self._frame_pixel_counter - self._background_frame
+
+        self._frame_counter += 1
 
         self.base_turn_pixels_on_and_off()
 
