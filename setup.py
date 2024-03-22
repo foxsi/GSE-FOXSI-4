@@ -9,7 +9,8 @@ setuptools.setup(
             "numpy", 
             "PyQt6", 
             "pyqtgraph",
-            "scipy"
+            "scipy",
+            "pyserial"
         ],
     packages=setuptools.find_packages(),
     zip_safe=False
