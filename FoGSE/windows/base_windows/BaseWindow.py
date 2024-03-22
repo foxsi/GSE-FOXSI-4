@@ -15,14 +15,20 @@ class BaseWindow(QWidget):
     """
     An individual window to display CdTe data read from a file.
 
+    Notes
+    -----
+    When a window is closed, it's `reader` object's `QTimer` is stopped 
+    also. This avoids the possibility of the `reader` continuing to cycle 
+    even when the application has been closed.
+
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        The file to be passed to `base_essential_get_reader`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -164,9 +170,10 @@ class BaseWindow(QWidget):
         """
         self.layoutMain.addWidget(self.graphPane)
 
-        self.base_set_image_ndarray()
+        if not hasattr(self, "my_array"):
+            self.base_set_image_ndarray()
 
-        self.base_set_image_colour(self.colour)
+            self.base_set_image_colour(self.colour)
 
     def base_apply_update_style(self, existing_frame, new_frame):
         """
@@ -213,6 +220,18 @@ class BaseWindow(QWidget):
             self.my_array[:,:,self.channel[self.image_colour]] += new_frame
 
         self.base_turn_pixels_on_and_off()
+
+    def base_clear_image(self):
+        """ A class to restart the image integration.
+        
+        Attributes needed to be set are:
+        * `my_array`
+        * `no_new_hits_counter_array`
+        * `deth` 
+        * `detw`
+        * `colour_mode`
+        """
+        self.base_set_image_ndarray()
 
     def base_turn_pixels_on_and_off(self):
         """
@@ -327,10 +346,7 @@ class BaseWindow(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # if self.plotting_product=="spectrogram":
-        #     print("ere", event.size().width(), event.size().height())
+        
         if event is None:
             return 
         
@@ -338,4 +354,19 @@ class BaseWindow(QWidget):
         new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         self.resize(new_size)
+
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+
+        If the reader and plot updating are going quick enough this 
+        start to go a bit mad. This can mean that when the window is
+        closed that the reader is too quick to be stopped automatically.
+        This method ensure that, as part of the window closing process, 
+        the `QTimer` in `reader` is stopped allowing everything to close
+        properly.
+        """
+        self.reader.timer.stop()
+        self.deleteLater()
 

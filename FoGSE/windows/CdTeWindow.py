@@ -7,12 +7,12 @@ import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.collections.CdTeCollection import strip_edges_arcminutes
+from FoGSE.collections.CdTeCollection import CDTE_STRIP_EDGES_ARCMINUTES
 from FoGSE.demos.readRawToRefined_single_cdte import CdTeFileReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
+from FoGSE.readers.CdTePCReader import CdTePCReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
-from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
+from FoGSE.windows.base_windows.LightCurveWindow import LightCurveTwinX
 
 class CdTeWindow(BaseWindow):
     """
@@ -21,11 +21,11 @@ class CdTeWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        The file to be passed to `FoGSE.readers.CdTePCReader.CdTePCReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.ReaderBase()`
+    reader : instance of `FoGSE.readers.CdTePCReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -57,7 +57,9 @@ class CdTeWindow(BaseWindow):
     add_box_signal = QtCore.pyqtSignal()
     remove_box_signal = QtCore.pyqtSignal()
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CdTe", colour="green", colour_twin="red", parent=None):
+        
+        self.colour_twin = colour_twin
 
         BaseWindow.__init__(self, 
                             data_file=data_file, 
@@ -71,7 +73,7 @@ class CdTeWindow(BaseWindow):
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
-        return CdTeReader
+        return CdTePCReader
     
     def base_essential_get_name(self):
         """ Define a custom way to get the name. Can be used as a label. """
@@ -126,7 +128,7 @@ class CdTeWindow(BaseWindow):
         
         self.base_2d_image_settings()
 
-        _cdte_strip_edges = strip_edges_arcminutes()
+        _cdte_strip_edges = CDTE_STRIP_EDGES_ARCMINUTES
         _no_of_strips = len(_cdte_strip_edges)-1
         self.graphPane = Image(pcolormesh={"x_bins":_cdte_strip_edges, 
                                             "y_bins":_cdte_strip_edges, 
@@ -207,27 +209,47 @@ class CdTeWindow(BaseWindow):
 
     def lightcurve_setup(self):
         """ Sets up the class for a time profile product. """
-        self.graphPane = LightCurve(colour=self.colour)
+        self.graphPane = LightCurveTwinX(colour=self.colour, colour_twin=self.colour_twin, ylim_twin=[0,1])
         self.layoutMain.addWidget(self.graphPane)
-        self.graphPane.set_labels(xlabel="Unixtime", ylabel="Counts", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.graphPane.set_labels_twin(xlabel="Unixtime", ylabel="Counts", title="",
+                                       ylabel_twin="Livetime Frac.", ylabel_twin_kwargs={"size":5}, tick_twin_kwargs={"labelsize":4}, offsetsize_twin=1, 
+                                       xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, 
+                                       offsetsize=1)
         self.graphPane.detw, self.graphPane.deth = 2, 1
         self.graphPane.aspect_ratio = self.graphPane.detw/self.graphPane.deth
         self.detw, self.deth = 256, 1024
         self.base_update_aspect(aspect_ratio=2)
 
+        # some info we'll want later
+        self.total_counts = []
+        self.frame_livetimes = []
+
     def lightcurve_update(self):
         """ Define how the time profile product should updated. """
         # defined how to add/append onto the new data arrays
-        self.graphPane.add_plot_data(self.reader.collection.total_counts(), new_data_x=self.reader.collection.mean_unixtime(), replace={"this":[0], "with":[np.nan]})
+        if self.reader.collection is None:
+            return
+        self.graphPane.add_plot_data_twin(self.reader.collection.total_counts(),
+                                          self.reader.collection.get_frame_fraction_livetime(), 
+                                          new_data_x=self.reader.collection.mean_unixtime(), 
+                                          replace={"this":[0], "with":[np.nan]})
+
+        self.total_counts.append(self.reader.collection.total_counts())
+        self.frame_livetimes.append(self.reader.collection.get_frame_seconds_livetime())
+
+        _l = -len(self.graphPane.plot_data_ys)
+        _keep = 1+_l if self.graphPane.plot_data_ys[0]==0 else _l
+        self.total_counts = self.total_counts[_keep:]
+        self.frame_livetimes = self.frame_livetimes[_keep:]
 
         # plot the newly updated x and ys
-        self.graphPane.manage_plotting_ranges()
+        self.graphPane.manage_plotting_ranges_twin()
 
     def add_arc_distances(self, **kwargs):
         """ A rectangle to indicate the size of the PC region. """
         if self.plotting_product=="image":
-            cdte_fov = 18.7
-            arc_distance_list = [cdte_fov/4*1.5, cdte_fov/4, cdte_fov/8]
+            # cdte_fov = 18.7
+            arc_distance_list = [2, 4, 6, 8, 10]
             self.graphPane.draw_arc_distances(arc_distance_list, **kwargs)
             self.has_arc_distances = True
 
@@ -308,7 +330,7 @@ if __name__=="__main__":
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
     datafile = "/Users/kris/Downloads/16-2-2024_15-9-8/"
     reader1 = CdTeFileReader(datafile)
-    reader2 = CdTeReader(datafile)
+    reader2 = CdTePCReader(datafile)
 
     f0 = CdTeWindow(reader=reader1, plotting_product="spectrogram")
     f1 = CdTeWindow(reader=reader2, plotting_product="image")

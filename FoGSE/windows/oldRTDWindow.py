@@ -8,7 +8,7 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget, QHBoxLayout
 import pyqtgraph as pg
 
-from FoGSE.read_raw_to_refined.readRawToRefinedRTD import RTDReader
+from FoGSE.readers.RTDReader import RTDReader
 from FoGSE.demos.readRawToRefined_fake_rtd import RTDFileReader
 
     
@@ -19,11 +19,11 @@ class RTDWindow(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedRTD.RTDReader()`.
+        The file to be passed to `FoGSE.readers.RTDReader.RTDReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
     """

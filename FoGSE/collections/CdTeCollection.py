@@ -26,6 +26,9 @@ class CdTeCollection:
             used. Default is `0` and so should take all data.
             Default: 0
 
+    bad_strips : `dict(\"pt\":list[int], \"al\":list[int])`
+            A list of any bad strips for the Pt- and Al-side to be filtered out.
+
     Example
     -------
     with readBackwards.BackwardsReader(file=directory+raw_file, blksize=20_000_000, forward=True) as f:
@@ -46,7 +49,7 @@ class CdTeCollection:
     plt.show()
     """
     
-    def __init__(self, parsed_data, old_data_time=0):
+    def __init__(self, parsed_data, old_data_time=0, bad_strips=None):
         # bring in the parsed data
         _, self.event_dataframe, _ = parsed_data
         
@@ -55,6 +58,9 @@ class CdTeCollection:
         
         # for easy remapping of channels
         self.channel_map = self.remap_strip_dict()
+
+        self.bad_pt_strips = [self.channel_map[p] for p in bad_strips.get("pt", None)] if bad_strips is not None else None
+        self.bad_al_strips = [self.channel_map[a] for a in bad_strips.get("al", None)] if bad_strips is not None else None
 
         # dont include data more than a second older than the previous frames latest data
         self.new_entries = self.event_dataframe['ti']>=0#old_data_time
@@ -211,9 +217,13 @@ class CdTeCollection:
         pt_adc = event_dataframe['adc_cmn_pt'][new]
         al_adc = event_dataframe['adc_cmn_al'][new]
 
+        # get bad strip values, else return that there aren't any
+        bad_pt_indices = np.isin(pt, self.bad_pt_strips) if self.bad_pt_strips is not None else False
+        bad_al_indices = np.isin(al, self.bad_al_strips) if self.bad_al_strips is not None else False
+
         # for more filtering `pt_min_adc, al_min_adc = self.single_event(pt_adc, al_adc, style="simple1")`
-        pt_selection = ((pt<59) | (pt>68)) #& (pt_adc>pt_min_adc) & (pt_adc<800)
-        al_selection = ((al>131) & (al<252)) #& (al_adc>al_min_adc) & (al_adc<800)
+        pt_selection = ((pt<59) | (pt>68)) & ~bad_pt_indices #& (pt_adc>pt_min_adc) & (pt_adc<800)
+        al_selection = ((al>131) & (al<252)) & ~bad_al_indices #& (al_adc>al_min_adc) & (al_adc<800)
 
         # get matrices for Pt and Al that have a single True value for every readout
         pt_selection_new = self.get_event_grade(event_selection=pt_selection, grade=grade_pt, data_indices=pt, data_adc=pt_adc)
@@ -456,9 +466,9 @@ class CdTeCollection:
 
         #**********************************************************************
         # ******** remove default strip values for quickness just now *********
-        default_strip_inds = (all_strips==0) | (all_strips==64) | (all_strips==128) | (all_strips==192)
-        all_strips = all_strips[~default_strip_inds]
-        all_adc = all_adc[~default_strip_inds]
+        # default_strip_inds = (all_strips==0) | (all_strips==64) | (all_strips==128) | (all_strips==192)
+        # all_strips = all_strips[~default_strip_inds]
+        # all_adc = all_adc[~default_strip_inds]
         #**********************************************************************
         
         self.adc_counts_arr, _, _ = np.histogram2d(all_strips, all_adc, 
@@ -574,6 +584,13 @@ class CdTeCollection:
         
         return im
     
+    def bad_strips_pt(self):
+        """ Given a CdTe detector, return the noisy Pt-side strips"""
+        pt_noisy_mapping = {"cdte1":[47, 59],
+                            "cdte2":[53, 55, 60, 63, 65],
+                            "cdte3":[51, 62, 63, 64, 65],
+                            "cdte4":[53, 65]}
+    
     def _remap_strip_values(self, pt_strips, al_strips):
         """ Remap the strip values to their physical location. """
         rpt_strips, ral_strips = [],[]
@@ -651,8 +668,7 @@ class CdTeCollection:
         Define dictionary for easy remapping of channels to physical 
         location. 
         """
-
-        return remap_strip_dict()
+        return CDTE_REMAP_DICT
     
     def reverse_rows(self, arr):
         """ Reverse the rows of a 2D numpy array. """
@@ -685,11 +701,11 @@ class CdTeCollection:
         and 70 um (100/2+80/2 and 80/2+60/2, respectively).
         """
         
-        return strip_edges()
+        return CDTE_STRIP_EDGES_MICROMETRES
     
     def pixel_areas(self):
         """ From the pitch widths, get the strip-pixel areas. """
-        return np.diff(self.strip_width_edges)[:,None]@np.diff(self.strip_width_edges)[None,:]
+        return CDTE_PIXEL_AREAS_MICROMETRES
     
     def total_counts(self):
         """ Just return the present total counts for the collection. """
@@ -706,20 +722,30 @@ class CdTeCollection:
         _ti_time = (np.max(self.event_dataframe['ti'])-np.min(self.event_dataframe['ti']))
         return _ti_time*ti_clock_interval
         
-    def total_count_rate(self):
+    def total_count_rate(self, frame_livetime_uncorrected=False):
         """ Just return the present total counts for the collection. """
         if self.delta_time()==0:
             return np.inf
-        return self.total_counts()/self.delta_time()
+        
+        if frame_livetime_uncorrected:
+            return self.total_counts()/self.delta_time()
+        return self.total_counts()/self.get_frame_seconds_livetime()
     
     def mean_num_of_al_strips(self):
-        """ Get the total number of Al strips with measured ADC values for the frame"""
+        """ Get the total number of Al strips with measured ADC values for the frame. """
         return np.mean(self.event_dataframe['hitnum_al'])
     
     def mean_num_of_pt_strips(self):
-        """ Get the total number of Pt strips with measured ADC values for the frame"""
+        """ Get the total number of Pt strips with measured ADC values for the frame. """
         return np.mean(self.event_dataframe['hitnum_pt'])
     
+    def get_frame_seconds_livetime(self):
+        """ Get the livetime in seconds of the frame. """
+        return self.event_dataframe['livetime'].sum()* 1e-8
+    
+    def get_frame_fraction_livetime(self):
+        """ Get the livetime fraction of the frame. """
+        return self.get_frame_seconds_livetime()/self.delta_time()
 
 def channel_bins():
     """ Define the strip and ADC bins. """
@@ -783,7 +809,7 @@ def strip_edges_arcminutes():
     
     Returns the edges as arcminutes from centre.
     """
-    edges = strip_edges()
+    edges = CDTE_STRIP_EDGES_MICROMETRES
 
     cdte_fov = 18.7 # arc-minutes
 
@@ -793,8 +819,14 @@ def strip_edges_arcminutes():
     
 def pixel_areas():
     """ From the pitch widths, get the strip-pixel areas. """
-    strip_width_edges = strip_edges()
+    strip_width_edges = CDTE_STRIP_EDGES_MICROMETRES
     return np.diff(strip_width_edges)[:,None]@np.diff(strip_width_edges)[None,:]
+
+
+CDTE_REMAP_DICT = remap_strip_dict()
+CDTE_STRIP_EDGES_MICROMETRES = strip_edges()
+CDTE_STRIP_EDGES_ARCMINUTES = strip_edges_arcminutes()
+CDTE_PIXEL_AREAS_MICROMETRES = pixel_areas()
 
 if __name__=="__main__":
     edges = strip_edges()

@@ -5,10 +5,10 @@ A demo to walk through an existing CdTe raw file.
 import numpy as np
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 import pyqtgraph as pg
 
-from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
+from FoGSE.readers.TimepixReader import TimepixReader
         
 
 class LightCurve(QWidget):
@@ -18,11 +18,11 @@ class LightCurve(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
     """
@@ -177,11 +177,11 @@ class MultiLightCurve(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
     """
@@ -352,11 +352,11 @@ class LightCurveExample(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
+        The file to be passed to `FoGSE.TimepixReader.TimepixReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
     """

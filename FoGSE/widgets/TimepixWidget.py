@@ -1,13 +1,12 @@
 """
 A widget to show off CdTe data.
 """
-import os
 
 import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
+from FoGSE.readers.TimepixReader import TimepixReader
 from FoGSE.windows.TimepixWindow import TimepixWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueCheckWidget, QValueMultiRangeWidget, QValueListWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -21,19 +20,20 @@ class TimepixWidget(QWidget):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
         Default: None
     """
     def __init__(self, data_file=None, name="Timepix", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = TimepixReader(datafile=data_file)
+        timepix_parser = self.get_timepix_parsers()
+        reader = timepix_parser(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 950, 500
+        self.detw, self.deth = 198, 100
         self.setGeometry(100,100,self.detw, self.deth)
         # self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
@@ -42,13 +42,15 @@ class TimepixWidget(QWidget):
         lc_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
+
+        timepix_window = self.get_timepix_windows()
         
         ## for Timepix light curve
         # widget for displaying the automated recommendation
         self._lc_layout = self.layout_bkg(main_layout=lc_layout, 
                                              panel_name="lc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.lc = TimepixWindow(reader=reader, name=name)
+        self.lc = timepix_window(reader=reader, name=name)
         self.lc.setStyleSheet("border-width: 0px;")
         self._lc_layout.addWidget(self.lc)
 
@@ -124,11 +126,11 @@ class TimepixWidget(QWidget):
         storage = {"too_low":0, "nom_low":1000, "nom_high":3000, "too_high":np.inf}
         storage_cond = {"range1":[storage["nom_low"],storage["nom_high"],"white"], "range2":[storage["too_low"],storage["nom_low"],"red"], "other":"orange", "error":"orange"}
         storage_name = "RPi Remaining Storage"
-        self.health = QValueCheckWidget(name="Health", 
+        self.health = QValueCheckWidget(name="HVPS", 
                                         value=self._default_qvaluewidget_value, 
-                                        condition={"acceptable":[(0, "white"), (1, "red")]}, 
+                                        condition={"acceptable":[("on", "white"), ("off", "red")]}, 
                                         border_colour=first_layout_colour,
-                                        tool_tip_values={"Health":self._default_qvaluewidget_value, storage_name:QValueMultiRangeWidget(name=storage_name, value=self._default_qvaluewidget_value, condition=storage_cond)},
+                                        tool_tip_values={"HVPS":self._default_qvaluewidget_value, storage_name:QValueMultiRangeWidget(name=storage_name, value=self._default_qvaluewidget_value, condition=storage_cond)},
                                         name_plus="<sup>*</sup>")
         self._first_layout.addWidget(self.bt1, 0, 0, 1, 2) 
         self._first_layout.addWidget(self.asic0_i, 1, 0, 1, 2) 
@@ -174,29 +176,44 @@ class TimepixWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
+    def get_timepix_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return TimepixReader
+    
+    def get_timepix_windows(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return TimepixWindow
+
     def all_fields(self):
         """ Update the QValueWidgets. """
-        # t1 = self.lc.reader.collection.board_temp1()
-        # self.bt1.update_label(t1)
-        # self.bt1.update_tool_tip({"Board T1":t1, "Board T2":...})
+        t1 = self.lc.reader.collection.get_board_t1()
+        self.bt1.update_label(t1)
+        self.bt1.update_tool_tip({"Board T1":t1, 
+                                  "Board T2":self.lc.reader.collection.get_board_t2()})
 
         # need to update all keys
-        # self.asic0_i.update_label(...)
-        # self.asic0_i.update_tool_tip({"ASIC0 I":..., 
-        #                               "ASIC0 V":..., 
-        #                               "ASIC1 I":..., 
-        #                               "ASIC1 V":..., 
-        #                               "ASIC2 I":..., 
-        #                               "ASIC2 V":..., 
-        #                               "ASIC3 I":..., 
-        #                               "ASIC3 V":...})
+        ai = self.lc.reader.collection.get_asic_currents()
+        av = self.lc.reader.collection.get_asic_voltages()
+        self.asic0_i.update_label(ai[0])
+        self.asic0_i.update_tool_tip({"ASIC0 I":ai[0], 
+                                      "ASIC0 V":av[0], 
+                                      "ASIC1 I":ai[1], 
+                                      "ASIC1 V":av[1], 
+                                      "ASIC2 I":ai[2], 
+                                      "ASIC2 V":av[2], 
+                                      "ASIC3 I":ai[3], 
+                                      "ASIC3 V":av[3]})
 
-        # self.fpga_v1.update_label(...)
-        # self.fpga_v1.update_tool_tip("FPGA V1":..., "FPGA V2":...)
+        fv = self.lc.reader.collection.get_fpga_voltages()
+        self.fpga_v1.update_label(fv[0])
+        self.fpga_v1.update_tool_tip({"FPGA V1":fv[0], "FPGA V2":fv[1]})
 
-        # self.fpga_t.update_label(...)
+        self.fpga_t.update_label(self.lc.reader.collection.get_fpga_temp())
 
-        # self.health.update_tool_tip({"Health":6, "RPi Remaining Storage":7)
+        hvps = self.lc.reader.collection.get_hvps_status()
+        self.health.update_label(hvps)
+        self.health.update_tool_tip({"HVPS":hvps, 
+                                     "RPi Remaining Storage":self.lc.reader.collection.get_storage_fill})
 
         mtot = self.lc.reader.collection.get_mean_tot()
         mtot_extra = self._get_lc_info(self.lc.mean_tot)
@@ -217,9 +234,6 @@ class TimepixWidget(QWidget):
                                   "Flux Min.":flx_extra["Min."]})
 
         self.flgs.update_label(self.lc.reader.collection.get_flags())
-
-        # self.health.update_label(...)
-        # self.health.update_tool_tip("Health":..., "RPi Remaining Storage":...)
 
     def _get_lc_info(self, lc_plot):
         """ To update certain fields, we look to the lightcurve information. """
@@ -281,6 +295,14 @@ class TimepixWidget(QWidget):
 
         self.resize(new_size)
 
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        self.lc.closeEvent(event)
+        self.deleteLater()
+
 class  QValueWidgetTest(QWidget):
     """ 
     A test widget class to use QValueWidget. 
@@ -336,7 +358,6 @@ if __name__=="__main__":
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
     
     # w.resize(1000,500)
-    # w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
     w = TimepixWidget(data_file=datafile)
     # w = QValueWidgetTest()
     w.show()

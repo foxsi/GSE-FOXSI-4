@@ -7,7 +7,7 @@ import numpy as np
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
 from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes
-from FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL import CMOSQLReader
+from FoGSE.readers.CMOSQLReader import CMOSQLReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
 
@@ -19,11 +19,11 @@ class CMOSQLWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.CMOSQLReader()`.
+        The file to be passed to `FoGSE.readers.CMOSQLReader.CMOSQLReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedCMOSQL.ReaderBase()`
+    reader : instance of `FoGSE.readers.CMOSQLReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -179,7 +179,7 @@ class CMOSQLWindow(BaseWindow):
         _plotting_kwargs = {"transform":self.graphPane.affine_transform, "color":"w", "alpha":0.6} | kwargs
 
         self.pc_box = self.graphPane.im_obj.axes.plot(xs, ys, **_plotting_kwargs)
-        self.graphPane.graphPane.draw()
+        self.graphPane.graphPane.fig.canvas.draw()
 
     def remove_pc_rect(self):
         """ If the photon counting region box is there, remove it. """
@@ -187,7 +187,7 @@ class CMOSQLWindow(BaseWindow):
             line = self.pc_box.pop(0)
             line.remove()
             del self.pc_box
-            self.graphPane.graphPane.draw()
+            self.graphPane.graphPane.fig.canvas.draw()
 
     def add_rotate_frame(self, **kwargs):
         """ A rectangle to indicate image rotation. """
@@ -200,7 +200,7 @@ class CMOSQLWindow(BaseWindow):
         """ A rectangle to indicate the size of the PC region. """
         if self.plotting_product=="image":
             cmos_x_fov, cmos_y_fov = 34.1333333, 32
-            arc_distance_list = [cmos_x_fov/4*1.5, cmos_y_fov/4, cmos_y_fov/8]
+            arc_distance_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
             self.graphPane.draw_arc_distances(arc_distance_list, **kwargs)
             self.has_arc_distances = True
 

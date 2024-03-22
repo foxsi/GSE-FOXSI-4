@@ -40,7 +40,7 @@ class CMOSPCCollection:
         # bring in the parsed data
         self.linetime, self.gain_pc, self.exposure_pc, self._image = parsed_data
 
-        self.whole_photon_rate_threshold = np.mean(self._image)
+        self.whole_photon_rate_threshold = 60 # np.mean(self._image)
         
         # used in the filter to only consider data with times > than this
         self.last_data_time = old_data_time

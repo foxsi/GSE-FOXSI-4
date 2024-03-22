@@ -4,7 +4,7 @@ from collections import namedtuple
 from PyQt6 import QtCore, QtWidgets, QtGui
 from PyQt6.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QGroupBox, QCheckBox, QGridLayout, QVBoxLayout, QApplication
 
-from FoGSE.read_raw_to_refined.readRawToRefinedPower import PowerReader
+from FoGSE.readers.PowerReader import PowerReader
 
 import FoGSE.configuration as config
 import FoGSE.communication as comm

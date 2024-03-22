@@ -14,7 +14,7 @@ from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
 
-class RTDWidget(QWidget):
+class DisplayCommandWidget(QWidget):
     """
     An individual window to display RTD data read from a file.
 
@@ -24,50 +24,63 @@ class RTDWidget(QWidget):
         The file to be passed to `FoGSE.readers.RTDReader.RTDReader()`.
         Default: None
     """
-    def __init__(self, data_file=None, name="RTD", image_angle=0, parent=None):
+    def __init__(self, name="DisplayCommand", parent=None):
 
         QWidget.__init__(self, parent)
-        rtd_parser = self.get_rtd_parsers()
-        reader = rtd_parser(datafile=data_file)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 700, 500
+        self.detw, self.deth = 695, 350
         self.setGeometry(100,100,self.detw, self.deth)
         # self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
         # define main layouts for the status window, LED, buttons, times, and plot
-        lc_layout = QtWidgets.QGridLayout()
+        rotation_slider_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
-
-        rtd_window = self.get_rtd_windows()
         
         ## for Timepix light curve
         # widget for displaying the automated recommendation
-        self._lc_layout = self.layout_bkg(main_layout=lc_layout, 
+        self._rotation_slider_layout = self.layout_bkg(main_layout=rotation_slider_layout, 
                                              panel_name="lc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.lc = rtd_window(reader=reader, name=name)
-        self.lc.setStyleSheet("border-width: 0px;")
-        self._lc_layout.addWidget(self.lc)
+        self.rotation_slider = QtWidgets.QSlider(minimum=-180, maximum=180, orientation=QtCore.Qt.Orientation.Horizontal)
+        self.rotation_slider.setValue(0)
+        self.rotation_slider.setStyleSheet("border-width: 0px;")
+        self._rotation_slider_layout.addWidget(self.rotation_slider, 1, 0, 1, 3)
 
-        # self.lc.reader.value_changed_collection.connect(...)
+        self._rotation_slider_layout.addWidget(QtWidgets.QLabel("Roll", alignment=QtCore.Qt.AlignmentFlag.AlignCenter), 0, 1, 1, 1)
+
+        label_text = QtWidgets.QLabel(
+            "{}°".format(self.rotation_slider.value()), alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+        )
+        self.rotation_slider.valueChanged.connect(
+            lambda value: label_text.setText("{}°".format(self.rotation_slider.value()))
+        )
+        self._rotation_slider_layout.addWidget(label_text, 2, 1, 1, 1)
+
+        self.default_rotation_button = QtWidgets.QPushButton("Solar North is Up", self)
+        self._rotation_slider_layout.addWidget(self.default_rotation_button, 2, 0, 1, 1)
+        self.default_rotation_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
+
+        self.clear_image_button = QtWidgets.QPushButton("Clear Images", self)
+        self._rotation_slider_layout.addWidget(self.clear_image_button, 3, 0, 2, 3)
+        self.clear_image_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
 
         ## all widgets together
         # lc
         global_layout = QGridLayout()
         # global_layout.addWidget(self.lc, 0, 0, 4, 4)
-        global_layout.addLayout(lc_layout, 0, 0, 6, 7)
+        global_layout.addLayout(rotation_slider_layout, 0, 0, 2,3)
 
+        set_all_spacings(global_layout)
         unifrom_layout_stretch(global_layout, grid=True)
 
         # lc_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
-        self._lc_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
-
+        self._rotation_slider_layout.setContentsMargins(0, 0, 0, 0) # left, top, right, bottom
 
         global_layout.setHorizontalSpacing(0)
         global_layout.setVerticalSpacing(0)
@@ -75,14 +88,6 @@ class RTDWidget(QWidget):
 
         # actually display the layout
         self.setLayout(global_layout)
-
-    def get_rtd_parsers(self):
-        """ A way the class can be inherited from but use different parsers. """
-        return RTDReader
-    
-    def get_rtd_windows(self):
-        """ A way the class can be inherited from but use different parsers. """
-        return RTDWindow
 
     def layout_bkg(self, main_layout, panel_name, style_sheet_string, grid=False):
         """ Adds a background widget (panel) to a main layout so border, colours, etc. can be controlled. """
@@ -113,12 +118,7 @@ class RTDWidget(QWidget):
     def resizeEvent(self,event):
         """ Define how the widget can be resized and keep the same apsect ratio. """
         super().resizeEvent(event)
-        # Create a square base size of 10x10 and scale it to the new size
-        # maintaining aspect ratio.
-        # lc_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.6))
-        # self.lc.resize(lc_resize)
-        # ped_resize = QtCore.QSize(int(event.size().width()*0.6), int(event.size().height()*0.4))
-        # self.ped.resize(ped_resize)
+        
         if event is None:
             return 
         
@@ -127,22 +127,12 @@ class RTDWidget(QWidget):
 
         self.resize(new_size)
 
-    def closeEvent(self, event):
-        """ 
-        Runs when widget is close and ensure the `reader` attribute's 
-        `QTimer` is stopped so it can be deleted properly. 
-        """
-        self.lc.closeEvent(event)
-        self.deleteLater()
-
 
 if __name__=="__main__":
     app = QApplication([])
-
-    DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run19/gse/housekeeping.log"
     
     # w.resize(1000,500)
-    w = RTDWidget(data_file=DATAFILE)
+    w = DisplayCommandWidget()
     # w = QValueWidgetTest()
     w.show()
     app.exec()

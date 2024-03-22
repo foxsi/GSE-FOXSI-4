@@ -4,6 +4,7 @@ A class to help handle displaying a matplotlib image in a PyQt window.
 
 import numpy as np
 from matplotlib import transforms
+import sys
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QGridLayout, QWidget
@@ -92,7 +93,7 @@ class Image(QWidget):
 
         tr = transforms.Affine2D().rotate_deg(self.rotation) #rotation_in_degrees
         # "cmap" is ignored if data is RGB(A)
-        _plotting_kwargs = {"origin":"lower", "interpolation":"nearest", "rasterized":True, "cmap":"viridis", "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
+        _plotting_kwargs = {"origin":"lower", "interpolation":"nearest", "rasterized":True, "transform":tr + self.graphPane.axes.transData} | custom_plotting_kwargs
         self.affine_transform =_plotting_kwargs["transform"]
 
         # Create the pcolormesh plot
@@ -109,8 +110,7 @@ class Image(QWidget):
         if not keep_axes:
             self.graphPane.axes.axis('off')
         if not loose_axes:
-            self.graphPane.axes.axis('tight')
-            self.graphPane.fig.tight_layout(pad=0)
+            self.graphPane.fig.tight_layout(pad=1)
             self.graphPane.fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         if keep_aspect:
             self.graphPane.axes.set_aspect('equal')  # Maintain aspect ratio
@@ -216,7 +216,7 @@ class Image(QWidget):
         
         # still have to apply rotation afterwords for some reason
         self.extent_box = self.im_obj.axes.plot(xs, ys, **_plotting_kwargs)
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
     
     def remove_extent(self):
         """ Remove the extent box drawn by `draw_extent`."""
@@ -224,7 +224,7 @@ class Image(QWidget):
             line = self.extent_box.pop(0)
             line.remove()
             del self.extent_box
-            self.graphPane.draw()
+            self.graphPane.fig.canvas.draw()
 
     def get_new_axes_post_rotation(self):
         """
@@ -289,8 +289,8 @@ class Image(QWidget):
         new_matrix = self._replace_values(new_matrix, replace)
 
         self.im_obj.set_array(new_matrix)
-
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
+        self.graphPane.fig.canvas.flush_events()
 
     def set_labels(self, xlabel="", ylabel="", title="", xlabel_kwargs=None, ylabel_kwargs=None, title_kwargs=None):
         """
@@ -381,7 +381,7 @@ class Image(QWidget):
             To be passed to `add_label`.
         """
 
-        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.5, "linestyle":"--"} | kwargs
+        _plotting_kwargs = {"transform":self.affine_transform, "edgecolor":"whitesmoke", "alpha":0.8, "linestyle":"--", "linewidth":1, "zorder":1} | kwargs
 
         label_pos_map = {"top":(0,1), "bottom":(0,-1), "left":(-1,0), "right":(1,0)}
         
@@ -389,14 +389,15 @@ class Image(QWidget):
         for arcds in arc_distance_list:
             self.texts.append(self.add_label(np.array(label_pos_map[label_pos])*arcds, f"{round(arcds, 2)}$'$", xycoords="data", size=5, color="w", alpha=0.75, ha="center"))
             self.add_patch(circle_patch(radius=arcds, **_plotting_kwargs))
-        self.graphPane.draw()
+            
+        self.graphPane.fig.canvas.draw()
 
     def remove_arc_distances(self):
         """ If the arc-distances are there then remove them. """
         [p.remove() for p in self.graphPane.axes.patches]
         [t.remove() for t in self.texts]     
         del self.texts
-        self.graphPane.draw()
+        self.graphPane.fig.canvas.draw()
 
     def update_aspect(self, aspect_ratio):
         """ Update the image aspect ratio (width/height). """
@@ -422,7 +423,7 @@ class ImageExample(QWidget):
     Parameters
     ----------
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
 
@@ -431,9 +432,9 @@ class ImageExample(QWidget):
 
     Example
     -------
-    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+    from FoGSE.readers.BaseReader import BaseReader
 
-    class ImageFakeReader(ReaderBase):
+    class ImageFakeReader(BaseReader):
         \"""
         Reader for fake image arrays.
         \"""
@@ -444,7 +445,7 @@ class ImageExample(QWidget):
             Parsed : human readable
             Collected : organised by intrumentation
             \"""
-            ReaderBase.__init__(self, "", parent)
+            BaseReader.__init__(self, "", parent)
 
             self.array_x, self.array_y = array_x, array_y
             
@@ -518,8 +519,6 @@ class ImageExample(QWidget):
         self.imsh2.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Imshow: rot of {r2_imsh} deg (RGBA)")
         self.pcol2.set_labels(xlabel="X-Axis", ylabel="Y-Axis", title=f"Pcolormesh: rot of {r2_pcol} deg (RGBA)")
 
-        self.reader.value_changed_collection.connect(self.update_plot)
-
         self.layoutMain = QGridLayout()
         self.layoutMain.setContentsMargins(0, 0, 0, 0)
         self.layoutMain.setSpacing(0)
@@ -537,6 +536,8 @@ class ImageExample(QWidget):
         self.setMinimumSize(self.detw, self.deth)
         self.resize(self.detw, self.deth)
 
+        self.reader.value_changed_collection.connect(self.update_plot)
+
     def update_plot(self):
         """
         Defines how the plot window is updated for time series.
@@ -548,6 +549,7 @@ class ImageExample(QWidget):
         """
         
         new_array = self.reader.collection
+        print("adding data")
         
         # defined how to add/append onto the new data arrays
         self.imsh0.add_plot_data(new_array)
@@ -573,14 +575,28 @@ class ImageExample(QWidget):
         new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         self.resize(new_size)
+
+    def closeEvent(self, event):
+        """ 
+        On close, ensure that the reader's timer is stop.
+        
+        If the reader and plot updating are going quick enough this 
+        start to go a bit mad. This can mean that when the window is
+        closed that the reader is too quick to be stopped automatically.
+        This method ensure that, as part of the window closing process, 
+        the `QTimer` in `reader` is stopped allowing everything to close
+        properly.
+        """
+        self.reader.timer.stop()
+        self.deleteLater()
     
 
 if __name__=="__main__":
     # package top-level
 
-    from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+    from FoGSE.readers.BaseReader import BaseReader
 
-    class ImageFakeReader(ReaderBase):
+    class ImageFakeReader(BaseReader):
         """
         Reader for fake image arrays.
 
@@ -594,11 +610,11 @@ if __name__=="__main__":
             Parsed : human readable
             Collected : organised by intrumentation
             """
-            ReaderBase.__init__(self, "", parent)
+            BaseReader.__init__(self, "", parent)
 
             self.array_x, self.array_y = array_x, array_y
             
-            self.call_interval(1000)
+            self.call_interval(10)
 
         def extract_raw_data(self):
             """
@@ -623,17 +639,23 @@ if __name__=="__main__":
             """
 
             # assign the collected data and trigger the `emit`
+            print("new data")
             self.collection = self.extract_raw_data()
-            self.value_changed_collection.emit()
+
 
     def initiate_gui():
         app = QApplication([])
-        array_x, array_y = 30, 20
+        array_x, array_y = 700, 650
         R = ImageFakeReader(array_x, array_y)
 
         f0 = ImageExample(R, array_x, array_y)
 
         f0.show()
-        app.exec()
+
+        f1 = ImageExample(R, array_x, array_y)
+
+        f1.show()
+
+        sys.exit(app.exec())
 
     initiate_gui()

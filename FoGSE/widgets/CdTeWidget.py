@@ -7,9 +7,9 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTe import CdTeReader
-from FoGSE.read_raw_to_refined.readRawToRefinedCdTeHK import CdTeHKReader
-from FoGSE.read_raw_to_refined.readRawToRefinedDE import DEReader
+from FoGSE.readers.CdTePCReader import CdTePCReader
+from FoGSE.readers.CdTeHKReader import CdTeHKReader
+from FoGSE.readers.DEReader import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
@@ -23,7 +23,7 @@ class CdTeWidget(QWidget):
     Parameters
     ----------
     data_file_pc : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedCdTe.CdTeReader()`.
+        The file to be passed to `FoGSE.readers.CdTePCReader.CdTePCReader()`.
         Default: None
 
     plotting_product : `str`
@@ -33,9 +33,10 @@ class CdTeWidget(QWidget):
     def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        reader = CdTeReader(datafile=data_file_pc)
-        self.reader_hk = CdTeHKReader(datafile=data_file_hk)
-        self.reader_de = DEReader(datafile=data_file_de)
+        pc_parser, hk_parser, de_parser = self.get_cdte_parsers()
+        reader = pc_parser(datafile=data_file_pc)
+        self.reader_hk = hk_parser(datafile=data_file_hk)
+        self.reader_de = de_parser(datafile=data_file_de)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -51,13 +52,15 @@ class CdTeWidget(QWidget):
         value_layout = QtWidgets.QGridLayout()
 
         self.panels = dict() # for all the background panels
+
+        cdte_window = self.get_cdte_windows()
         
         ## for CdTe image
         # widget for displaying the automated recommendation
         self._image_layout = self.layout_bkg(main_layout=image_layout, 
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.image = CdTeWindow(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
+        self.image = cdte_window(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
 
@@ -66,8 +69,8 @@ class CdTeWidget(QWidget):
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ped = CdTeWindow(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
-        self.lc = CdTeWindow(reader=reader, plotting_product="lightcurve", name="")
+        self.ped = cdte_window(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
+        self.lc = cdte_window(reader=reader, plotting_product="lightcurve", name="")
         self.ped.setStyleSheet("border-width: 0px;")
         self._ped_layout.addWidget(self.ped) 
         self.ped_layout = ped_layout
@@ -183,6 +186,14 @@ class CdTeWidget(QWidget):
         self.reader_hk.value_changed_collection.connect(self.all_fields_from_hk)
         self.reader_de.value_changed_collection.connect(self.all_fields_from_de)
 
+    def get_cdte_parsers(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return CdTePCReader, CdTeHKReader, DEReader
+    
+    def get_cdte_windows(self):
+        """ A way the class can be inherited from but use different parsers. """
+        return CdTeWindow
+
     def all_fields_from_data(self):
         """ 
         Update the:
@@ -192,23 +203,27 @@ class CdTeWidget(QWidget):
         # self.canister_mode.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
+        if self.image.reader.collection is None:
+            return
 
         total_counts = self.image.reader.collection.total_counts()
         self.cts.update_label(total_counts)
-        _lc_info = self._get_lc_info()
+        _lc_count_info = self._get_lc_count_info()
         self.cts.update_tool_tip({"Ct Now":total_counts, 
-                                  "Ct Mean":round(_lc_info["Ct Mean"], 1), 
-                                  "Ct Median":round(_lc_info["Ct Median"], 1), 
-                                  "Ct Max.":_lc_info["Ct Max."], 
-                                  "Ct Min.":_lc_info["Ct Min."]})
+                                  "Ct Mean":round(_lc_count_info["Ct Mean"], 1), 
+                                  "Ct Median":round(_lc_count_info["Ct Median"], 1), 
+                                  "Ct Max.":_lc_count_info["Ct Max."], 
+                                  "Ct Min.":_lc_count_info["Ct Min."]})
         
-        delta_time = self.image.reader.collection.delta_time()
-        self.ctr.update_label(round(total_counts/delta_time, 1))
-        self.ctr.update_tool_tip({"Ct/s Now":round(total_counts/delta_time, 1), 
-                                  "Ct/s Mean":round(_lc_info["Ct Mean"]/delta_time, 1), 
-                                  "Ct/s Median":round(_lc_info["Ct Median"]/delta_time, 1), 
-                                  "Ct/s Max.":round(_lc_info["Ct Max."]/delta_time, 1), 
-                                  "Ct/s Min.":round(_lc_info["Ct Min."]/delta_time, 1)})
+        # delta_time = self.image.reader.collection.delta_time()
+        _lc_count_rate_info = self._get_lc_count_rate_info()
+        total_count_rate = self.image.reader.collection.total_count_rate()
+        self.ctr.update_label(round(total_count_rate, 1))
+        self.ctr.update_tool_tip({"Ct/s Now":round(total_count_rate, 1), 
+                                  "Ct/s Mean":round(_lc_count_rate_info["Ct/s Mean"], 1), 
+                                  "Ct/s Median":round(_lc_count_rate_info["Ct/s Median"], 1), 
+                                  "Ct/s Max.":round(_lc_count_rate_info["Ct/s Max."], 1), 
+                                  "Ct/s Min.":round(_lc_count_rate_info["Ct/s Min."], 1)})
 
         self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
         self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
@@ -249,22 +264,29 @@ class CdTeWidget(QWidget):
         # self.reader_de.collection. methods
         # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
         
-    def _get_lc_info(self):
+    def _get_lc_count_info(self):
         """ To update certain fields, we look to the lightcurve information. """
-        if len(self.lc.graphPane.plot_data_ys)<2:
+        if len(self.lc.total_counts)==0:
             return {"Ct Mean":self._default_qvaluewidget_value,
                     "Ct Median":self._default_qvaluewidget_value, 
                     "Ct Max.":self._default_qvaluewidget_value, 
                     "Ct Min.":self._default_qvaluewidget_value}
-        elif len(self.lc.graphPane.plot_data_ys)==2:
-            lc_data = self.lc.graphPane.plot_data_ys[1:] 
-        else:
-            lc_data = self.lc.graphPane.plot_data_ys
-
-        return {"Ct Mean":np.nanmean(lc_data),
-                "Ct Median":np.nanmedian(lc_data), 
-                "Ct Max.":np.nanmax(lc_data), 
-                "Ct Min.":np.nanmin(lc_data)}
+        return {"Ct Mean":np.nanmean(self.lc.total_counts),
+                "Ct Median":np.nanmedian(self.lc.total_counts), 
+                "Ct Max.":np.nanmax(self.lc.total_counts), 
+                "Ct Min.":np.nanmin(self.lc.total_counts)}
+    
+    def _get_lc_count_rate_info(self):
+        """ To update certain fields, we look to the lightcurve information. """
+        if len(self.lc.total_counts)==0:
+            return {"Ct/s Mean":self._default_qvaluewidget_value,
+                    "Ct/s Median":self._default_qvaluewidget_value, 
+                    "Ct/s Max.":self._default_qvaluewidget_value, 
+                    "Ct/s Min.":self._default_qvaluewidget_value}
+        return {"Ct/s Mean":np.nanmean(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes),
+                "Ct/s Median":np.nanmedian(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes), 
+                "Ct/s Max.":np.nanmax(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes), 
+                "Ct/s Min.":np.nanmin(self.lc.total_counts)/np.nanmean(self.lc.frame_livetimes)}
         
     def _switch2lc(self, event=None):
         """ Switch from pedestal to lightcurve. """
@@ -319,71 +341,15 @@ class CdTeWidget(QWidget):
 
         self.resize(new_size)
 
-class AllCdTeView(QWidget):
-    def __init__(self, cdte0, cdte1, cdte2, cdte3):
-        super().__init__()     
-        
-        # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,500
-        self.setGeometry(100,100,self.detw, self.deth)
-        self.setMinimumSize(600,150)
-        self.setWindowTitle("All CdTe View")
-        self.aspect_ratio = self.detw/self.deth
-
-        # datafile0 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/CdTeTrialsOfParser-20231102/cdte.log"
-        # datafile1 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte2.log"
-        # datafile2 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte3.log"
-        # datafile3 = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/preWSMRship/Jan24-gse_filter/cdte4.log"
-
-        _reflection = -180 # degrees
-
-        f0 = CdTeWidget(data_file_pc=cdte0[0], data_file_hk=cdte0[1], data_file_de=cdte0[2], name=os.path.basename(cdte0[0]), image_angle=150+_reflection)
-        # f0.resize(QtCore.QSize(150, 190))
-        _f0 =QHBoxLayout()
-        _f0.addWidget(f0)
-
-        f1 = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=30+_reflection)
-        # f1.resize(QtCore.QSize(150, 150))
-        _f1 =QGridLayout()
-        _f1.addWidget(f1, 0, 0)
-
-        f2 = CdTeWidget(data_file_pc=cdte2[0], data_file_hk=cdte2[1], data_file_de=cdte2[2], name=os.path.basename(cdte2[0]), image_angle=90+_reflection)
-        # f2.resize(QtCore.QSize(150, 150))
-        _f2 =QGridLayout()
-        _f2.addWidget(f2, 0, 0)
-
-        f3 = CdTeWidget(data_file_pc=cdte3[0], data_file_hk=cdte3[1], data_file_de=cdte3[2], name=os.path.basename(cdte3[0]), image_angle=-30+_reflection)
-        # f3.resize(QtCore.QSize(150, 150))
-        _f3 =QGridLayout()
-        _f3.addWidget(f3, 0, 0)
-
-        lay = QGridLayout(spacing=0)
-        # w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-
-        # lay.addWidget(f0, 0, 0, 1, 1)
-        # lay.addWidget(f1, 0, 1, 1, 1)
-        lay.addLayout(_f0, 0, 0, 1, 1)
-        lay.addLayout(_f1, 0, 1, 1, 1)
-        lay.addLayout(_f2, 0, 2, 1, 1)
-        lay.addLayout(_f3, 0, 3, 1, 1)
-
-        lay.setContentsMargins(2, 2, 2, 2) # left, top, right, bottom
-        lay.setHorizontalSpacing(5)
-        self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
-
-        self.setLayout(lay)
-
-    def resizeEvent(self,event):
-        """ Define how the widget can be resized and keep the same apsect ratio. """
-        super().resizeEvent(event)
-
-        if event is None:
-            return 
-        
-        new_size = QtCore.QSize(self.detw, int(self.detw / self.aspect_ratio)) #width, height/(width/height)
-        new_size.scale(event.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
-
-        self.resize(new_size)
+    def closeEvent(self, event):
+        """ 
+        Runs when widget is close and ensure the `reader` attribute's 
+        `QTimer` is stopped so it can be deleted properly. 
+        """
+        self.image.closeEvent(event)
+        self.ped.closeEvent(event)
+        self.lc.closeEvent(event)
+        self.deleteLater()
 
 if __name__=="__main__":
     app = QApplication([])
@@ -458,8 +424,7 @@ if __name__=="__main__":
              "/Users/kris/Downloads/16-2-2024_15-9-8/cdtede_hk.log")
     
     # w.resize(1000,500)
-    w = AllCdTeView(cdte0, cdte1, cdte2, cdte3)
-    # w = CdTeWidget(data_file_pc=datafile)
+    w = CdTeWidget(data_file_pc=cdte1[0], data_file_hk=cdte1[1], data_file_de=cdte1[2], name=os.path.basename(cdte1[0]), image_angle=30)
     
     w.show()
     app.exec()

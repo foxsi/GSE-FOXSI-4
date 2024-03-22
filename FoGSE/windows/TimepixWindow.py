@@ -6,7 +6,7 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.read_raw_to_refined.readRawToRefinedTimepix import TimepixReader
+from FoGSE.readers.TimepixReader import TimepixReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
 
@@ -18,11 +18,11 @@ class TimepixWindow(BaseWindow):
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.read_raw_to_refined.readRawToRefinedTimepix.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
-    reader : instance of `FoGSE.read_raw_to_refined.readRawToRefinedBase.ReaderBase()`
+    reader : instance of `FoGSE.readers.BaseReader.BaseReader()`
         The reader already given a file.
         Default: None
 

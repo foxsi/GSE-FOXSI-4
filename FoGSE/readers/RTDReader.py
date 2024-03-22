@@ -1,25 +1,18 @@
 """
 Create a class that will read the LOG file containing raw binary data received from 
-FOXSI and parse the data to be readyfor the GUI plotting windows. 
-
-Can read:
-    * CdTe
+the RTDs
 """
 
-import struct
-import numpy as np
-
-from FoGSE.read_raw_to_refined.readRawToRefinedBase import ReaderBase
+from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.parsers.CdTeparser import CdTedehkparser
-# from FoGSE.parsers.CdTeframeparser import CdTerawdataframe2parser
-from FoGSE.collections.DECollection import DECollection
+from FoGSE.parsers.RTDparser import rtdparser
+from FoGSE.collections.RTDCollection import RTDCollection
 from FoGSE.utils import get_frame_size, get_system_value
 
-class DEReader(ReaderBase):
+class RTDReader(BaseReader):
     """
-    Reader for the FOXSI CdTe instrument.
+    Reader for the RTD readout.
     """
 
     def __init__(self, datafile, parent=None):
@@ -28,14 +21,10 @@ class DEReader(ReaderBase):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-
-        if datafile is None:
-            return
-
-        ReaderBase.__init__(self, datafile, parent)
+        BaseReader.__init__(self, datafile, parent)
         
-        self.define_buffer_size(size=get_frame_size("cdtede", "hk")) # 32 bytes
-        self.call_interval(get_system_value("gse", "display_settings", "cdtede", "hk", "read_raw_to_refined", "read_interval"))
+        self.define_buffer_size(size=get_frame_size("housekeeping", "rtd")*2) # 84 bytes
+        self.call_interval(get_system_value("gse", "display_settings", "housekeeping", "rtd", "readers", "read_interval"))
 
     def extract_raw_data(self):
         """
@@ -44,33 +33,34 @@ class DEReader(ReaderBase):
 
         Returns
         -------
-        `list` :
-            Data read from `self.data_file`.
+        `tuple` :
+            (x, y) The new x and y coordinates read from `self.data_file`.
         """
-        return self.extract_raw_data_cdtehk()
+        return self.extract_raw_data_rtd()
     
-    def extract_raw_data_cdtehk(self):
+    def extract_raw_data_rtd(self):
         """
         Method to extract the CdTe data from `self.data_file` and return the 
         desired data.
 
         Returns
         -------
-        `list` :
-            Data read from `self.data_file`.
+        `tuple` :
+            (x, y) The new x and y coordinates read from `self.data_file`.
         """
         # read the file `self.bufferSize` bytes from the end and extract the lines
         # forward=True: reads buffer from the back but doesn't reverse the data 
         try:
             with BackwardsReader(file=self.data_file, blksize=self.buffer_size, forward=True) as f:
-                data = f.read_block()
-            if self._old_data==data:
+                datalist = f.read_block()
+
+            if self._old_data==datalist:
                 return self.return_empty() 
         except FileNotFoundError:
             return self.return_empty() 
         
-        self._old_data = data
-        return data
+        self._old_data = datalist
+        return datalist
 
     def raw_2_parsed(self, raw_data):
         """
@@ -89,13 +79,8 @@ class DEReader(ReaderBase):
         """
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
-        try:
-            parsed_data, error_flag = CdTedehkparser(raw_data) #CdTerawalldata2parser(raw_data)# 
-        except ValueError:
-            # no data from parser so pass nothing on with a time of -1
-            print("No data from parser.")
-            parsed_data, error_flag = ({"status": "N/A","ping": "N/A","temp": "N/A","cpu": "N/A","df_GB": "N/A","unixtime": "N/A"},None)
-        return parsed_data, error_flag
+        data, errors = rtdparser(file_raw=raw_data)
+        return data, errors
 
     def parsed_2_collection(self, parsed_data):
         """
@@ -113,9 +98,9 @@ class DEReader(ReaderBase):
         """
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = DECollection(parsed_data, 0)#self.old_data_time) #replace the old datat time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
-        # print("Old data time: ",self.old_data_time)
-        # print("Newest data time:",col.last_data_time)
-        if col.latest_data_time>self.old_data_time:
-            self.old_data_time = col.latest_data_time
+        col = RTDCollection(parsed_data, self.old_data_time)
+        if col.last_data_time>self.old_data_time:
+            self.old_data_time = col.last_data_time
+        if not hasattr(self,"data_start_time"):
+            self.data_start_time = col.event['ti'][0]
         return col
