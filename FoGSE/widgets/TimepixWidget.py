@@ -6,6 +6,7 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
+from FoGSE.parsers.Timepixparser import FLAG_MESSAGES
 from FoGSE.readers.TimepixReader import TimepixReader
 from FoGSE.windows.TimepixWindow import TimepixWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueCheckWidget, QValueMultiRangeWidget, QValueListWidget
@@ -121,7 +122,14 @@ class TimepixWidget(QWidget):
                                      tool_tip_values={"Flux Now":self._default_qvaluewidget_value, "Flux Mean":self._default_qvaluewidget_value, "Flux Median":self._default_qvaluewidget_value, "Flux Max.":self._default_qvaluewidget_value, "Flux Min.":self._default_qvaluewidget_value},
                                      name_plus="<sup>*</sup>")
         
-        self.flgs = QValueCheckWidget(name="Flags", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=first_layout_colour)
+        _flg_msgs = FLAG_MESSAGES
+        _flg_msgs.pop(1, None)
+        self.flgs = QValueCheckWidget(name="Flags", 
+                                      value=self._default_qvaluewidget_value, 
+                                      condition={"acceptable":[([], "white")]}, 
+                                      border_colour=first_layout_colour,
+                                      tool_tip_values=_flg_msgs,
+                                      name_plus="<sup>*</sup>")
 
         storage = {"too_low":0, "nom_low":1000, "nom_high":3000, "too_high":np.inf}
         storage_cond = {"range1":[storage["nom_low"],storage["nom_high"],"white"], "range2":[storage["too_low"],storage["nom_low"],"red"], "other":"orange", "error":"orange"}
