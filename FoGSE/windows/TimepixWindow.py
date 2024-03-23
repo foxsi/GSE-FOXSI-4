@@ -40,8 +40,6 @@ class TimepixWindow(BaseWindow):
         BaseWindow.__init__(self, data_file=data_file, 
                             reader=reader, 
                             plotting_product=plotting_product, 
-                            image_angle=0, 
-                            integrate="integrate", 
                             name=name, 
                             colour="", 
                             parent=parent)

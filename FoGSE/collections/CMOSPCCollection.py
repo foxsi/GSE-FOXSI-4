@@ -127,3 +127,12 @@ def det_pc_arcminutes():
     x_arcmin, y_arcmin = x_pixels*arcsec_per_pix/60, y_pixels*arcsec_per_pix/60
     
     return -x_arcmin/2, x_arcmin/2, -y_arcmin/2, y_arcmin/2
+
+def get_cmos1_pc_ave_background():
+    return np.random.rand(384, 768) * 0
+
+def get_cmos2_pc_ave_background():
+    return np.random.rand(384, 768) * 0
+
+CMOS1_PC_AVE_BACKGROUND = get_cmos1_pc_ave_background()
+CMOS2_PC_AVE_BACKGROUND = get_cmos2_pc_ave_background()

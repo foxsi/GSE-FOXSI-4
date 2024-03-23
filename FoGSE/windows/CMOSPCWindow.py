@@ -36,10 +36,10 @@ class CMOSPCWindow(BaseWindow):
         negative is clockwise.
         Default: 0
     
-    integrate : `bool`
+    update_method : `str`
         Indicates whether the frames (if that is relevant `plotting_product`)
         should be summed continously, unless told otherwise.
-        Default: False
+        Default: \"integrate\"
     
     name : `str`
         A useful string that can be used as a label.
@@ -51,17 +51,19 @@ class CMOSPCWindow(BaseWindow):
         Default: \"green\"
     """
 
-    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, integrate=False, name="CMOS", colour="green", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="image", image_angle=0, update_method="integrate", name="CMOS", colour="green", parent=None, ave_background_frame=0):
 
         BaseWindow.__init__(self, 
                             data_file=data_file, 
                             reader=reader, 
                             plotting_product=plotting_product, 
                             image_angle=image_angle, 
-                            integrate=integrate, 
+                            update_method=update_method, 
                             name=name, 
                             colour=colour, 
                             parent=parent)
+        
+        self.ave_background_frame = ave_background_frame
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
@@ -71,9 +73,9 @@ class CMOSPCWindow(BaseWindow):
         """ Define a custom way to get the name. Can be used as a label. """
         _pos = self.name_to_position(self.name)
         self.name = self.name+f": PC pos#{_pos}"
-        self.name = self.name+": Integrated" if self.integrate else self.name
+        self.name = self.name+f": {self.update_method}"
         return self.name
-    
+
     def name_to_position(self, data_file):
         """ CMOS detector focal plane position from name. """
         for key, item in self.det_and_pos_mapping().items():
@@ -116,6 +118,8 @@ class CMOSPCWindow(BaseWindow):
 
         self.base_2d_image_settings()
 
+        self.min_val, self.max_val = 0, 1024
+
         self.detw, self.deth = 768, 384
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
@@ -141,17 +145,21 @@ class CMOSPCWindow(BaseWindow):
         # get the new frame
         new_frame = self.reader.collection.image_array()
         
-        self.update_method = "replace"
+        # self.update_method = "replace"
         
-        self.update_method = "integrate" if self.integrate else self.update_method
+        # self.update_method = "integrate" if self.integrate else self.update_method
 
         # update current plotted data with new frame
         self.base_apply_update_style(existing_frame=self.my_array, new_frame=new_frame)
+
+        self.my_array[:,:,self.channel[self.image_colour]] -= self.ave_background_frame
         
         # define self.qImageDetails for this particular image product
         new_im = self.process_image_data()
 
         self.graphPane.add_plot_data(new_im)
+
+        self.my_array[:,:,self.channel[self.image_colour]] += self.ave_background_frame
 
     def add_arc_distances(self, **kwargs):
         """ A rectangle to indicate the size of the PC region. """

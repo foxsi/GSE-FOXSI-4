@@ -60,7 +60,7 @@ class CdTeWidget(QWidget):
         self._image_layout = self.layout_bkg(main_layout=image_layout, 
                                              panel_name="image_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.image = cdte_window(reader=reader, plotting_product="image", name=name, integrate=True, image_angle=image_angle)#, integrate=True
+        self.image = cdte_window(reader=reader, plotting_product="image", name=name, image_angle=image_angle)
         self.image.setStyleSheet("border-width: 0px;")
         self._image_layout.addWidget(self.image)
 
@@ -69,7 +69,7 @@ class CdTeWidget(QWidget):
         self._ped_layout = self.layout_bkg(main_layout=ped_layout, 
                                              panel_name="ped_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.ped = cdte_window(reader=reader, plotting_product="spectrogram", name="", integrate=True, image_angle=image_angle)
+        self.ped = cdte_window(reader=reader, plotting_product="spectrogram", name="", image_angle=image_angle)
         self.lc = cdte_window(reader=reader, plotting_product="lightcurve", name="")
         self.ped.setStyleSheet("border-width: 0px;")
         self._ped_layout.addWidget(self.ped) 

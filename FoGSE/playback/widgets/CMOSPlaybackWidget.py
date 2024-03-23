@@ -27,15 +27,16 @@ class CMOSPlaybackWidget(CMOSWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None):
-
+    def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None, ave_background_frame={"pc":0, "ql":0}):
+        
         CMOSWidget.__init__(self, 
                             data_file_pc=data_file_pc, 
                             data_file_ql=data_file_ql, 
                             data_file_hk=data_file_hk, 
                             name=name, 
                             image_angle=image_angle, 
-                            parent=parent)
+                            parent=parent, 
+                            ave_background_frame=ave_background_frame)
 
     def get_cmos_parsers(self):
         """ A way the class can be inherited from but use different parsers. """
