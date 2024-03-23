@@ -94,7 +94,7 @@ class CdTeHKReader(BaseReader):
         except ValueError:
             # no data from parser so pass nothing on with a time of -1
             print("No data from parser.")
-            parsed_data, error_flag = ({"status": "N/A","hv_exec": "N/A","hv_set": "N/A","frame_count": "N/A"},None)
+            parsed_data, error_flag = ({"status": "N/A","hv_set": "N/A", "write_pointer":"N/A","frame_count": "N/A", "unread_can_frame_count":"N/A"},None)
         return parsed_data, error_flag
 
     def parsed_2_collection(self, parsed_data):

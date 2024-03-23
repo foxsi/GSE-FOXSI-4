@@ -414,7 +414,7 @@ def CdTerawalldata2parser(datalist):
 
 def CdTecanisterhkparser(data: bytes):
     error_flag = False
-    frame_size = 796
+    frame_size = 816
     if len(data) % frame_size != 0:
         print("CdTecanisterhkparser() expects a input length to be a multiple of", frame_size)
         error_flag = True
@@ -426,6 +426,7 @@ def CdTecanisterhkparser(data: bytes):
     status_raw          = data[0     :   0x0c]
     write_pointer_raw   = data[0x314 :   0x314+4]
     frame_count_raw     = data[0x318 :   0x318+4]
+    unread_can_frame_count_raw  = data[0x32c :   0x32c+4]
     
     # all values from https://github.com/foxsi/CdTe_DE/blob/main/fig/DAQ_parameter_address.png
     daq_param_map = {
@@ -490,6 +491,7 @@ def CdTecanisterhkparser(data: bytes):
     # convert raw write_pointer and frame_count to `int`
     write_pointer = int.from_bytes(write_pointer_raw, 'big')
     frame_count = int.from_bytes(frame_count_raw, 'big')
+    unread_can_frame_count = int.from_bytes(unread_can_frame_count_raw, 'big')
 
     # convert raw high voltage DAC setting to voltage
     hv_set_converter = {
@@ -506,7 +508,8 @@ def CdTecanisterhkparser(data: bytes):
         # "hv_exec": hv_exec,
         "hv": hv,
         "write_pointer": write_pointer,
-        "frame_count": frame_count
+        "frame_count": frame_count,
+        "unread_can_frame_count": unread_can_frame_count
     }
     
     parsed_data.update(daq_param_map)

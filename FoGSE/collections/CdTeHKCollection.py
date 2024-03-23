@@ -18,11 +18,14 @@ class CdTeHKCollection:
     def get_status(self):
         return self.parsed_data["status"]
     
-    def get_hv_exec(self):
-        return self.parsed_data["hv_exec"]
+    def get_write_pointer(self):
+        return self.parsed_data["write_pointer"]
     
     def get_hv_set(self):
         return self.parsed_data["hv"]
     
     def get_frame_count(self):
         return self.parsed_data["frame_count"]
+    
+    def get_unread_can_frame_count(self):
+        return self.parsed_data["unread_can_frame_count"]

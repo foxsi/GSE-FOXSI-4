@@ -83,7 +83,7 @@ class CdTeWidget(QWidget):
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
         self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.de_unixtime = QValueCheckWidget(name="Unixtime", value=self._default_qvaluewidget_value, condition={"acceptable":[("", "white")]}, border_colour=de_layout_colour)
+        self.de_unixtime = QValueRangeWidget(name="Unixtime", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
         self.canister_mode = QValueTimeWidget(name="Can. Mode", 
                                               value=self._default_qvaluewidget_value, 
                                               time=4000, 
@@ -239,14 +239,15 @@ class CdTeWidget(QWidget):
         # self.canister_mode.update_tool_tip({"ASIC VTH":..., 
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
-        # self.de_mode.update_label(...)
+        self.de_mode.update_label(self.reader_hk.collection.get_status())
         # self.ping.update_label(...)
         self.hv.update_label(self.reader_hk.collection.get_hv_set()) #get_hv_exec
 
-        self.frames_t.update_label(self.reader_hk.collection.get_frame_count())
+        _frame_count = self.reader_hk.collection.get_unread_can_frame_count()
+        self.frames_t.update_label(_frame_count)
         if hasattr(self, "_old_frames_t"):
             self.frames_tm1.update_label(self._old_frames_t)
-        self._old_frames_t = self.reader_hk.collection.get_frame_count()
+        self._old_frames_t = _frame_count
 
     def all_fields_from_de(self):
         """ 
