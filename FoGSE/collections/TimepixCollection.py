@@ -61,8 +61,9 @@ class TimepixCollection:
 
     def get_flags(self):
         """ Return the flags. """
-            
-        return self.data["flags"]
+        flags = self.data["flags"]
+        if (type(flags) is list) and (1 in flags): flags.remove(1)
+        return flags
     
     def get_defined_flags(self):
         """ Return the descriptions of the raised flags. """
