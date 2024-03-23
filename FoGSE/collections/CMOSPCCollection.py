@@ -1,7 +1,7 @@
 """
 CMOS collection to handle the read-in CMOS data.
 """
-
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -128,11 +128,16 @@ def det_pc_arcminutes():
     
     return -x_arcmin/2, x_arcmin/2, -y_arcmin/2, y_arcmin/2
 
+FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+DARK_FRAME_DIR = FILE_DIR+"/../data/cmos_dark_frame/"
+
 def get_cmos1_pc_ave_background():
-    return np.random.rand(384, 768) * 0
+    """ Return the dark PC frame for CMOS 1. """
+    return np.load(DARK_FRAME_DIR+"cmos1-pc-bkg-from-mar20-run16.npy")
 
 def get_cmos2_pc_ave_background():
-    return np.random.rand(384, 768) * 0
+    """ Return the dark PC frame for CMOS 2. """
+    return np.load(DARK_FRAME_DIR+"cmos2-pc-bkg-from-mar20-run16.npy")
 
 CMOS1_PC_AVE_BACKGROUND = get_cmos1_pc_ave_background()
 CMOS2_PC_AVE_BACKGROUND = get_cmos2_pc_ave_background()

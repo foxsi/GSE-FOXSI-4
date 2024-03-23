@@ -198,7 +198,7 @@ class CdTeWindow(BaseWindow):
         _new_frame_cap = np.median(_new_frame_gt0) + 2*np.std(_new_frame_gt0)
         new_frame[new_frame>_new_frame_cap] = _new_frame_cap
         print("New Min/max CdTe frame2",np.min(new_frame),np.max(new_frame))
-        self.update_method = "replace"
+        # self.update_method = "replace"
 
         # self.update_method = "integrate" if self.integrate else self.update_method
 

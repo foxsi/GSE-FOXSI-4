@@ -28,8 +28,8 @@ class GSEPlaybackDataDisplay(GSEDataDisplay):
         # return newest_data_dir() 
         # return "/Users/kris/Downloads/March 20 2024/mar20/run10/20-3-2024_17-42-30/"
         # return "/Users/kris/Downloads/feb17_no_cmos/run22/17-2-2024_21-2-23/"
-        return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 20 2024/mar20/run5/20-3-2024_16-58-14/"
-        # return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 20 2024/mar20/run1/20-3-2024_15-50-53/"
+        # return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 20 2024/mar20/run5/20-3-2024_16-58-14/"
+        return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 20 2024/mar20/run1/20-3-2024_15-50-53/"
 
 if __name__=="__main__":
     import time
