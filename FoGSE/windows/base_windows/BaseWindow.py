@@ -1,7 +1,7 @@
 """
 A demo to walk through an existing CdTe raw file.
 """
-
+from copy import copy
 import numpy as np
 
 from PyQt6 import QtCore
@@ -222,7 +222,7 @@ class BaseWindow(QWidget):
         elif self.update_method=="integrate":
             self.my_array[:,:,self.channel[self.image_colour]] += new_frame
         elif self.update_method=="average":
-            _frame_pixel_counter = new_frame
+            _frame_pixel_counter = copy(new_frame)
             _frame_pixel_counter[_frame_pixel_counter>0] = 1
             old_array_values = self.my_array[:,:,self.channel[self.image_colour]] * self._frame_pixel_counter
             self._frame_pixel_counter += _frame_pixel_counter

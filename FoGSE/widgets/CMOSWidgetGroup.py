@@ -7,8 +7,8 @@ import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
-from FoGSE.collections.CMOSPCCollection import get_cmos1_pc_ave_background, get_cmos2_pc_ave_background, CMOS1_PC_AVE_BACKGROUND, CMOS2_PC_AVE_BACKGROUND
-from FoGSE.collections.CMOSQLCollection import get_cmos1_ql_ave_background, get_cmos2_ql_ave_background, CMOS1_QL_AVE_BACKGROUND, CMOS2_QL_AVE_BACKGROUND
+from FoGSE.collections.CMOSPCCollection import CMOS1_PC_AVE_BACKGROUND, CMOS2_PC_AVE_BACKGROUND
+from FoGSE.collections.CMOSQLCollection import CMOS1_QL_AVE_BACKGROUND, CMOS2_QL_AVE_BACKGROUND
 from FoGSE.widgets.CMOSWidget import CMOSWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 
