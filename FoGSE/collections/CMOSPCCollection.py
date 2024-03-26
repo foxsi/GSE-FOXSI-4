@@ -105,6 +105,10 @@ class CMOSPCCollection:
         """ Fraction of PC pixels over a threshold to all pixels"""
         return np.sum(self._image>self.whole_photon_rate_threshold)/self._image.size
     
+    def get_whole_photon_rate_bkg_sub(self, bkg):
+        """ Fraction of PC pixels over a threshold to all pixels"""
+        return np.sum((self._image-bkg)>self.whole_photon_rate_threshold)/self._image.size
+    
 def det_pc_edges():
     """ 
     Function to define the physical sizes of the CMOS PC image. 

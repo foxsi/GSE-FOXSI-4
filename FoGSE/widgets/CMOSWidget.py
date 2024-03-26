@@ -37,7 +37,7 @@ class CMOSWidget(QWidget):
         
         QWidget.__init__(self, parent)
         pc_parser, ql_parser, hk_parser = self.get_cmos_parsers()
-        reader_pc = pc_parser(datafile=data_file_pc)
+        self.reader_pc = pc_parser(datafile=data_file_pc)
         reader_ql = ql_parser(datafile=data_file_ql)
         self.reader_hk = hk_parser(datafile=data_file_hk)
 
@@ -83,7 +83,8 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, image_angle=0, update_method="replace", ave_background_frame=ave_background_frame["pc"])#image_angle)
+        self.pc = cmospc_window(reader=self.reader_pc, plotting_product="image", name=name, image_angle=0, update_method="replace", ave_background_frame=ave_background_frame["pc"])#image_angle)
+        self._pc_dark_frame = ave_background_frame["pc"]
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")
@@ -245,7 +246,6 @@ class CMOSWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
-
         self.pc.base_qwidget_entered_signal.connect(self.ql.add_pc_region)
         self.pc.base_qwidget_left_signal.connect(self.ql.remove_pc_region)
 
@@ -285,7 +285,7 @@ class CMOSWidget(QWidget):
         * count rate field, 
         """
         # self.exp_pc.update_label(self.pc.reader.collection.get_exposure())
-        self.ph_w.update_label(round(self.pc.reader.collection.get_whole_photon_rate(),3))
+        self.ph_w.update_label(round(self.pc.reader.collection.get_whole_photon_rate_bkg_sub(self._pc_dark_frame),3))
         # self.ph_p.update_label("<span>&#129418;</span>")
 
     def all_hk_fields(self):
