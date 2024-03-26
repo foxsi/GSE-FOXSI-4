@@ -34,7 +34,7 @@ class CMOSWidget(QWidget):
         Default: "image"
     """
     def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None, ave_background_frame={"pc":0, "ql":0}):
-
+        
         QWidget.__init__(self, parent)
         pc_parser, ql_parser, hk_parser = self.get_cmos_parsers()
         reader_pc = pc_parser(datafile=data_file_pc)
@@ -74,7 +74,6 @@ class CMOSWidget(QWidget):
         self.ql.setStyleSheet("border-width: 0px;")
         self._ql_layout.addWidget(self.ql)
         
-        
         # image_layout.addWidget(self.image)
         # self._image_layout.setColumnStretch(0, 1)
         # self._image_layout.setRowStretch(0, 1)
@@ -84,7 +83,7 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, image_angle=0, update_method="average", ave_background_frame=ave_background_frame["pc"])#image_angle)
+        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, image_angle=0, update_method="replace", ave_background_frame=ave_background_frame["pc"])#image_angle)
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")

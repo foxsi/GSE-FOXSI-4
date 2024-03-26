@@ -1,7 +1,7 @@
 """
 A demo to walk through a CMOS PC raw file.
 """
-
+from copy import copy
 import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
@@ -125,9 +125,7 @@ class CMOSPCWindow(BaseWindow):
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
                                rotation=self.image_angle, 
                                keep_aspect=True,
-                               custom_plotting_kwargs={"vmin":self.min_val, 
-                                                       "vmax":self.max_val,
-                                                       "aspect":self.aspect_ratio,
+                               custom_plotting_kwargs={"aspect":self.aspect_ratio,
                                                        "extent":det_pc_arcminutes()},
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
@@ -220,13 +218,13 @@ class CMOSPCWindow(BaseWindow):
         """
 
         # make sure everything is normalised between 0--1
-        norm = np.max(self.my_array, axis=(0,1))
-        norm[norm==0] = 1 # can't divide by 0
-        uf = self.max_val*self.my_array//norm
+        # norm = np.max(self.my_array, axis=(0,1))
+        # norm[norm==0] = 1 # can't divide by 0
+        uf = copy(self.my_array)
         uf[uf>self.max_val] = self.max_val
 
         # allow this all to be looked at if need be
-        return uf/np.nanmax(uf)
+        return uf
 
 
 if __name__=="__main__":

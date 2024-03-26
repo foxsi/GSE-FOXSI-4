@@ -132,13 +132,13 @@ DARK_FRAME_DIR = FILE_DIR+"/../data/cmos_dark_frame/"
 
 def get_cmos1_ql_ave_background():
     """ Return the dark QL frame for CMOS 1. """
-    cmos1_ql_arr = np.load(DARK_FRAME_DIR+"cmos1-ql-bkg-from-mar20-run16.npy")
+    cmos1_ql_arr = np.load(DARK_FRAME_DIR+"cmos1-ql-bkg-from-mar23-run12.npy")
     cmos1_ql_arr[0,:4] = np.min(cmos1_ql_arr[0])
     return cmos1_ql_arr
 
 def get_cmos2_ql_ave_background():
     """ Return the dark QL frame for CMOS 2. """
-    cmos2_ql_arr = np.load(DARK_FRAME_DIR+"cmos2-ql-bkg-from-mar20-run16.npy")
+    cmos2_ql_arr = np.load(DARK_FRAME_DIR+"cmos2-ql-bkg-from-mar23-run13.npy")
     cmos2_ql_arr[0,:4] = np.min(cmos2_ql_arr[0])
     return cmos2_ql_arr
 
