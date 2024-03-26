@@ -1,7 +1,7 @@
 """
 A demo to walk through a CMOS QL raw file.
 """
-
+from copy import copy
 import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
@@ -125,9 +125,7 @@ class CMOSQLWindow(BaseWindow):
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
                                rotation=self.image_angle, 
                                keep_aspect=True,
-                               custom_plotting_kwargs={"vmin":self.min_val, 
-                                                       "vmax":self.max_val,
-                                                       "aspect":self.aspect_ratio,
+                               custom_plotting_kwargs={"aspect":self.aspect_ratio,
                                                        "extent":det_ql_arcminutes()},
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
@@ -256,13 +254,14 @@ class CMOSQLWindow(BaseWindow):
         """
 
         # make sure everything is normalised between 0--1
-        norm = np.max(self.my_array, axis=(0,1))
-        norm[norm==0] = 1 # can't divide by 0
-        uf = self.max_val*self.my_array//norm
+        # norm = np.max(self.my_array, axis=(0,1))
+        # norm = np.quantile(self.my_array, 0.99, axis=(0,1))
+        # norm[norm==0] = 1 # can't divide by 0
+        uf = copy(self.my_array)#/norm
         uf[uf>self.max_val] = self.max_val
 
         # allow this all to be looked at if need be
-        return uf/np.nanmax(uf)
+        return uf
 
 
 if __name__=="__main__":
@@ -274,6 +273,7 @@ if __name__=="__main__":
     FILE_DIR = os.path.dirname(os.path.realpath(__file__))
     datafile = FILE_DIR+"/../data/test_berk_20230728_det05_00007_001"
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/cmos_parser/otherExamples-20231102/example2/cmos_ql.log"
+    datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 23 2024/run12/23-3-2024_16-37-22/cmos1_ql.log"
     # datafile = ""
 
     # `datafile = FILE_DIR+"/../data/cdte.log"`

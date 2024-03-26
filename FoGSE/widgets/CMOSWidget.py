@@ -34,10 +34,10 @@ class CMOSWidget(QWidget):
         Default: "image"
     """
     def __init__(self, data_file_pc=None, data_file_ql=None, data_file_hk=None, name="CMOS", image_angle=0, parent=None, ave_background_frame={"pc":0, "ql":0}):
-
+        
         QWidget.__init__(self, parent)
         pc_parser, ql_parser, hk_parser = self.get_cmos_parsers()
-        reader_pc = pc_parser(datafile=data_file_pc)
+        self.reader_pc = pc_parser(datafile=data_file_pc)
         reader_ql = ql_parser(datafile=data_file_ql)
         self.reader_hk = hk_parser(datafile=data_file_hk)
 
@@ -74,7 +74,6 @@ class CMOSWidget(QWidget):
         self.ql.setStyleSheet("border-width: 0px;")
         self._ql_layout.addWidget(self.ql)
         
-        
         # image_layout.addWidget(self.image)
         # self._image_layout.setColumnStretch(0, 1)
         # self._image_layout.setRowStretch(0, 1)
@@ -84,7 +83,8 @@ class CMOSWidget(QWidget):
         self._pc_layout = self.layout_bkg(main_layout=pc_layout, 
                                              panel_name="pc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.pc = cmospc_window(reader=reader_pc, plotting_product="image", name=name, image_angle=0, update_method="average", ave_background_frame=ave_background_frame["pc"])#image_angle)
+        self.pc = cmospc_window(reader=self.reader_pc, plotting_product="image", name=name, image_angle=0, update_method="replace", ave_background_frame=ave_background_frame["pc"])#image_angle)
+        self._pc_dark_frame = ave_background_frame["pc"]
         # self.ped.setMinimumSize(QtCore.QSize(400,200)) # was 250,250
         # self.ped.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.pc.setStyleSheet("border-width: 0px;")
@@ -130,12 +130,12 @@ class CMOSWidget(QWidget):
         self.start = QValueRangeWidget(name="Start", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
         self.stop = QValueRangeWidget(name="Stop", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
         self.stop2start = QValueRangeWidget(name="Init->Stop", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.software = QValueTimeWidget(name="SW Stat.", 
+        self.software = QValueTimeWidget(name="Linetime", 
                                               value=self._default_qvaluewidget_value, 
                                               time=4000, 
                                               condition=[int, float, np.int64, str], 
                                           border_colour=operation_layout_colour,
-                                          tool_tip_values={"Linetime":QValueWidget(name="Linetime", value=self._default_qvaluewidget_value), 
+                                          tool_tip_values={"SW Stat.":QValueWidget(name="SW Stat.", value=self._default_qvaluewidget_value), 
                                                            "Linetime @ pps":QValueWidget(name="Linetime @ pps", value=self._default_qvaluewidget_value), 
                                                            "QL DL Read Pointer":QValueChangeWidget(name="QL DL Read Pointer", value=self._default_qvaluewidget_value), 
                                                            "PC DL Read Pointer":QValueChangeWidget(name="PC DL Read Pointer", value=self._default_qvaluewidget_value)},
@@ -246,7 +246,6 @@ class CMOSWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
-
         self.pc.base_qwidget_entered_signal.connect(self.ql.add_pc_region)
         self.pc.base_qwidget_left_signal.connect(self.ql.remove_pc_region)
 
@@ -286,7 +285,7 @@ class CMOSWidget(QWidget):
         * count rate field, 
         """
         # self.exp_pc.update_label(self.pc.reader.collection.get_exposure())
-        self.ph_w.update_label(round(self.pc.reader.collection.get_whole_photon_rate(),3))
+        self.ph_w.update_label(round(self.pc.reader.collection.get_whole_photon_rate_bkg_sub(self._pc_dark_frame),3))
         # self.ph_p.update_label("<span>&#129418;</span>")
 
     def all_hk_fields(self):
@@ -312,8 +311,8 @@ class CMOSWidget(QWidget):
         self.start.update_label(self.reader_hk.collection.get_cmos_start())
         self.stop.update_label(self.reader_hk.collection.get_cmos_stop())
         self.stop2start.update_label(self.reader_hk.collection.get_cmos_stop()-self.reader_hk.collection.get_cmos_init())
-        self.software.update_label(self.reader_hk.collection.get_software_status())
-        self.software.update_tool_tip({"Linetime":self.reader_hk.collection.get_line_time(), 
+        self.software.update_label(self.reader_hk.collection.get_line_time())
+        self.software.update_tool_tip({"SW Stat.":self.reader_hk.collection.get_software_status(), 
                                        "Linetime @ pps":self.reader_hk.collection.get_line_time_at_pps(), 
                                        "QL DL Read Pointer":self.reader_hk.collection.get_read_pointer_position_QL(), 
                                        "PC DL Read Pointer":self.reader_hk.collection.get_read_pointer_position_PC()})
