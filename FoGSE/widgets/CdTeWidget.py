@@ -83,8 +83,7 @@ class CdTeWidget(QWidget):
         de_layout = QtWidgets.QGridLayout()
         de_layout_colour = "rgb(53, 108, 117)"
         self.de_mode = QValueRangeWidget(name="DE mode", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self.de_unixtime = QValueRangeWidget(name="UnxT-init", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
-        self._save_unixtime = True
+        self.de_unixtime = QValueRangeWidget(name="Unixtime", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=de_layout_colour)
         self.canister_mode = QValueTimeWidget(name="Can. Mode", 
                                               value=self._default_qvaluewidget_value, 
                                               time=4000, 
@@ -261,20 +260,7 @@ class CdTeWidget(QWidget):
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
         self.ping.update_label(self.reader_de.collection.get_ping())
-
-        unixtime = self.reader_de.collection.get_unixtime()
-        if not type(unixtime)==int:
-            self.de_unixtime.update_label(unixtime)
-            return
-        
-        if self._save_unixtime: 
-            self._save_unixtime = False
-            self._initial_unixtime = unixtime
-            unixtime = 0
-        else:
-            unixtime -= self._initial_unixtime
-
-        self.de_unixtime.update_label(unixtime)
+        self.de_unixtime.update_label(self.reader_de.collection.get_unixtime())
     
         # self.reader_de.collection. methods
         # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
