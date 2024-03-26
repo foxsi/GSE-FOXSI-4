@@ -66,7 +66,8 @@ class GSEDataDisplay(QWidget):
         self.f3 = disp_comm_view()
         self.f3.rotation_slider.valueChanged.connect(self.propagate_rotation)
         self.f3.default_rotation_button.clicked.connect(self.default_rotation)
-        self.f3.clear_image_button.clicked.connect(self.clear_images)
+        self.f3.clear_cdte_image_button.clicked.connect(self.clear_cdte_images)
+        self.f3.clear_cmos_image_button.clicked.connect(self.clear_cmos_images)
 
         self.f4 = catch_view(data_file=os.path.join(newest_folder, get_det_file("catch.log", instruments)))
         
@@ -146,6 +147,28 @@ class GSEDataDisplay(QWidget):
         self.f0.f3.image.base_clear_image()
         self.f0.f3.ped.base_clear_image()
 
+        self.f1.f0.ql.base_clear_image()
+        self.f1.f0.pc.base_clear_image()
+
+        self.f1.f1.ql.base_clear_image()
+        self.f1.f1.pc.base_clear_image()
+
+    def clear_cdte_images(self):
+        """ Clear the displayed CdTe images to start integation again. """
+        self.f0.f0.image.base_clear_image()
+        self.f0.f0.ped.base_clear_image()
+
+        self.f0.f1.image.base_clear_image()
+        self.f0.f1.ped.base_clear_image()
+
+        self.f0.f2.image.base_clear_image()
+        self.f0.f2.ped.base_clear_image()
+
+        self.f0.f3.image.base_clear_image()
+        self.f0.f3.ped.base_clear_image()
+
+    def clear_cmos_images(self):
+        """ Clear the displayed CMOS images to start integation again. """
         self.f1.f0.ql.base_clear_image()
         self.f1.f0.pc.base_clear_image()
 

@@ -66,9 +66,13 @@ class DisplayCommandWidget(QWidget):
         self._rotation_slider_layout.addWidget(self.default_rotation_button, 2, 0, 1, 1)
         self.default_rotation_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
 
-        self.clear_image_button = QtWidgets.QPushButton("Clear Images", self)
-        self._rotation_slider_layout.addWidget(self.clear_image_button, 3, 0, 2, 3)
-        self.clear_image_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
+        self.clear_cdte_image_button = QtWidgets.QPushButton("Clear CdTe Images", self)
+        self._rotation_slider_layout.addWidget(self.clear_cdte_image_button, 3, 0, 2, 3)
+        self.clear_cdte_image_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
+
+        self.clear_cmos_image_button = QtWidgets.QPushButton("Clear CMOS Images", self)
+        self._rotation_slider_layout.addWidget(self.clear_cmos_image_button, 4, 0, 2, 3)
+        self.clear_cmos_image_button.setStyleSheet("border :3px; border-style: outset; border-width: 1px; border-radius: 2;")
 
         ## all widgets together
         # lc
