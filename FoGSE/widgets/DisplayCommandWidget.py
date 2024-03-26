@@ -52,7 +52,7 @@ class DisplayCommandWidget(QWidget):
         self.rotation_slider.setStyleSheet("border-width: 0px;")
         self._rotation_slider_layout.addWidget(self.rotation_slider, 1, 0, 1, 3)
 
-        self._rotation_slider_layout.addWidget(QtWidgets.QLabel("Roll", alignment=QtCore.Qt.AlignmentFlag.AlignCenter), 0, 1, 1, 1)
+        self._rotation_slider_layout.addWidget(QtWidgets.QLabel("↻   Roll   ↺", alignment=QtCore.Qt.AlignmentFlag.AlignCenter), 0, 1, 1, 1)
 
         label_text = QtWidgets.QLabel(
             "{}°".format(self.rotation_slider.value()), alignment=QtCore.Qt.AlignmentFlag.AlignCenter
