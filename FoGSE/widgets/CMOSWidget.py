@@ -129,12 +129,12 @@ class CMOSWidget(QWidget):
         self.start = QValueRangeWidget(name="Start", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
         self.stop = QValueRangeWidget(name="Stop", value=self._default_qvaluewidget_value, condition={"low":1,"high":np.inf}, border_colour=operation_layout_colour)
         self.stop2start = QValueRangeWidget(name="Init->Stop", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=operation_layout_colour)
-        self.software = QValueTimeWidget(name="SW Stat.", 
+        self.software = QValueTimeWidget(name="Linetime", 
                                               value=self._default_qvaluewidget_value, 
                                               time=4000, 
                                               condition=[int, float, np.int64, str], 
                                           border_colour=operation_layout_colour,
-                                          tool_tip_values={"Linetime":QValueWidget(name="Linetime", value=self._default_qvaluewidget_value), 
+                                          tool_tip_values={"SW Stat.":QValueWidget(name="SW Stat.", value=self._default_qvaluewidget_value), 
                                                            "Linetime @ pps":QValueWidget(name="Linetime @ pps", value=self._default_qvaluewidget_value), 
                                                            "QL DL Read Pointer":QValueChangeWidget(name="QL DL Read Pointer", value=self._default_qvaluewidget_value), 
                                                            "PC DL Read Pointer":QValueChangeWidget(name="PC DL Read Pointer", value=self._default_qvaluewidget_value)},
@@ -311,8 +311,8 @@ class CMOSWidget(QWidget):
         self.start.update_label(self.reader_hk.collection.get_cmos_start())
         self.stop.update_label(self.reader_hk.collection.get_cmos_stop())
         self.stop2start.update_label(self.reader_hk.collection.get_cmos_stop()-self.reader_hk.collection.get_cmos_init())
-        self.software.update_label(self.reader_hk.collection.get_software_status())
-        self.software.update_tool_tip({"Linetime":self.reader_hk.collection.get_line_time(), 
+        self.software.update_label(self.reader_hk.collection.get_line_time())
+        self.software.update_tool_tip({"SW Stat.":self.reader_hk.collection.get_software_status(), 
                                        "Linetime @ pps":self.reader_hk.collection.get_line_time_at_pps(), 
                                        "QL DL Read Pointer":self.reader_hk.collection.get_read_pointer_position_QL(), 
                                        "PC DL Read Pointer":self.reader_hk.collection.get_read_pointer_position_PC()})
