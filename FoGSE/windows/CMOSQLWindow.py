@@ -118,7 +118,7 @@ class CMOSQLWindow(BaseWindow):
 
         self.base_2d_image_settings()
 
-        self.min_val, self.max_val = 0, 1024
+        self.min_val, self.max_val = 0, 4095
 
         self.detw, self.deth = 512, 480
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)

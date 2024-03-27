@@ -118,7 +118,7 @@ class CMOSPCWindow(BaseWindow):
 
         self.base_2d_image_settings()
 
-        self.min_val, self.max_val = 0, 1024
+        self.min_val, self.max_val = 0, 4095
 
         self.detw, self.deth = 768, 384
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
@@ -222,6 +222,8 @@ class CMOSPCWindow(BaseWindow):
         # norm[norm==0] = 1 # can't divide by 0
         uf = copy(self.my_array)
         uf[uf>self.max_val] = self.max_val
+        uf[:,:,self.channel[self.image_colour]][uf[:,:,self.channel[self.image_colour]]<15] = 0 
+        uf[:,:,self.channel[self.image_colour]][uf[:,:,self.channel[self.image_colour]]>=15] = 1 
 
         # allow this all to be looked at if need be
         return uf
