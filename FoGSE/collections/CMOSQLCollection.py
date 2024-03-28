@@ -144,3 +144,16 @@ def get_cmos2_ql_ave_background():
 
 CMOS1_QL_AVE_BACKGROUND = get_cmos1_ql_ave_background()
 CMOS2_QL_AVE_BACKGROUND = get_cmos2_ql_ave_background()
+
+
+MASK_DIR = FILE_DIR+"/../data/cmos_ql_mask/"
+
+def get_cmos_ql_mask():
+    """ 
+    Return the QL frame mask for both CMOS  QL images to mask the bright 
+    feature found in hotter CMOS QL images. 
+    """
+    cmos_ql_mask_arr = np.load(MASK_DIR+"cmos_ql_mask.npy")
+    return cmos_ql_mask_arr
+
+CMOS_QL_MASK_ARRAY = get_cmos_ql_mask()

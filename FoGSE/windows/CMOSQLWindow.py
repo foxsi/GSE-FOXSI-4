@@ -6,11 +6,10 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
-from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes
+from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes, CMOS_QL_MASK_ARRAY
 from FoGSE.readers.CMOSQLReader import CMOSQLReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
-
 
 class CMOSQLWindow(BaseWindow):
     """
@@ -118,7 +117,7 @@ class CMOSQLWindow(BaseWindow):
 
         self.base_2d_image_settings()
 
-        self.min_val, self.max_val = 0, 1024
+        self.min_val, self.max_val = 0, 4095
 
         self.detw, self.deth = 512, 480
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
@@ -259,6 +258,8 @@ class CMOSQLWindow(BaseWindow):
         # norm[norm==0] = 1 # can't divide by 0
         uf = copy(self.my_array)#/norm
         uf[uf>self.max_val] = self.max_val
+
+        uf[:,:,self.channel[self.image_colour]] *= CMOS_QL_MASK_ARRAY
 
         # allow this all to be looked at if need be
         return uf
