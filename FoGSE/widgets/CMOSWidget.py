@@ -172,10 +172,10 @@ class CMOSWidget(QWidget):
         self._phot_layout = self.layout_bkg(main_layout=phot_layout, 
                                              panel_name="phot_panel", 
                                              style_sheet_string=self._layout_style("white", phot_layout_colour))
-        self.ph_w = QValueRangeWidget(name="Whole Ph. R.", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=phot_layout_colour)
-        self.ph_p = QValueRangeWidget(name="Part Ph. R.", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=phot_layout_colour)
-        self._phot_layout.addWidget(self.ph_w) 
-        self._phot_layout.addWidget(self.ph_p) 
+        self.ph_onc = QValueRangeWidget(name="On-center %", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=phot_layout_colour)
+        self.ph_offc = QValueRangeWidget(name="Off-center %", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=phot_layout_colour)
+        self._phot_layout.addWidget(self.ph_onc) 
+        self._phot_layout.addWidget(self.ph_offc) 
         set_all_spacings(self._phot_layout)
 
         # computer
@@ -285,8 +285,8 @@ class CMOSWidget(QWidget):
         * count rate field, 
         """
         # self.exp_pc.update_label(self.pc.reader.collection.get_exposure())
-        self.ph_w.update_label(round(self.pc.reader.collection.get_whole_photon_rate_bkg_sub(self._pc_dark_frame),3))
-        # self.ph_p.update_label("<span>&#129418;</span>")
+        self.ph_onc.update_label(round(self.pc.reader.collection.get_on_center_photon_rate_bkg_sub(self._pc_dark_frame),3))
+        self.ph_offc.update_label(round(self.pc.reader.collection.get_off_center_photon_rate_bkg_sub(self._pc_dark_frame),3))
 
     def all_hk_fields(self):
         """ Update the HK QValueWidgets. """

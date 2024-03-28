@@ -105,9 +105,36 @@ class CMOSPCCollection:
         """ Fraction of PC pixels over a threshold to all pixels"""
         return np.sum(self._image>self.whole_photon_rate_threshold)/self._image.size
     
-    def get_whole_photon_rate_bkg_sub(self, bkg):
-        """ Fraction of PC pixels over a threshold to all pixels"""
-        return np.sum((self._image-bkg)>self.whole_photon_rate_threshold)/self._image.size
+    def get_on_center_photon_rate_bkg_sub(self, bkg):
+        """ 
+        Fraction of PC pixels over a threshold to all pixels within mask 1. 
+        
+        This mask isolates a central square of pixels in the FOV.
+        """
+        # get the background subtracted frame and mask it
+        bkg_sub_masked = (self._image-bkg)*CMOS_PC_MASK1_ARRAY
+
+        # sum the number of background subtract pixels are above the threshold
+        above_thresh = np.sum(bkg_sub_masked>=self.whole_photon_rate_threshold)
+
+        # return percentage of pixels in mask above threshold
+        return (above_thresh/CMOS_PC_MASK1_ARRAY_SUM)*100
+    
+    def get_off_center_photon_rate_bkg_sub(self, bkg):
+        """ 
+        Fraction of PC pixels over a threshold to all pixels within mask 2. 
+        
+        This mask surrounds and excludes the \"on center\" mask. It does 
+        not extend as wide as the PC FOV but goes as high.
+        """
+        # get the background subtracted frame and mask it
+        bkg_sub_masked = (self._image-bkg)*CMOS_PC_MASK2_ARRAY
+
+        # sum the number of background subtract pixels are above the threshold
+        above_thresh = np.sum(bkg_sub_masked>=self.whole_photon_rate_threshold)
+        
+        # return percentage of pixels in mask above threshold
+        return (above_thresh/CMOS_PC_MASK2_ARRAY_SUM)*100
     
 def det_pc_edges():
     """ 
@@ -145,3 +172,25 @@ def get_cmos2_pc_ave_background():
 
 CMOS1_PC_AVE_BACKGROUND = get_cmos1_pc_ave_background()
 CMOS2_PC_AVE_BACKGROUND = get_cmos2_pc_ave_background()
+
+
+MASK_DIR = FILE_DIR+"/../data/cmos_pc_mask/"
+
+def get_cmos_pc_mask1():
+    """ Return the PC frame mask 1 for the CMOS PC images. """
+    cmos_pc_mask1_arr = np.load(MASK_DIR+"cmos_pc_mask1_on_center.npy")
+    return cmos_pc_mask1_arr
+
+def get_cmos_pc_mask2():
+    """ Return the PC frame mask 2 for the CMOS PC images. """
+    cmos_pc_mask2_arr = np.load(MASK_DIR+"cmos_pc_mask2_off_center.npy")
+    return cmos_pc_mask2_arr
+
+def get_mask_sum(mask):
+    """ A function to calculate the number of 1 entries in a mask of 0s and 1s. """
+    return np.sum(mask)
+
+CMOS_PC_MASK1_ARRAY = get_cmos_pc_mask1()
+CMOS_PC_MASK1_ARRAY_SUM = get_mask_sum(CMOS_PC_MASK1_ARRAY)
+CMOS_PC_MASK2_ARRAY = get_cmos_pc_mask2()
+CMOS_PC_MASK2_ARRAY_SUM = get_mask_sum(CMOS_PC_MASK2_ARRAY)
