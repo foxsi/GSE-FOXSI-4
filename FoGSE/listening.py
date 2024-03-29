@@ -323,6 +323,11 @@ class Listener():
             self.unix_socket.bind(self.unix_socket_path)
             self.unix_socket.settimeout(0.001)
 
+            print("\nsetting up sockets with")
+            print("\tlocal_recv_endpoint:",self.local_recv_endpoint)
+            print("\tlocal_send_endpoint:",self.local_send_endpoint)
+            print("\tremote_endpoint:",self.remote_endpoint)
+            print("\tmcast_group:",self.mcast_group,"\n")
             self.set_command_interface(command_interface)
 
             print("listening for command (to forward) on Unix datagram socket at:\t",
@@ -378,16 +383,16 @@ class Listener():
             raise RuntimeError
             
 
-        self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            self.local_send_socket.bind(self.local_send_endpoint)
-        except OSError as e:
-            print("Exception:", e, "for endpoint",self.local_send_endpoint)
-        try:
-            self.local_send_socket.connect(self.remote_endpoint)
-            print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
-        except OSError as e:
-            print("Exception:",e, "for connection to remote", self.remote_endpoint)
+        # self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # try:
+        #     self.local_send_socket.bind(self.local_send_endpoint)
+        # except OSError as e:
+        #     print("Exception:", e, "for endpoint",self.local_send_endpoint)
+        # try:
+        #     self.local_send_socket.connect(self.remote_endpoint)
+        #     print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
+        # except OSError as e:
+        #     print("Exception:",e, "for connection to remote", self.remote_endpoint)
 
         # setup UDP interface
         if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
@@ -408,13 +413,13 @@ class Listener():
         else:
             # listen on a unicast socket    
             self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.local_recv_socket.bind((self.local_recv_address, self.local_port))
+            self.local_recv_socket.bind((self.local_recv_address, self.local_recv_port))
             self.local_recv_socket.connect(self.remote_endpoint)
             print("listening for downlink (to log) on Ethernet datagram socket at:\t",
                 self.local_recv_address + ":" + str(self.local_recv_port))
             
         self.local_recv_socket.settimeout(0.01)
-        self.local_send_socket.settimeout(0.001)
+        # self.local_send_socket.settimeout(0.001)
         return True
     
     def send_command(self, command:bytes):
