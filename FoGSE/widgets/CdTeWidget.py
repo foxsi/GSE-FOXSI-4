@@ -260,7 +260,7 @@ class CdTeWidget(QWidget):
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
         self.ping.update_label(self.reader_de.collection.get_ping())
-        self.de_unixtime.update_label(self.reader_de.collection.get_unixtime())
+        self.de_unixtime.update_label(str(self.reader_de.collection.get_unixtime())[-6:])
     
         # self.reader_de.collection. methods
         # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):
