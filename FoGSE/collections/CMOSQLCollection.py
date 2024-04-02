@@ -132,15 +132,26 @@ DARK_FRAME_DIR = FILE_DIR+"/../data/cmos_dark_frame/"
 
 def get_cmos1_ql_ave_background():
     """ Return the dark QL frame for CMOS 1. """
-    cmos1_ql_arr = np.load(DARK_FRAME_DIR+"cmos1-ql-bkg-from-mar23-run12.npy")
+    cmos1_ql_arr = np.load(DARK_FRAME_DIR+"cmos1-ql-bkg-from-mar20-run16.npy")
     cmos1_ql_arr[0,:4] = np.min(cmos1_ql_arr[0])
     return cmos1_ql_arr
 
 def get_cmos2_ql_ave_background():
     """ Return the dark QL frame for CMOS 2. """
-    cmos2_ql_arr = np.load(DARK_FRAME_DIR+"cmos2-ql-bkg-from-mar23-run13.npy")
+    cmos2_ql_arr = np.load(DARK_FRAME_DIR+"cmos2-ql-bkg-from-mar20-run16.npy")
     cmos2_ql_arr[0,:4] = np.min(cmos2_ql_arr[0])
     return cmos2_ql_arr
 
 CMOS1_QL_AVE_BACKGROUND = get_cmos1_ql_ave_background()
 CMOS2_QL_AVE_BACKGROUND = get_cmos2_ql_ave_background()
+
+def get_cmos_ql_mask():
+    """ 
+    Return the QL frame mask for both CMOS  QL images to mask the bright 
+    feature found in hotter CMOS QL images. 
+    """
+    cmos_ql_mask_arr = np.ones((480, 512))
+    cmos_ql_mask_arr[0:128,0:50] = 0
+    return cmos_ql_mask_arr
+
+CMOS_QL_MASK_ARRAY = get_cmos_ql_mask()

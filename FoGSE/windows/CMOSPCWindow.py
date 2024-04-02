@@ -116,16 +116,20 @@ class CMOSPCWindow(BaseWindow):
     def image_setup(self):
         """ Sets up the class for an image product. """
 
+        self.threshold = 60
+
         self.base_2d_image_settings()
 
-        self.min_val, self.max_val = 0, 1024
+        self.min_val, self.max_val = 0, 4095
 
         self.detw, self.deth = 768, 384
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
                                rotation=self.image_angle, 
                                keep_aspect=True,
-                               custom_plotting_kwargs={"aspect":self.aspect_ratio,
+                               custom_plotting_kwargs={"vmin":0,
+                                                       "vmax":1,
+                                                       "aspect":self.aspect_ratio,
                                                        "extent":det_pc_arcminutes()},
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
@@ -222,6 +226,9 @@ class CMOSPCWindow(BaseWindow):
         # norm[norm==0] = 1 # can't divide by 0
         uf = copy(self.my_array)
         uf[uf>self.max_val] = self.max_val
+
+        uf[:,:,self.channel[self.image_colour]][uf[:,:,self.channel[self.image_colour]]<self.threshold] = 0
+        uf[:,:,self.channel[self.image_colour]][uf[:,:,self.channel[self.image_colour]]>=self.threshold] = 1
 
         # allow this all to be looked at if need be
         return uf

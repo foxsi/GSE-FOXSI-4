@@ -2,15 +2,15 @@
 A demo to walk through a CMOS QL raw file.
 """
 from copy import copy
+from matplotlib.colors import LogNorm, Normalize, LinearSegmentedColormap
 import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout
 
-from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes
+from FoGSE.collections.CMOSQLCollection import det_ql_arcminutes, CMOS_QL_MASK_ARRAY
 from FoGSE.readers.CMOSQLReader import CMOSQLReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.ImageWindow import Image
-
 
 class CMOSQLWindow(BaseWindow):
     """
@@ -118,15 +118,20 @@ class CMOSQLWindow(BaseWindow):
 
         self.base_2d_image_settings()
 
-        self.min_val, self.max_val = 0, 1024
+        self.min_val, self.max_val = 0, 4095
 
         self.detw, self.deth = 512, 480
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
+        cmap = LinearSegmentedColormap.from_list("cmos", ("black", "white"), N=255)
+        # vmin needs to be <=vmax
+        norm = LogNorm(vmin=1e-2, vmax=1) if "cmos1" in self.name else Normalize(vmin=1e-2, vmax=1)
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
                                rotation=self.image_angle, 
                                keep_aspect=True,
                                custom_plotting_kwargs={"aspect":self.aspect_ratio,
-                                                       "extent":det_ql_arcminutes()},
+                                                       "extent":det_ql_arcminutes(),
+                                                       "norm":norm,
+                                                       "cmap":cmap},
                                 figure_kwargs={"facecolor":(0.612, 0.671, 0.737, 1)})
         self.add_rotate_frame(alpha=0.3)
 
@@ -155,7 +160,17 @@ class CMOSQLWindow(BaseWindow):
         # define self.qImageDetails for this particular image product
         new_im = self.process_image_data()
 
-        self.graphPane.add_plot_data(new_im)
+        _new_im = new_im[:,:,self.channel[self.image_colour]]
+        if "cmos1" in self.name:
+            vmin = np.min(_new_im[_new_im>0])
+            _new_im[_new_im<vmin] = vmin
+        else: 
+            vmin = 0
+        vmax = np.quantile(_new_im, 0.99998)
+
+        self.graphPane.im_obj.set_clim(vmin=vmin, vmax=vmax)
+
+        self.graphPane.add_plot_data(_new_im)
 
         self.my_array[:,:,self.channel[self.image_colour]] += self.ave_background_frame
 
@@ -259,6 +274,8 @@ class CMOSQLWindow(BaseWindow):
         # norm[norm==0] = 1 # can't divide by 0
         uf = copy(self.my_array)#/norm
         uf[uf>self.max_val] = self.max_val
+
+        uf[:,:,self.channel[self.image_colour]] *= CMOS_QL_MASK_ARRAY
 
         # allow this all to be looked at if need be
         return uf
