@@ -122,7 +122,7 @@ class CMOSQLWindow(BaseWindow):
 
         self.detw, self.deth = 512, 480
         self.base_update_aspect(aspect_ratio=self.detw/self.deth)
-        cmap = LinearSegmentedColormap.from_list("cmos", ("black", "green"), N=255)
+        cmap = LinearSegmentedColormap.from_list("cmos", ("black", "white"), N=255)
         # vmin needs to be <=vmax
         norm = LogNorm(vmin=1e-2, vmax=1) if "cmos1" in self.name else Normalize(vmin=1e-2, vmax=1)
         self.graphPane = Image(imshow={"data_matrix":np.zeros((self.deth, self.detw))}, 
