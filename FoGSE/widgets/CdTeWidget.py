@@ -137,12 +137,11 @@ class CdTeWidget(QWidget):
         # frames
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
-        self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        # self.frames_t = QValueRangeWidget(name="t", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
-        t_cond = {"range1":[0,5.62*0.5,"rgb(100,149,237)"], "range2":[5.62*0.5,5.62*0.75,"yellow"], "range3":[5.62,np.inf,"red"], "other":"orange", "error":"orange"}
+        self.frames = QValueWidget(name="Time to read [sec]:", value="", separator="", border_colour=frames_layout_colour)
+        t_cond = {"range1":[-np.inf,45,"rgb(100,149,237)"], "range2":[45,90,"yellow"], "range3":[90,np.inf,"red"], "other":"orange", "error":"orange"}
         self.frames_t = QValueMultiRangeWidget(name="t", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
-        # self.frames_tm1 = QValueRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
         self.frames_tm1 = QValueMultiRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
+        self._frame_count_value = 0
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
         frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
         frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
@@ -231,10 +230,11 @@ class CdTeWidget(QWidget):
         self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
 
         _frame_count = self.image.reader.collection.get_unread_can_frame_count()
-        self.frames_t.update_label(_frame_count)
+        self._frame_count_value += _frame_count
+        self.frames_t.update_label(self._frame_count_value)
         if hasattr(self, "_old_frames_t"):
             self.frames_tm1.update_label(self._old_frames_t)
-        self._old_frames_t = _frame_count
+        self._old_frames_t = self._frame_count_value
         
     def all_fields_from_hk(self):
         """ 

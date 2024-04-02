@@ -766,9 +766,10 @@ class CdTeCollection:
     
     def get_unread_can_frame_count(self):
         """ This value corresponds to the time it takes to... """
-        n_det = self.mean_num_of_al_strips()  + self.mean_num_of_pt_strips()
-        n_event = (32780 - 12) / (93 + 1.25 * n_det)
-        return (self.total_count_rate(frame_livetime_uncorrected=True) / n_event - 5.62)*2 
+        dt = self.delta_time(handle_jumps=True)
+        if (dt<=0) or np.isnan(dt):
+            return 0
+        return (2 / (5.62*dt)) - 2
         
 
 def channel_bins():
