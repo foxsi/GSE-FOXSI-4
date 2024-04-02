@@ -11,7 +11,7 @@ from FoGSE.readers.CdTePCReader import CdTePCReader
 from FoGSE.readers.CdTeHKReader import CdTeHKReader
 from FoGSE.readers.DEReader import DEReader
 from FoGSE.windows.CdTeWindow import CdTeWindow
-from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget
+from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueWidget, QValueTimeWidget, QValueCheckWidget, QValueMultiRangeWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
 
@@ -137,13 +137,14 @@ class CdTeWidget(QWidget):
         # frames
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
-        self.frames = QValueWidget(name="# of rest evt. frame", value="", separator="", border_colour=frames_layout_colour)
-        self.frames_t = QValueRangeWidget(name="t", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition={"low":0,"high":np.inf}, border_colour=frames_layout_colour)
+        self.frames = QValueWidget(name="Time to read [sec]:", value="", separator="", border_colour=frames_layout_colour)
+        t_cond = {"range1":[-np.inf,45,"rgb(100,149,237)"], "range2":[45,90,"yellow"], "range3":[90,np.inf,"red"], "other":"orange", "error":"orange"}
+        self.frames_t = QValueMultiRangeWidget(name="t", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueMultiRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
+        self._frame_count_value = 0
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
         frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
         frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
-        
         
         self._value_layout.addLayout(de_layout, 0, 0 , 4, 1) 
 
@@ -227,6 +228,13 @@ class CdTeWidget(QWidget):
 
         self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
         self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
+
+        _frame_count = self.image.reader.collection.get_unread_can_frame_count()
+        self._frame_count_value += _frame_count
+        self.frames_t.update_label(self._frame_count_value)
+        if hasattr(self, "_old_frames_t"):
+            self.frames_tm1.update_label(self._old_frames_t)
+        self._old_frames_t = self._frame_count_value
         
     def all_fields_from_hk(self):
         """ 
@@ -243,11 +251,11 @@ class CdTeWidget(QWidget):
         # self.ping.update_label(...)
         self.hv.update_label(self.reader_hk.collection.get_hv_set()) #get_hv_exec
 
-        _frame_count = self.reader_hk.collection.get_unread_can_frame_count()
-        self.frames_t.update_label(_frame_count)
-        if hasattr(self, "_old_frames_t"):
-            self.frames_tm1.update_label(self._old_frames_t)
-        self._old_frames_t = _frame_count
+        # _frame_count = self.reader_hk.collection.get_unread_can_frame_count()
+        # self.frames_t.update_label(_frame_count)
+        # if hasattr(self, "_old_frames_t"):
+        #     self.frames_tm1.update_label(self._old_frames_t)
+        # self._old_frames_t = _frame_count
 
     def all_fields_from_de(self):
         """ 
@@ -260,7 +268,7 @@ class CdTeWidget(QWidget):
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
         self.ping.update_label(self.reader_de.collection.get_ping())
-        self.de_unixtime.update_label(self.reader_de.collection.get_unixtime())
+        self.de_unixtime.update_label(str(self.reader_de.collection.get_unixtime())[-6:])
     
         # self.reader_de.collection. methods
         # get_temp(self): get_cpu(self): get_df_gb(self): get_unixtime(self):

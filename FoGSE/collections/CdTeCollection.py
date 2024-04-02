@@ -763,6 +763,14 @@ class CdTeCollection:
     def get_frame_fraction_livetime(self):
         """ Get the livetime fraction of the frame. """
         return self.get_frame_seconds_livetime()/self.delta_time(handle_jumps=True)
+    
+    def get_unread_can_frame_count(self):
+        """ This value corresponds to the time it takes to... """
+        dt = self.delta_time(handle_jumps=True)
+        if (dt<=0) or np.isnan(dt):
+            return 0
+        return (2 / (5.62*dt)) - 2
+        
 
 def channel_bins():
     """ Define the strip and ADC bins. """
