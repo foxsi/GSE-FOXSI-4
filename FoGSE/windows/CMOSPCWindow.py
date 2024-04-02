@@ -116,7 +116,7 @@ class CMOSPCWindow(BaseWindow):
     def image_setup(self):
         """ Sets up the class for an image product. """
 
-        self.threshold = 15
+        self.threshold = 60
 
         self.base_2d_image_settings()
 
