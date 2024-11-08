@@ -1,7 +1,7 @@
 import sys, os, pathlib
 
-from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QRadioButton, QButtonGroup, QLineEdit
-from PyQt6 import QtCore
+from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QRadioButton, QButtonGroup, QLineEdit, QListWidget
+from PyQt6 import QtCore, QtGui
 
 import FoGSE.communication as comm
 from FoGSE.io.newest_data import newest_data_dir
@@ -48,12 +48,13 @@ class CommandUplinkWidget(QWidget):
         self.cmd_box = QGroupBox(self.label)
 
         # make UI widgets:
+        min_scroll_height = 400
         self.box_layout = QVBoxLayout()
         self.grid_layout = QGridLayout()
         self.system_label = QLabel("System")
-        self.system_combo_box = QComboBox()
+        self.system_combo_box = QListWidget()
         self.command_label = QLabel("Command")
-        self.command_combo_box = QComboBox()
+        self.command_combo_box = QListWidget()
         # self.args_label = QLabel("Argument")
         # self.command_args_text = QLineEdit()
         self.send_label = QLabel("")
@@ -88,20 +89,10 @@ class CommandUplinkWidget(QWidget):
         self.current_log_folder_value.setStyleSheet("font-family: PT Mono}")
         self.current_log_folder_value.setEnabled(False)
 
-
-        # self.command_mode_ether = QRadioButton("Uplink")
-        # self.command_mode_uart = QRadioButton("Umbi")
-        # self.command_mode_button_group = QButtonGroup(parent=self)
-        # self.command_mode_button_group.addButton(self.command_mode_uart)
-        # self.command_mode_button_group.addButton(self.command_mode_ether)
-        # self.command_mode_layout = QVBoxLayout()
-        # self.command_mode_layout.addWidget(self.command_mode_ether)
-        # self.command_mode_layout.addWidget(self.command_mode_uart)
-        # self.command_mode_ether.setChecked(True)
-
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
-            self.system_combo_box.addItem(sys.name.lower())
+            if len(self.cmddeck.get_commands_for_system(sys.name)) != 0:
+                self.system_combo_box.addItem(sys.name.lower())
 
         # for cmd in self.cmddeck[].commands:
         #     self.command_combo_box.addItem(cmd.name)
@@ -113,6 +104,7 @@ class CommandUplinkWidget(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.system_combo_box.setMinimumWidth(160)
+        self.system_combo_box.setMinimumHeight(min_scroll_height)
         self.grid_layout.addWidget(
             self.system_combo_box,
             1,0,1,2,
@@ -149,6 +141,7 @@ class CommandUplinkWidget(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
         )
         self.command_combo_box.setMinimumWidth(270)
+        self.command_combo_box.setMinimumHeight(min_scroll_height)
         self.grid_layout.addWidget(
             self.command_raw_label,
             2,2,1,2,
@@ -169,21 +162,6 @@ class CommandUplinkWidget(QWidget):
             3,3,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        # self.grid_layout.addWidget(
-        #     self.args_label,
-        #     0,2,1,1,
-        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        # )
-        # self.grid_layout.addWidget(
-        #     self.command_args_text,
-        #     1,2,1,1,
-        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        # )
-        # self.grid_layout.addLayout(
-        #     self.command_mode_layout,
-        #     1,3,1,1,
-        #     alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
-        # )
         self.grid_layout.addWidget(
             self.send_label,
             0,4,1,2,
@@ -230,53 +208,51 @@ class CommandUplinkWidget(QWidget):
         self.setLayout(self.box_layout)
 
         # hook up callbacks
-        self.system_combo_box.activated.connect(self.systemComboBoxClicked)
-        self.command_combo_box.activated.connect(self.commandComboBoxClicked)
-        # self.command_args_text.returnPressed.connect(self.commandArgsEdited)
+        self.system_combo_box.itemSelectionChanged.connect(self.systemComboBoxClicked)
+        self.command_combo_box.itemSelectionChanged.connect(self.commandComboBoxClicked)
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
-
-        # self.command_mode_button_group.buttonClicked.connect(self.commandInterfaceButtonClicked)
 
         # disable downstream command pieces (until selection is made)
         self.command_combo_box.setEnabled(False)
         # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
     
-    def systemComboBoxClicked(self, events):
+    def systemComboBoxClicked(self):
         self.command_combo_box.setEnabled(False)
         # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-
-        cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentText())
+        cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentItem().text())
         names = [cmd.name for cmd in cmds]
         
         # start working command with address of selected system
         self._working_command = []
-        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentText())
+        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentItem().text())
         self._working_command.append(sys.addr)
-        # todo: if adding delimiters, do it here.
 
         self.command_combo_box.clear()
-        self.command_combo_box.addItems(names)
-        self.command_combo_box.setEnabled(True)
+        for i, cmd in enumerate(cmds):
+            self.command_combo_box.addItem(cmd.name)
+            # for future: this is 
+            self.command_combo_box.item(i).setForeground(QtGui.QColor(round(255*i/len(cmds))))
 
-        # self.system_raw_label.setText(f"{self._raw}{hex(sys.addr)}")
-        # self.system_name_label.setText(f"{self._check}{self.cmddeck.get_system_by_addr(sys.addr).name}")
-        # self.command_raw_label.setText(f"{self._raw}")
-        # self.command_name_label.setText(f"{self._check}")
+        self.command_combo_box.setEnabled(True)
         self.system_raw_value.setText(hex(sys.addr))
         self.system_name_value.setText(self.cmddeck.get_system_by_addr(sys.addr).name)
         self.command_raw_value.setText("")
         self.command_name_value.setText("")
 
-    def commandComboBoxClicked(self, events):
+    def commandComboBoxClicked(self):
         # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
-        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentText())
-        cmd = self.cmddeck.get_command_for_system(self.system_combo_box.currentText(), self.command_combo_box.currentText())
+        sys = self.cmddeck.get_system_by_name(self.system_combo_box.currentItem().text())
 
-        # add cmd bitstring to working command
-        # self._working_command.append(cmd.hex)
+        if sys is None:
+            return
+
+        cmd = self.cmddeck.get_command_for_system(self.system_combo_box.currentItem().text(), self.command_combo_box.currentItem().text())
+        if cmd is None:
+            return
+
         self._working_command = [sys.addr,cmd.hex]
 
         if cmd.arg_len > 0:
@@ -286,13 +262,10 @@ class CommandUplinkWidget(QWidget):
         else:
             self.command_send_button.setEnabled(True)
 
-        # self.command_raw_label.setText(f"{self._raw}{hex(cmd.hex)}")
-        # self.command_name_label.setText(f"{self._check}{self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name}")
         self.command_raw_value.setText(hex(cmd.hex))
         self.command_name_value.setText(self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name)
 
     def commandSendButtonClicked(self, events):
-
         print("validating command...")
         # todo: validate
         if len(self._working_command) == 2:
@@ -301,18 +274,19 @@ class CommandUplinkWidget(QWidget):
             print(self._working_command)
             raise Exception("wrong length working command: " + str(len(self._working_command)))
 
-        # todo: log file setup, open, plus the actual logging
-
         self.command_combo_box.setEnabled(False)
-        # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
     
     def commandInterfaceButtonClicked(self, events):
         print("switched to commanding mode:", self.command_mode_button_group.checkedButton().text())
-    
-    def delegateCommandInterfaceChange(self):
-        is_success = self.fmtrif
-        print("setting ")
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key.Key_Left:
+            self.system_combo_box.setFocus()
+        if event.key() == QtCore.Qt.Key.Key_Right:
+            if self.command_combo_box.isEnabled():
+                self.command_combo_box.setFocus()
+                self.command_combo_box.setCurrentRow(0)
 
 
 if __name__ == "__main__":
