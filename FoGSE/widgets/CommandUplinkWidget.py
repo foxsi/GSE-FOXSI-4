@@ -293,12 +293,13 @@ class CommandUplinkWidget(QWidget):
 
     def closeEvent(self, event):
         dialog = QMessageBox(self)
-        dialog.setText("Closing uplink window. This will stop downlink data recording.")
-        dialog.setInformativeText("Do you want to stop recording downlink data?")
-        dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        dialog.setText("Closing uplink window")
+        dialog.setInformativeText("This will stop logging downlink data.\nAre you sure you want to close?")
+        dialog.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+        dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
         choice = dialog.exec()
-        if choice == QMessageBox.StandardButton.Yes:
+        dialog.setMinimumHeight(500)
+        if choice == QMessageBox.StandardButton.Ok:
             print("stopping listen process")
             self.fmtrif.background_listen_process.terminate()
             # time.sleep(1)
