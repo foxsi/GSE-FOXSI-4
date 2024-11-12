@@ -358,11 +358,6 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
         self.command_count = 0
 
     def __del__(self):
-        print("cleaning up FormatterUDPInterface")
-        if (self.end_background_process_on_close):
-            self.background_listen_process.kill()
-            print("sent kill to listener process")
-            time.sleep(0.5)
         self.unix_local_socket.close()
 
     def submit_uplink_command(self, system, command):
@@ -379,11 +374,13 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
     def start_listening(self):
         if self.do_logging:
             print("\nstarting logger in subprocess...")
-            self.background_listen_process = subprocess.Popen(["python3", os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile, self.command_interface])
+            # self.background_listen_process = subprocess.Popen(["python3", os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile, self.command_interface])
+            
             # or, if using QProcess:
-            # self.background_listen_process = QProcess()
-            # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile, interface])
-
+            self.background_listen_process = QProcess()
+            self.background_listen_process.setProgram("python3")
+            self.background_listen_process.setArguments([os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile])
+            self.background_listen_process.start()
             print("started listen for downlink")
             print("using",self.command_interface,"to send commands")
             time.sleep(2)

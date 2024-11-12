@@ -1,6 +1,6 @@
 import sys, os, pathlib
 
-from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QRadioButton, QButtonGroup, QLineEdit, QListWidget
+from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QMainWindow, QRadioButton, QButtonGroup, QLineEdit, QListWidget, QMessageBox
 from PyQt6 import QtCore, QtGui
 
 import FoGSE.communication as comm
@@ -34,7 +34,10 @@ class CommandUplinkWidget(QWidget):
         # open UDP socket to remote
         # self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
         if formatter_if is None:
-            self.fmtrif = comm.FormatterUDPInterface()
+            if configuration is not None:
+                self.fmtrif = comm.FormatterUDPInterface(configfile=configuration)
+            else:
+                self.fmtrif = comm.FormatterUDPInterface()
         else:
             self.fmtrif = formatter_if
         
@@ -274,7 +277,7 @@ class CommandUplinkWidget(QWidget):
             print(self._working_command)
             raise Exception("wrong length working command: " + str(len(self._working_command)))
 
-        self.command_combo_box.setEnabled(False)
+        self.command_combo_box.setEnabled(True)
         self.command_send_button.setEnabled(False)
     
     def commandInterfaceButtonClicked(self, events):
@@ -288,6 +291,21 @@ class CommandUplinkWidget(QWidget):
                 self.command_combo_box.setFocus()
                 self.command_combo_box.setCurrentRow(0)
 
+    def closeEvent(self, event):
+        dialog = QMessageBox(self)
+        dialog.setText("Closing uplink window. This will stop downlink data recording.")
+        dialog.setInformativeText("Do you want to stop recording downlink data?")
+        dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        choice = dialog.exec()
+        if choice == QMessageBox.StandardButton.Yes:
+            print("stopping listen process")
+            self.fmtrif.background_listen_process.terminate()
+            # time.sleep(1)
+            return event.accept()
+        event.ignore()
+
+        
 
 if __name__ == "__main__":
     # if (len(sys.argv)) > 0:
@@ -296,6 +314,9 @@ if __name__ == "__main__":
     # c = comm.FormatterUDPInterface(configfile="foxsi4-commands/foxsimile_systems.json", command_interface="uplink")
     # c = comm.FormatterUDPInterface()
     # window = CommandUplinkWidget(formatter_if=c)
-    window = CommandUplinkWidget()
+    if len(sys.argv) == 2:
+        window = CommandUplinkWidget(configuration=sys.argv[1])
+    else:
+        window = CommandUplinkWidget()
     window.show()
     sys.exit(app.exec())
