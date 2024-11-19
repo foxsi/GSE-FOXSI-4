@@ -1,14 +1,19 @@
-import sys, os, pathlib
+import sys, os, pathlib, platform
 
-from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QMainWindow, QRadioButton, QButtonGroup, QLineEdit, QListWidget, QMessageBox
+from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QMainWindow, QRadioButton, QButtonGroup, QLineEdit, QListWidget, QMessageBox, QSizePolicy
 from PyQt6 import QtCore, QtGui
 
 import FoGSE.communication as comm
 from FoGSE.io.newest_data import newest_data_dir
+from FoGSE.widgets import QValueWidget
 
 class CommandUplinkWidget(QWidget):
     """
     `CommandUplinkWidget` provides a unified interface to send any uplink commands to the Formatter. This is enabled by `communication.FormatterUDPInterface`, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
+
+    Commands display in black by default, or in the color defined by FoGSE.communication.UplinkCommand.color. The current color coding is:
+    - if a command can cause issues that are not revertable by a subsystem power cycle (hardware damage, software issues beyond reboot, or data loss), it is colored red.
+    - CMOS enable_double_cmds are colored orange.
 
     :param name: Unique name of this panel interface.
     :type name: str
@@ -50,14 +55,19 @@ class CommandUplinkWidget(QWidget):
         # group all UI elements in widget
         self.cmd_box = QGroupBox(self.label)
 
+        platform_monospace = platform_specific_monospace()
+        print('found system font' , platform_monospace)
+
         # make UI widgets:
         min_scroll_height = 400
         self.box_layout = QVBoxLayout()
         self.grid_layout = QGridLayout()
         self.system_label = QLabel("System")
         self.system_combo_box = QListWidget()
+        self.system_combo_box.setStyleSheet(f'font-size: 14pt; font-family: {platform_monospace}')
         self.command_label = QLabel("Command")
         self.command_combo_box = QListWidget()
+        self.command_combo_box.setStyleSheet(f'font-size: 14pt; font-family: {platform_monospace}')
         # self.args_label = QLabel("Argument")
         # self.command_args_text = QLineEdit()
         self.send_label = QLabel("")
@@ -66,31 +76,33 @@ class CommandUplinkWidget(QWidget):
         self._raw, self._check = "Raw: ", "Name: "
         self.system_raw_label = QLabel(self._raw, self)
         self.system_raw_value = QLabel("", self)
-        self.system_raw_value.setStyleSheet("font-family: PT Mono}")
+        self.system_raw_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.system_raw_value.setEnabled(False)
         self.system_name_label = QLabel(self._check, self)
         self.system_name_value = QLabel("", self)
-        self.system_name_value.setStyleSheet("font-family: PT Mono}")
+        self.system_name_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.system_name_value.setEnabled(False)
 
         self.command_raw_label = QLabel(self._raw, self)
         self.command_raw_value = QLabel("", self)
-        self.command_raw_value.setStyleSheet("font-family: PT Mono}")
+        self.command_raw_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.command_raw_value.setEnabled(False)
         self.command_name_label = QLabel(self._check, self)
         self.command_name_value = QLabel("", self)
-        self.command_name_value.setStyleSheet("font-family: PT Mono}")
+        self.command_name_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.command_name_value.setEnabled(False)
 
         self.command_interface_label = QLabel("Command interface:", self)
         self.command_interface_value = QLabel(self.command_interface, self)
-        self.command_interface_value.setStyleSheet("font-family: PT Mono}")
+        self.command_interface_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.command_interface_value.setEnabled(False)
 
         self.current_log_folder_label = QLabel("Currently logging to:", self)
         self.current_log_folder_value = QLabel(os.path.basename(os.path.normpath(newest_data_dir())), self)
-        self.current_log_folder_value.setStyleSheet("font-family: PT Mono}")
+        self.current_log_folder_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.current_log_folder_value.setEnabled(False)
+
+        self.indicator_label = QValueWidget.QValueTimeWidget("", False, 250, parent=self, separator="", condition={"acceptable":[(True,"green"), (False,"red")]})
 
         # populate dialogs with valid lists:
         for sys in self.cmddeck.systems:
@@ -108,6 +120,7 @@ class CommandUplinkWidget(QWidget):
         )
         self.system_combo_box.setMinimumWidth(160)
         self.system_combo_box.setMinimumHeight(min_scroll_height)
+        self.system_combo_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         self.grid_layout.addWidget(
             self.system_combo_box,
             1,0,1,2,
@@ -143,8 +156,9 @@ class CommandUplinkWidget(QWidget):
             1,2,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
         )
-        self.command_combo_box.setMinimumWidth(270)
+        self.command_combo_box.setMinimumWidth(340)
         self.command_combo_box.setMinimumHeight(min_scroll_height)
+        self.system_combo_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         self.grid_layout.addWidget(
             self.command_raw_label,
             2,2,1,2,
@@ -173,7 +187,7 @@ class CommandUplinkWidget(QWidget):
         self.grid_layout.addWidget(
             self.command_send_button,
             1,4,1,2,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
             self.command_interface_label,
@@ -196,10 +210,16 @@ class CommandUplinkWidget(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
 
+        self.grid_layout.addWidget(
+            self.indicator_label,
+            6,5,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+
         self.grid_layout.setRowMinimumHeight(4,40)
 
         # somehow, this aligns the Widgets in the grid top-left:
-        self.grid_layout.setRowStretch(self.grid_layout.rowCount(),1)
+        self.grid_layout.setRowStretch(1,1)
         self.grid_layout.setColumnStretch(self.grid_layout.columnCount(),1)
 
         # add grid layout to box
@@ -207,7 +227,7 @@ class CommandUplinkWidget(QWidget):
 
         # add box to a global layout for whole self widget
         self.box_layout.addWidget(self.cmd_box)
-        self.box_layout.addStretch(10)
+        # self.box_layout.addStretch(10)
         self.setLayout(self.box_layout)
 
         # hook up callbacks
@@ -225,7 +245,10 @@ class CommandUplinkWidget(QWidget):
         # self.command_args_text.setEnabled(False)
         self.command_send_button.setEnabled(False)
         cmds = self.cmddeck.get_commands_for_system(self.system_combo_box.currentItem().text())
-        names = [cmd.name for cmd in cmds]
+        
+        order = [cmd.order for cmd in cmds]
+        if not all(v == 0 for v in order):
+            cmds = [x for _, x in sorted(zip(order, cmds))]
         
         # start working command with address of selected system
         self._working_command = []
@@ -235,8 +258,9 @@ class CommandUplinkWidget(QWidget):
         self.command_combo_box.clear()
         for i, cmd in enumerate(cmds):
             self.command_combo_box.addItem(cmd.name)
-            # for future: this is 
-            self.command_combo_box.item(i).setForeground(QtGui.QColor(round(255*i/len(cmds))))
+            # for future: this is where to set item color
+            # self.command_combo_box.item(i).setForeground(QtGui.QColor(round(255*i/len(cmds))))
+            self.command_combo_box.item(i).setForeground(QtGui.QColor(cmd.color))
 
         self.command_combo_box.setEnabled(True)
         self.system_raw_value.setText(hex(sys.addr))
@@ -267,9 +291,9 @@ class CommandUplinkWidget(QWidget):
 
         self.command_raw_value.setText(hex(cmd.hex))
         self.command_name_value.setText(self.cmddeck.get_command_for_system(system=sys.addr, command=cmd.hex).name)
+        self.command_send_button.setStyleSheet(make_stylesheet_color(cmd.color));
 
     def commandSendButtonClicked(self, events):
-        print("validating command...")
         # todo: validate
         if len(self._working_command) == 2:
             self.fmtrif.submit_uplink_command(self._working_command[0], self._working_command[1])
@@ -306,7 +330,48 @@ class CommandUplinkWidget(QWidget):
             return event.accept()
         event.ignore()
 
-        
+def make_stylesheet_color(val):
+    if type(val) is int:
+        if val <= 0xffffff:
+            b = val & 0xff
+            g = (val >> 8) & 0xff
+            r = (val >> 16) & 0xff
+            arg = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        else:
+            print('int value is too large (and RGBA is not supported, if that is what you are trying to do).')
+    elif type(val) is str:
+        if '#' in val:
+            out = val.partition('#')
+            if len(out[1]) == 6:
+                arg = val
+            else:
+                print('not a color string!')
+        elif '0x' in val:
+            ival = int(val, 16)
+            if ival <= 0xffffff:
+                b = ival & 0xff
+                g = (ival >> 8) & 0xff
+                r = (ival >> 16) & 0xff
+                arg = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+            else:
+                print('int value is too large (and RGBA is not supported, if that is what you are trying to do).')
+        else:
+            print('odd string format')
+    else:
+        print('odd argument type')
+
+    output = 'color: ' + arg + ';'
+    return output
+
+def platform_specific_monospace():
+    if platform.system().lower() == 'linux':
+        return 'DejaVu Sans Mono'
+    if platform.system().lower() == 'darwin':
+        return 'SF Mono'
+    if platform.system().lower() == 'windows':
+        return 'Consolas'
+    
+            
 
 if __name__ == "__main__":
     # if (len(sys.argv)) > 0:
