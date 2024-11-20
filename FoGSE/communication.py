@@ -392,7 +392,7 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
             self.background_listen_process.setProgram("python3")
             self.background_listen_process.setArguments([os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile])
             self.background_listen_process.start()
-            print("started listen for downlink at " + str(self.background_listen_process.processId()))
+            print("started listen for downlink at PID " + str(self.background_listen_process.processId()))
             print("using",self.command_interface,"to send commands")
             time.sleep(2)
             # sleep so the subprocess can start

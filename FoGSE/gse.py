@@ -21,11 +21,8 @@ if __name__=="__main__":
     icon_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'FOXSI4_32.png')
     app.setWindowIcon(QtGui.QIcon(icon_path))
     
-    x = QWidget()
-    lay = QVBoxLayout(x)
     glc = CommandUplinkWidget()
-    lay.addWidget(glc)
-    x.show()
+    glc.show()
 
     w = GSEDataDisplay()
 

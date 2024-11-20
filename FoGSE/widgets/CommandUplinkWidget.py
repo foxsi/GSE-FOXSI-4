@@ -367,7 +367,7 @@ def platform_specific_monospace():
     if platform.system().lower() == 'linux':
         return 'DejaVu Sans Mono'
     if platform.system().lower() == 'darwin':
-        return 'SF Mono'
+        return 'PT Mono'
     if platform.system().lower() == 'windows':
         return 'Consolas'
     
