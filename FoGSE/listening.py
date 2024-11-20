@@ -235,6 +235,7 @@ class Listener():
         or folders cannot be created.
         """
 
+        json_config_file = os.path.realpath(json_config_file)
         with open(json_config_file, "r") as json_config:
             json_dict = json.load(json_config)
             self.local_system_config = get_system_dict(local_system,
@@ -378,16 +379,16 @@ class Listener():
             raise RuntimeError
             
 
-        self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            self.local_send_socket.bind(self.local_send_endpoint)
-        except OSError as e:
-            print("Exception:", e, "for endpoint",self.local_send_endpoint)
-        try:
-            self.local_send_socket.connect(self.remote_endpoint)
-            print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
-        except OSError as e:
-            print("Exception:",e, "for connection to remote", self.remote_endpoint)
+        # self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # try:
+        #     self.local_send_socket.bind(self.local_send_endpoint)
+        # except OSError as e:
+        #     print("Exception:", e, "for endpoint",self.local_send_endpoint)
+        # try:
+        #     self.local_send_socket.connect(self.remote_endpoint)
+        #     print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
+        # except OSError as e:
+        #     print("Exception:",e, "for connection to remote", self.remote_endpoint)
 
         # setup UDP interface
         if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
@@ -408,13 +409,13 @@ class Listener():
         else:
             # listen on a unicast socket    
             self.local_recv_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.local_recv_socket.bind((self.local_recv_address, self.local_port))
+            self.local_recv_socket.bind((self.local_recv_address, self.local_recv_port))
             self.local_recv_socket.connect(self.remote_endpoint)
             print("listening for downlink (to log) on Ethernet datagram socket at:\t",
                 self.local_recv_address + ":" + str(self.local_recv_port))
             
         self.local_recv_socket.settimeout(0.01)
-        self.local_send_socket.settimeout(0.001)
+        # self.local_send_socket.settimeout(0.001)
         return True
     
     def send_command(self, command:bytes):
