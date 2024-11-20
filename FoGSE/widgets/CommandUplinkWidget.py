@@ -105,9 +105,19 @@ class CommandUplinkWidget(QWidget):
         self.indicator_label = QValueWidget.QValueTimeWidget("", False, 250, parent=self, separator="", condition={"acceptable":[(True,"green"), (False,"red")]})
 
         # populate dialogs with valid lists:
-        for sys in self.cmddeck.systems:
+        for i, sys in enumerate(self.cmddeck.systems):
             if len(self.cmddeck.get_commands_for_system(sys.name)) != 0:
                 self.system_combo_box.addItem(sys.name.lower())
+        
+        self.system_combo_box.addItem('saas')
+        self.system_combo_box.addItem('formatter')
+
+        system_basewidth = 80
+        baseheight = self.system_combo_box.rectForIndex(self.system_combo_box.indexFromItem(self.system_combo_box.item(0))).height()
+
+        # for i in range(self.system_combo_box.count()):
+        #     if self.system_combo_box.item(i).text() == 'timepix' or self.system_combo_box.item(i).text() == 'saas':
+        #         self.system_combo_box.item(i).setSizeHint(QtCore.QSize(system_basewidth, 2*baseheight))
 
         # for cmd in self.cmddeck[].commands:
         #     self.command_combo_box.addItem(cmd.name)
@@ -118,7 +128,7 @@ class CommandUplinkWidget(QWidget):
             0,0,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
-        self.system_combo_box.setMinimumWidth(160)
+        self.system_combo_box.setMinimumWidth(system_basewidth)
         self.system_combo_box.setMinimumHeight(min_scroll_height)
         self.system_combo_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         self.grid_layout.addWidget(
