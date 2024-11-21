@@ -38,7 +38,7 @@ class LogFileManager:
         <this packet's index MSB>
         <this packet's index LSB>
         <data type in this frame> (see `DOWNLINK_TYPE_ENUM` for options)
-        <reserved>
+        <frame counter>
         <reserved>
 
     Packets have their headers removed and are buffered into a full frame 
@@ -98,13 +98,53 @@ class LogFileManager:
         self.data = data
         self.frame_len = frame_len
         self.payload_len = payload_len
-        self.frame = bytearray(self.frame_len)
-        self.queued = [0]*math.ceil(self.frame_len/self.payload_len)
+        self.packets_per_frame = math.ceil(self.frame_len/self.payload_len)
+        self.frames = []
+        self.running_frame_counters = [] # maybe will remove, this info is in CurrentFrame object anyway.
+        self.packet_flags = None # not sure how to extend this yet
+        # self.init_frame() # initializes self.frame and self.queued to the right sizes.
 
         print("payload len:\t", self.payload_len)
         print("frame len:\t", self.frame_len)
-        print("queued len:\t", len(self.queued))
+        # print("queued len:\t", self.packet_flags)
 
+    def init_frame(self):
+        self.frames = bytearray(self.frame_len)
+        self.packet_flags = [0]*self.packets_per_frame
+
+    def add_frame(self, frame_counter:int):
+        for frame in self.frames: # check that there is no frame with this frame_counter already in the list of frames
+            if frame.get_frame_index() == frame_counter:
+                return False
+        self.running_frame_counters.append(frame_counter)
+        self.frames.append(CurrentFrame(
+            self.frame_len, 
+            self.packets_per_frame,
+            self.payload_len,
+            frame_counter
+        ))
+
+        return True
+    
+    def delete_frame(self, frame_counter:int):
+        index = None
+        for i, frame in enumerate(self.frames):
+            if frame.get_frame_index() == frame_counter:
+                index = i
+                break;
+        if index is not None:
+            del self.frames[index]
+
+    def pop_frame(self, frame_counter:int):
+        index = None
+        for i, frame in enumerate(self.frames):
+            if frame.get_frame_index() == frame_counter:
+                index = i
+                break;
+        if index is not None:
+            out = self.frames.pop(index)
+            return out
+        
     def enqueue(self, raw_data: bytearray):
         """
         Adds raw data to queue for file write.
@@ -123,65 +163,145 @@ class LogFileManager:
         ------
         KeyError : if header cannot be parsed.
         """
+
+        # unpack the header:
+        system = raw_data[0]
+        datatype = raw_data[5]
+        npackets = int.from_bytes(raw_data[1:3], byteorder='big')
+        ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
+        iframe = raw_data[6]
+
         if raw_data[0] != self.system:
             print("Log queue got bad system code!")
             raise KeyError
         if raw_data[5] != self.data:
             print("Log queue got bad data code!")
             raise KeyError
+        
+        frame = None
+        for f in self.frames:
+            if f.get_frame_index() == iframe:
+                frame = f
+                break;
+        
+        if frame is not None: # the received frame counter exists in our list already. Try to insert packet.
+            p_success = frame.insert(ipacket - 1, raw_data[8:])
+            if not p_success:
+                print("failed to add packet to frame!")
+                print("\tfor",raw_data[0],"overwritten by",ipacket-1,"queued:",frame.queued)
 
-        npackets = int.from_bytes(raw_data[1:3], byteorder='big')
-        ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
+                self.write(iframe) # dump current frame (which presumably contains some errors)
+                f_success = self.add_frame(iframe)
+                if not f_success:   # shouldn't happen, we just removed this frame and created a new one
+                    print("failed to add new frame!")
+                    # raise BufferError
 
-        if ipacket <= npackets:
-            # add this packet to the queue, mark it as queued
+                p_success = frame.insert(ipacket - 1, raw_data[8:])
+                if not p_success:   # shouldn't happen, this is a brand new frame; shouldn't be any conflicts.
+                    print("failed to add packet to new frame!")
+                    # raise BufferError
+
+        else: # the received frame counter doesn't exist in our list. Create it and try to insert packet.
+            f_success = self.add_frame(iframe)
+            if not f_success:   # shouldn't happen, we already checked if the frame exists.
+                print("failed to add new frame!")
+                # raise BufferError
+            frame = self.frames[-1]
+            p_success = frame.insert(ipacket - 1, raw_data[8:])
+            if not p_success:   # shouldn't happen, this is a brand new frame; shouldn't be any conflicts.
+                print("failed to add packet to new frame!")
+                # raise BufferError
             
-            if self.queued[0]:
-                # if the first element in the frame is there (so CdTe doesn't get bad frames)
-                if self.queued[ipacket - 1]:
-                    # if this element already exists in the packet
-                    print("for",raw_data[0],"overwritten by",ipacket-1,"queued:",self.queued)
-                    self.write()
-                    self.add_to_frame(raw_data)
-                    return True
-            
-            self.add_to_frame(raw_data)
-                
-            if all(entry == 1 for entry in self.queued):
-                self.write()
-                return True
-            else:
-                return False
+        if frame.done:
+            self.write(iframe)
+            return True
         else:
-            print("Logging got bad packet number: ", ipacket, " for max index ", npackets)
-            raise KeyError
+            return False
 
+
+        # if ipacket <= npackets:
+        #     # add this packet to the queue, mark it as queued
+            
+        #     if self.packet_flags[0]:
+        #         # if the first element in the frame is there (so CdTe doesn't get bad frames)
+        #         if self.packet_flags[ipacket - 1]:
+        #             # if this element already exists in the packet
+        #             print("for",raw_data[0],"overwritten by",ipacket-1,"queued:",self.packet_flags)
+        #             self.write()
+        #             self.add_to_frame(raw_data)
+        #             return True
+            
+        #     self.add_to_frame(raw_data)
+                
+        #     if all(entry == 1 for entry in self.packet_flags):
+        #         self.write()
+        #         return True
+        #     else:
+        #         return False
+        # else:
+        #     print("Logging got bad packet number: ", ipacket, " for max index ", npackets)
+        #     raise KeyError
+
+
+
+    # now obsolete, functionality should be in CurrentFrame()
     def add_to_frame(self, packet:bytearray):
         npackets = int.from_bytes(packet[1:3], byteorder='big')
         ipacket = int.from_bytes(packet[3:5], byteorder='big')
+
         this_index = (ipacket - 1)*self.payload_len
         distance = min(len(packet[8:]), self.frame_len)
-        self.frame[this_index:(this_index + distance)] = packet[8:]
+        self.frames[this_index:(this_index + distance)] = packet[8:]
         # if ipacket == npackets == 1:
         #     print("singleton frame:")
         #     print(packet[:8])
         #     print("packet length",len(packet))
         #     print(self.frame)
         #     print(ipacket, this_index, distance)
-        self.queued[ipacket - 1] = 1
+        self.packet_flags[ipacket - 1] = 1
         # print(self.queued)
                 
-    def write(self):
+    def write(self, frame_counter:int):
         """
         Writes data in `self.queue` to `self.file`, then refreshes queue.
         """
-        self.file.write(self.frame)
+        outframe = self.pop_frame(frame_counter)
+        self.file.write(outframe.data)
         self.file.flush()
-        print("wrote " + str(len(self.frame)) + " bytes to " + self.filepath)
-        self.frame = bytearray(self.frame_len)
-        self.queued = [0]*len(self.queued)
+        print("wrote " + str(frame_counter) + " frame to " + self.filepath)
+    
+    
+class CurrentFrame():
+    def __init__(self, frame_len:int, packet_count:int, payload_len:int, frame_index:int):
+        self.done = False   # flag indicating frame is complete
+        
+        self.frame_len = frame_len
+        self._frame_index = frame_index
+        self.packet_count = packet_count
+        self.payload_len = payload_len
 
+        self.data = bytearray(frame_len)
+        self.queued = [False]*packet_count
 
+    def insert(self, ipacket:int, payload:bytearray):
+        # note: this differs from Listener.add_to_frame in that it expects an already headerless `payload` to be passed in, rather than a full packet.
+        # NOTE: ipacket is expected to already be zero-indexed.
+        
+        if self.queued[ipacket] == True: # indicate that this packet has already been received for this frame
+            return False
+        
+        frame_byte_index = ipacket*self.payload_len
+        distance = min(len(payload), self.frame_len)
+        self.data[frame_byte_index:(frame_byte_index + distance)] = payload
+
+        self.queued[ipacket] = True
+        if all(self.queued):
+            self.done = True
+        
+        return True
+
+    def get_frame_index(self):
+        return self._frame_index
 
 class Listener():
     """
@@ -464,15 +584,19 @@ class Listener():
             # print("logging", len(data), "bytes")
             if len(data) < 8:
                 return
-            try:
-                self.downlink_lookup[data[0x00]][data[0x05]].enqueue(data)
-            except KeyError:
-                print("got unloggable packet with header: ", data[:8].hex())
-                self.write_to_catch(data)
-                return
-            except Exception as e:
-                print("other error: ", e)
-                # todo: dump this in a aggregate log
+          
+            self.downlink_lookup[data[0x00]][data[0x05]].enqueue(data)
+          
+
+            # try:
+            #     self.downlink_lookup[data[0x00]][data[0x05]].enqueue(data)
+            # except KeyError:
+            #     print("got unloggable packet with header: ", data[:8].hex())
+            #     self.write_to_catch(data)
+            #     return
+            # except Exception as e:
+            #     print("other error: ", e)
+            #     # todo: dump this in a aggregate log
         except socket.timeout:
             # print("read timed out")
             return
