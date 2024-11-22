@@ -43,10 +43,12 @@ class UplinkCommand:
     :type valid_systems: set
     """
 
-    def __init__(self, name: str, hex: list[int], arg_len: int, reply_len: int, targets: set or list, flight: bool, valid_systems: set or list):
+    def __init__(self, name: str, hex: list[int], arg_len: int, reply_len: int, targets: set or list, flight: bool, valid_systems: set or list, order=None, color=None):
         # assign name and hex code
         self.name = name
         self.hex = hex
+        self.order = order
+        self.color = color
 
         # assign reply_len, then change read/write properties based on it
         self.reply_len = reply_len
@@ -207,6 +209,13 @@ class UplinkCommandDeck:
             if cmd["arg1.length [B]"]:
                 if cmd["arg1.length [B]"].isnumeric():
                     arglen = 0
+            
+            color = 0x00
+            order = 0
+            if "color" in cmd.keys():
+                color = int(cmd["color"], 16)
+            if "order" in cmd.keys():
+                order = int(cmd["order"], 10)
 
             this_cmd = UplinkCommand(
                 cmd["name"],
@@ -215,7 +224,9 @@ class UplinkCommandDeck:
                 replen,
                 thistargets,
                 True,
-                self.systems
+                self.systems,
+                color=color,
+                order=order
             )
             command_list.append(this_cmd)
 
@@ -358,11 +369,6 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
         self.command_count = 0
 
     def __del__(self):
-        print("cleaning up FormatterUDPInterface")
-        if (self.end_background_process_on_close):
-            self.background_listen_process.kill()
-            print("sent kill to listener process")
-            time.sleep(0.5)
         self.unix_local_socket.close()
 
     def submit_uplink_command(self, system, command):
@@ -379,12 +385,14 @@ class FormatterUDPInterface(metaclass=singleton.Singleton):
     def start_listening(self):
         if self.do_logging:
             print("\nstarting logger in subprocess...")
-            self.background_listen_process = subprocess.Popen(["python3", os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile, self.command_interface])
+            # self.background_listen_process = subprocess.Popen(["python3", os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile, self.command_interface])
+            
             # or, if using QProcess:
-            # self.background_listen_process = QProcess()
-            # self.background_listen_process.start("python3", ["FoGSE/listening.py", configfile, interface])
-
-            print("started listen for downlink")
+            self.background_listen_process = QProcess()
+            self.background_listen_process.setProgram("python3")
+            self.background_listen_process.setArguments([os.path.normpath(os.path.join(__file__, "..", "listening.py")), self.configfile])
+            self.background_listen_process.start()
+            print("started listen for downlink at PID " + str(self.background_listen_process.processId()))
             print("using",self.command_interface,"to send commands")
             time.sleep(2)
             # sleep so the subprocess can start
