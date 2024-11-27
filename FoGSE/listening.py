@@ -28,24 +28,25 @@ DOWNLINK_TYPE_ENUM = {
 
 class LogFileManager:
     """
-    `LogFileManager` is an interface between a raw data stream and its log 
-    file. 
+    `LogFileManager` is an interface between a raw data stream and its
+    log file. 
 
     This object assumes an 8-byte header on all data in this format: 
-        <sending system>
-        <number of expected packets MSB>
-        <number of expected packets LSB>
-        <this packet's index MSB>
-        <this packet's index LSB>
-        <data type in this frame> (see `DOWNLINK_TYPE_ENUM` for options)
-        <frame counter>
-        <reserved>
+        0. <sending system> 
+        1. <number of expected packets MSB> 
+        2. <number of expected packets LSB> 
+        3. <this packet's index MSB> 
+        4. <this packet's index LSB> 
+        5. <data type in this frame> (see `DOWNLINK_TYPE_ENUM` for
+           options) 
+        6. <frame counter MSB> 
+        7. <frame counter LSB> 
 
-    Packets have their headers removed and are buffered into a full frame 
-    before frames are written to disk.
+    Packets have their headers removed and are buffered into a full
+    frame before frames are written to disk.
 
-    Because this is a raw binary file, each data frame is assumed to be fixed 
-    width. 
+    Because this is a raw binary file, each data frame is assumed to be
+    fixed width. 
     """
 
     def __init__(self, filepath: str, system: int, data: int, frame_len: int,
@@ -56,28 +57,29 @@ class LogFileManager:
         Parameters
         ----------
         filepath : str
-            Path to the log file to be used for storage. Provided file WILL BE 
-            OVERWRITTEN.
+            Path to the log file to be used for storage. Provided file
+            WILL BE OVERWRITTEN.
 
         system : int
-            The system ID code (one byte) this `LogFileManager` will expect in 
-            the raw packet header.
+            The system ID code (one byte) this `LogFileManager` will
+            expect in the raw packet header.
 
         data : int
-            The data ID code (one byte) this `LogFileManager` will expect in 
-            the raw packet header. See `DOWNLINK_TYPE_ENUM` for a list of 
-            detected raw data types.
+            The data ID code (one byte) this `LogFileManager` will
+            expect in the raw packet header. See `DOWNLINK_TYPE_ENUM`
+            for a list of detected raw data types.
 
         frame_len : int
             The number off received bytes per complete frame.
 
         payload_len : int
-            The length of the payload portion of the packet, i.e. the total 
-            packet length minus header length (8 bytes).
+            The length of the payload portion of the packet, i.e. the
+            total packet length minus header length (8 bytes).
 
         Raises
         ------
-        RuntimeError : if arguments are out-of-bounds, or if provided path to 
+        RuntimeError : if arguments are out-of-bounds, or if provided
+        path to 
             log file cannot be opened.
         """
         self.filepath = filepath
@@ -100,23 +102,29 @@ class LogFileManager:
         self.payload_len = payload_len
         self.packets_per_frame = math.ceil(self.frame_len/self.payload_len)
         self.frames = []
-        self.running_frame_counters = [] # maybe will remove, this info is in CurrentFrame object anyway.
-        self.packet_flags = None # not sure how to extend this yet
-        # self.init_frame() # initializes self.frame and self.queued to the right sizes.
 
         print("payload len:\t", self.payload_len)
         print("frame len:\t", self.frame_len)
-        # print("queued len:\t", self.packet_flags)
-
-    def init_frame(self):
-        self.frames = bytearray(self.frame_len)
-        self.packet_flags = [0]*self.packets_per_frame
 
     def add_frame(self, frame_counter:int):
+        """
+        Add a `CurrentFrame` to the `self.frames` list with the provided
+        `frame_counter` value.
+
+        This method will add a new, blank `CurrentFrame` object to
+        `self.frames`, keyed to the provided `frame_counter` (and return
+        `True`), unless a `CurrentFrame` already exists with the same
+        `frame_counter` value (in which case `False` is returned). 
+
+        Parameters
+        ----------
+        
+        frame_counter: int
+            A 2-byte counter or identifier for this frame.
+        """
         for frame in self.frames: # check that there is no frame with this frame_counter already in the list of frames
-            if frame.get_frame_index() == frame_counter:
+            if frame.get_frame_counter() == frame_counter:
                 return False
-        self.running_frame_counters.append(frame_counter)
         self.frames.append(CurrentFrame(
             self.frame_len, 
             self.packets_per_frame,
@@ -127,18 +135,46 @@ class LogFileManager:
         return True
     
     def delete_frame(self, frame_counter:int):
+        """
+        Delete the `CurrentFrame` with matching `frame_counter` from the
+        `self.frames` list.
+
+        If there are no items in `self.frames` for which
+        `CurrentFrame.frame_counter` matches the provided argument,
+        nothing will happen.
+
+        Parameters
+        ----------
+        
+        frame_counter: int
+            A 2-byte counter or identifier for this frame.
+        """
         index = None
         for i, frame in enumerate(self.frames):
-            if frame.get_frame_index() == frame_counter:
+            if frame.get_frame_counter() == frame_counter:
                 index = i
-                break;
         if index is not None:
             del self.frames[index]
 
     def pop_frame(self, frame_counter:int):
+        """
+        Pop the `CurrentFrame` with matching `frame_counter` from the
+        `self.frames` list.
+
+        "Pop" means return a copy of the `CurrentFrame` object and
+        delete it from the list. If there are no items in `self.frames`
+        for which `CurrentFrame.frame_counter` matches the provided
+        argument, nothing will happen (and `None` will be returned).
+
+        Parameters
+        ----------
+        
+        frame_counter: int
+            A 2-byte counter or identifier for this frame.
+        """
         index = None
         for i, frame in enumerate(self.frames):
-            if frame.get_frame_index() == frame_counter:
+            if frame.get_frame_counter() == frame_counter:
                 index = i
                 break;
         if index is not None:
@@ -149,19 +185,31 @@ class LogFileManager:
         """
         Adds raw data to queue for file write.
 
-        Removes headers and queues raw data from packets until a whole 
-        frame has been completed. Once a frame is completed it is written 
-        to the disk.
+        Removes headers and queues raw data from packets until a whole
+        frame has been completed. Once a frame is completed it is
+        written to the disk.
+
+        This method will attempt lookup for an existing, partially saved
+        frame in `self.frames` (using the frame index byte in the
+        received header). If a corresponding frame is found, attempt to
+        insert the packet in it. If not, create a new `CurrentFrame`
+        object for this frame counter and populate it. If this packet
+        completes a frame, the frame is written to disk. If a
+        `CurrentFrame` exists already for this packet counter and it has
+        a packet in this packet's position, that frame will be dumped to
+        disk and a new frame will be started with this packet in it.
 
         Parameters
         ----------
         raw_data : bytearray
-            Raw packet (e.g. received on socket) to add to queue. Should 
-            include valid 8-byte header.
+            Raw packet (e.g. received on socket) to add to queue. Should
+            include a valid 8-byte header.
 
         Raises
         ------
-        KeyError : if header cannot be parsed.
+        KeyError : 
+            if header cannot be parsed, or if the system/data type
+            identifiers in the header do not match those in this class.
         """
 
         # unpack the header:
@@ -169,26 +217,26 @@ class LogFileManager:
         datatype = raw_data[5]
         npackets = int.from_bytes(raw_data[1:3], byteorder='big')
         ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
-        iframe = raw_data[6]
+        iframe = raw_data[7]
 
-        if raw_data[0] != self.system:
+        if system != self.system:
             print("Log queue got bad system code!")
             raise KeyError
-        if raw_data[5] != self.data:
+        if datatype != self.data:
             print("Log queue got bad data code!")
             raise KeyError
         
         frame = None
         for f in self.frames:
-            if f.get_frame_index() == iframe:
+            if f.get_frame_counter() == iframe:
                 frame = f
                 break;
         
         if frame is not None: # the received frame counter exists in our list already. Try to insert packet.
-            p_success = frame.insert(ipacket - 1, raw_data[8:])
+            p_success = frame.insert(ipacket, raw_data[8:])
             if not p_success:
                 print("failed to add packet to frame!")
-                print("\tfor",raw_data[0],"overwritten by",ipacket-1,"queued:",frame.queued)
+                print("\tfor",system,"overwritten by",ipacket,"queued:",frame.queued)
 
                 self.write(iframe) # dump current frame (which presumably contains some errors)
                 f_success = self.add_frame(iframe)
@@ -196,7 +244,7 @@ class LogFileManager:
                     print("failed to add new frame!")
                     # raise BufferError
 
-                p_success = frame.insert(ipacket - 1, raw_data[8:])
+                p_success = frame.insert(ipacket, raw_data[8:])
                 if not p_success:   # shouldn't happen, this is a brand new frame; shouldn't be any conflicts.
                     print("failed to add packet to new frame!")
                     # raise BufferError
@@ -207,7 +255,7 @@ class LogFileManager:
                 print("failed to add new frame!")
                 # raise BufferError
             frame = self.frames[-1]
-            p_success = frame.insert(ipacket - 1, raw_data[8:])
+            p_success = frame.insert(ipacket, raw_data[8:])
             if not p_success:   # shouldn't happen, this is a brand new frame; shouldn't be any conflicts.
                 print("failed to add packet to new frame!")
                 # raise BufferError
@@ -217,66 +265,68 @@ class LogFileManager:
             return True
         else:
             return False
-
-
-        # if ipacket <= npackets:
-        #     # add this packet to the queue, mark it as queued
-            
-        #     if self.packet_flags[0]:
-        #         # if the first element in the frame is there (so CdTe doesn't get bad frames)
-        #         if self.packet_flags[ipacket - 1]:
-        #             # if this element already exists in the packet
-        #             print("for",raw_data[0],"overwritten by",ipacket-1,"queued:",self.packet_flags)
-        #             self.write()
-        #             self.add_to_frame(raw_data)
-        #             return True
-            
-        #     self.add_to_frame(raw_data)
-                
-        #     if all(entry == 1 for entry in self.packet_flags):
-        #         self.write()
-        #         return True
-        #     else:
-        #         return False
-        # else:
-        #     print("Logging got bad packet number: ", ipacket, " for max index ", npackets)
-        #     raise KeyError
-
-
-
-    # now obsolete, functionality should be in CurrentFrame()
-    def add_to_frame(self, packet:bytearray):
-        npackets = int.from_bytes(packet[1:3], byteorder='big')
-        ipacket = int.from_bytes(packet[3:5], byteorder='big')
-
-        this_index = (ipacket - 1)*self.payload_len
-        distance = min(len(packet[8:]), self.frame_len)
-        self.frames[this_index:(this_index + distance)] = packet[8:]
-        # if ipacket == npackets == 1:
-        #     print("singleton frame:")
-        #     print(packet[:8])
-        #     print("packet length",len(packet))
-        #     print(self.frame)
-        #     print(ipacket, this_index, distance)
-        self.packet_flags[ipacket - 1] = 1
-        # print(self.queued)
                 
     def write(self, frame_counter:int):
         """
-        Writes data in `self.queue` to `self.file`, then refreshes queue.
+        Writes data in `self.queue` to `self.file`, then refreshes
+        queue.
         """
         outframe = self.pop_frame(frame_counter)
         self.file.write(outframe.data)
         self.file.flush()
-        print("wrote " + str(frame_counter) + " frame to " + self.filepath)
+        print("wrote frame count " + str(frame_counter) + " to " + self.filepath)
     
     
 class CurrentFrame():
-    def __init__(self, frame_len:int, packet_count:int, payload_len:int, frame_index:int):
+    """
+    `CurrentFrame` is an object to track a frame of data being
+    reassembled from individual packets.
+
+    In the downlink data stream, large data frames (such as CdTe or CMOS
+    images or event lists) are fragmented into smaller packets to
+    facilitate transmission. These packets contain an 8-byte header,
+    which may contain a source frame identifier (a number describing the
+    frame that was originally broken up into packets) in the last two
+    header bytes.
+
+    Attributes
+    ----------
+    
+    done: Bool
+        Flag `True` if the frame has been completed, i.e. all packets
+        accounted for.
+
+    frame_len: int
+        Length, in bytes, of the full frame of data. 
+    
+    packet_count: int
+        The number of packets expected to complete the frame. Maximum
+        value is 0xffff.
+
+    payload_len: int
+        Length, in bytes, of each packet's payload (a payload is the
+        packet without the 8-byte header).
+    
+    frame_counter: int
+        A 2-byte wide identifier for this frame. Nominally this is a
+        frame counter on the Formatter-side, but could be replaced with
+        a CRC16 or other "random" identifier value. The idea is for all
+        the packets that reconstitute this frame to share the same
+        `frame_counter` value in their header. Maximum value is Maximum
+        value is 0xffff.
+    """
+    def __init__(self, frame_len:int, packet_count:int, payload_len:int, frame_counter:int):
         self.done = False   # flag indicating frame is complete
+
+        if packet_count > 0xffff:
+            print("CurrentFrame constructed with too large packet_count!")
+            raise ValueError
+        if frame_counter > 0xffff:
+            print("CurrentFrame constructed with too large frame_counter!")
+            raise ValueError
         
         self.frame_len = frame_len
-        self._frame_index = frame_index
+        self._frame_counter = frame_counter
         self.packet_count = packet_count
         self.payload_len = payload_len
 
@@ -284,32 +334,66 @@ class CurrentFrame():
         self.queued = [False]*packet_count
 
     def insert(self, ipacket:int, payload:bytearray):
-        # note: this differs from Listener.add_to_frame in that it expects an already headerless `payload` to be passed in, rather than a full packet.
-        # NOTE: ipacket is expected to already be zero-indexed.
+        """
+        Put the payload of a packet (header has been removed) into the
+        `CurrentFrame`. 
+
+        This method will search `self.queued` for the provided
+        `ipacket`. If no packet in that index has been queued yet, this
+        one will be added to the frame and its `self.queued` flag will
+        be set. If this is the packet that completes the `CurrentFrame`
+        (such that `all(self.queued) == True`), the `self.done` flag
+        will be set.
+
+        Returns
+        -------
+        Bool
+            The return value is `True` if there is no packet yet in this
+            position in `self.queued`, and `False` otherwise; i.e. if
+            this packet *would* overwrite an existing packet in the
+            frame.
+
+        Parameters
+        ----------
+        ipacket: int
+            A ONE-INDEXED (not zero-index) packet number, locating this
+            packet in the frame it belongs to.
+
+        payload: bytearray
+            The beheaded packet contents that were sent by the formatter
+            to the ground. The universal 8-byte header should have been
+            removed.
+        """
         
-        if self.queued[ipacket] == True: # indicate that this packet has already been received for this frame
+        if self.queued[ipacket - 1] == True: # indicate to caller that this packet has already been received for this frame
             return False
         
-        frame_byte_index = ipacket*self.payload_len
+        # find byte position in overall frame
+        frame_byte_index = (ipacket - 1)*self.payload_len
+        # length to write in overall frame. If the payload is bigger
+        # than the frame, truncate it.
         distance = min(len(payload), self.frame_len)
         self.data[frame_byte_index:(frame_byte_index + distance)] = payload
 
-        self.queued[ipacket] = True
+        self.queued[ipacket - 1] = True
         if all(self.queued):
             self.done = True
         
         return True
 
-    def get_frame_index(self):
-        return self._frame_index
+    def get_frame_counter(self):
+        return self._frame_counter
 
 class Listener():
     """
-    `Listener` provides an interface between the local machine and a 
-    remote (e.g. Formatter) computer.
+    `Listener` provides a logging interface between the local machine
+    and a remote (e.g. Formatter) computer.
      
-    This object supports local logging of received raw data to file, 
-    and can forward commands to the remote computer.
+    This object supports local logging of received raw data to file, and
+    can forward commands to the remote computer. Based on an 8-byte
+    header the Formatter prepends to all downlink messages, the can
+    identify and sort received packets into specific log files and
+    formats.
 
     .. mermaid::
         flowchart LR
@@ -334,9 +418,9 @@ class Listener():
         ----------
         
          json_config_file : str
-            Path to valid configuration JSON file. See 
+            Path to valid configuration JSON file. See
             `foxsi4-commands/systems.json` for reference. Local socket,
-            file naming, and log file indexing information will be 
+            file naming, and log file indexing information will be
             derived from this file. JSON content should be an array of
             fields, each field containing at least a `name` and `hex`
             attribute.
@@ -351,8 +435,8 @@ class Listener():
 
         Raises
         ------
-        RuntimeError : if required JSON fields cannot be found, or log files
-        or folders cannot be created.
+        RuntimeError : if required JSON fields cannot be found, or log
+        files or folders cannot be created.
         """
 
         json_config_file = os.path.realpath(json_config_file)
@@ -417,10 +501,10 @@ class Listener():
                 if os.path.exists(self.unix_socket_path):
                     raise RuntimeError
             
-            # initialize these, in case they are populated by `.set_command_interface()`
+            # initialize these, in case they are populated by
+            # `.set_command_interface()`
             self.uplink_port_path = None
             self.uplink_port = None
-            self.local_send_socket = None
             self.local_recv_socket = None
             
             try:
@@ -432,9 +516,6 @@ class Listener():
             self.local_recv_port = self.local_system_config["ethernet_interface"]["port"]
             self.local_recv_endpoint = (self.local_recv_address, self.local_recv_port)
             # todo: populate these correctly from JSON
-            self.local_send_address = self.local_system_config["ethernet_interface"]["address"]
-            self.local_send_port = self.local_system_config["ethernet_interface"]["port"]
-            self.local_send_endpoint = (self.local_send_address, self.local_send_port)
 
             self.remote_address = self.remote_system_config["ethernet_interface"]["address"]
             self.remote_port = self.local_recv_port
@@ -461,9 +542,7 @@ class Listener():
         # close sockets
         self.unix_socket.close()
         self.local_recv_socket.close()
-        self.local_send_socket.close()
-        # remove the unix socket file
-        # os.remove(self.unix_socket_path)
+        # remove the unix socket file os.remove(self.unix_socket_path)
 
         # close all log files
         self.log_out.close()
@@ -497,18 +576,6 @@ class Listener():
         else:
             print("ERROR: can only use uplink interface for commanding")
             raise RuntimeError
-            
-
-        # self.local_send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # try:
-        #     self.local_send_socket.bind(self.local_send_endpoint)
-        # except OSError as e:
-        #     print("Exception:", e, "for endpoint",self.local_send_endpoint)
-        # try:
-        #     self.local_send_socket.connect(self.remote_endpoint)
-        #     print("connected to",self.remote_endpoint[0] + ":" + str(self.remote_endpoint[1]), "for commanding")
-        # except OSError as e:
-        #     print("Exception:",e, "for connection to remote", self.remote_endpoint)
 
         # setup UDP interface
         if self.mcast_group is not None and ipaddress.IPv4Address(self.mcast_group).is_multicast:
@@ -520,7 +587,8 @@ class Listener():
             self.local_recv_socket.bind((self.mcast_group, self.local_recv_port))
             mreq = struct.pack('4s4s', socket.inet_aton(self.mcast_group), socket.inet_aton(self.local_recv_address))
 
-            # struct.pack('4sl', osself.mcast_group, int.from_bytes(interface, byteorder='big'))
+            # struct.pack('4sl', osself.mcast_group,
+            # int.from_bytes(interface, byteorder='big'))
             self.local_recv_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
             print("listening for downlink (to log) on Ethernet datagram socket at:\t",
@@ -535,7 +603,6 @@ class Listener():
                 self.local_recv_address + ":" + str(self.local_recv_port))
             
         self.local_recv_socket.settimeout(0.01)
-        # self.local_send_socket.settimeout(0.001)
         return True
     
     def send_command(self, command:bytes):
@@ -545,8 +612,7 @@ class Listener():
                 print("transmitted","0x" + command.hex(),"to Formatter via",self.command_interface,self.uplink_port_path)
             
             if self.command_interface == "umbi":
-                self.local_send_socket.sendall(command)
-                print("transmitted","0x" + command.hex(),"to Formatter via",self.command_interface,self.local_send_endpoint[0]+":"+str(self.local_send_endpoint[1]))
+                raise "Ethernet-based commanding has been removed!"
             
             self.write_to_uplink_log(command)
         except Exception as e:
@@ -556,8 +622,8 @@ class Listener():
         """
         Checks for available commands in local Unix socket.
 
-        If data (of length 2) is available, it is added to the
-        uplink queue for later transmission.
+        If data (of length 2) is available, it is added to the uplink
+        queue for later transmission.
         """
         # do not validate, just check length
         try:
@@ -574,10 +640,10 @@ class Listener():
         """
         Checks for data present in the local Ethernet socket.
 
-        If data is available, try to log it by looking up a `LogFileManager`
-        to use. If no appropriate log file can be found, it is time-tagged
-        and added (fully in raw form, including header) to a catch-all log
-        file.
+        If data is available, try to log it by looking up a
+        `LogFileManager` to use. If no appropriate log file can be
+        found, it is time-tagged and added (fully in raw form, including
+        header) to a catch-all log file.
         """
         try:
             data, sender = self.local_recv_socket.recvfrom(2048)
@@ -590,23 +656,24 @@ class Listener():
 
             # try:
             #     self.downlink_lookup[data[0x00]][data[0x05]].enqueue(data)
-            # except KeyError:
-            #     print("got unloggable packet with header: ", data[:8].hex())
-            #     self.write_to_catch(data)
-            #     return
-            # except Exception as e:
-            #     print("other error: ", e)
-            #     # todo: dump this in a aggregate log
+            # except KeyError: print("got unloggable packet with header:
+            #     ", data[:8].hex()) self.write_to_catch(data) return
+            #     except Exception as e: print("other error: ", e) #
+            #     todo: dump this in a aggregate log
         except socket.timeout:
             # print("read timed out")
             return
+        except KeyError:
+            self.write_to_catch(data)
 
     def _run_log(self):
         """
-        Main loop that checks for data from both Unix and Ethernet sockets.
+        Main loop that checks for data from both Unix and Ethernet
+        sockets.
 
-        Delegates logging of Ethernet raw data to `self.read_local_socket_to_log()`
-        and queueing of Unix socket commands to `self.read_unix_socket_to_queue()`.
+        Delegates logging of Ethernet raw data to
+        `self.read_local_socket_to_log()` and queueing of Unix socket
+        commands to `self.read_unix_socket_to_queue()`.
         """
         # with self.unix_socket:
         while True:
@@ -622,16 +689,11 @@ class Listener():
                 except queue.Empty:
                     print("uplink queue already empty!")
 
-                # expect all `command` to be <system> <command> `int` pairs
+                # expect all `command` to be <system> <command> `int`
+                # pairs
                 try:
                     if len(message) == 2:
-                        # print(self.local_send_socket.getsockname())
-                        # print(self.local_send_socket.getpeername())
-                        # self.local_send_socket.sendall(bytes(message))
                         self.send_command(bytes(message))
-                        # self.uplink_port.write(bytes(message))
-                        # print("transmitted " +
-                                # str(message) + " to Formatter on", self.local_send_endpoint[0], ":", self.local_send_endpoint[1])
                     else:
                         print("found bad uplink command in queue! discarding.")
                 except Exception as e:
@@ -645,8 +707,8 @@ class Listener():
         """
         Creates `dict` of `dict` mapping `int`s to `LogFileManager`.
 
-        First key is the unique hex code for a system; second key is
-        the unique hex code for a raw data type generated by that system
+        First key is the unique hex code for a system; second key is the
+        unique hex code for a raw data type generated by that system
         (see `DOWNLINK_TYPE_ENUM`).
 
         Parameters
@@ -704,8 +766,8 @@ class Listener():
         """
         Writes raw data to catch-all log file.
 
-        To be used if a dedicated log file cannot be found.
-        Raw data bytes will be time-tagged at the start of the line and encoded
+        To be used if a dedicated log file cannot be found. Raw data
+        bytes will be time-tagged at the start of the line and encoded
         as UTF-8 for storage. Packets are newline-delimited.
 
         Parameters
