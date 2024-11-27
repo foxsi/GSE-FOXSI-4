@@ -386,6 +386,9 @@ def platform_specific_monospace():
 if __name__ == "__main__":
     # if (len(sys.argv)) > 0:
     app = QApplication([])
+    icon_path = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'FOXSI4_32.png')
+    print(icon_path)
+    app.setWindowIcon(QtGui.QIcon(icon_path))
 
     # c = comm.FormatterUDPInterface(configfile="foxsi4-commands/foxsimile_systems.json", command_interface="uplink")
     # c = comm.FormatterUDPInterface()
