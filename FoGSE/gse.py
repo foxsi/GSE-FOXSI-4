@@ -1,7 +1,7 @@
 """
 First go at a full GSE (data viewing only).
 """
-import os
+import os, sys
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QVBoxLayout
 
@@ -17,11 +17,14 @@ def get_det_file(want_filename, filename_list):
     return ""
 
 if __name__=="__main__":
+    config_file = None
+    if len(sys.argv) == 2:
+        config_file = sys.argv[1]
     app = QApplication([])
     icon_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'FOXSI4_32.png')
     app.setWindowIcon(QtGui.QIcon(icon_path))
     
-    glc = CommandUplinkWidget()
+    glc = CommandUplinkWidget(configuration=config_file)
     glc.show()
 
     w = GSEDataDisplay()
