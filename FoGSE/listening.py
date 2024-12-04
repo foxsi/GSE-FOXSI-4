@@ -1,4 +1,5 @@
 import socket, ipaddress, serial
+from pathlib import Path
 import os
 import sys
 import json
@@ -22,6 +23,7 @@ DOWNLINK_TYPE_ENUM = {
     "intro":0x13,
     "stat": 0x14,
     "err":  0x15,
+    "ping": 0x20,
     "reply":0x30,
     "none": 0xff
 }
@@ -85,6 +87,9 @@ class LogFileManager:
         self.filepath = filepath
         try:
             self.file = open(filepath, "wb")
+            p = Path(filepath)
+            print(os.path.join(p.parents[0], "dump", p.name))
+            self.dumpfile = open(os.path.join(p.parents[0], "dump", p.name), "wb")
         except:
             print("can't open log file at ", self.filepath)
             raise RuntimeError
@@ -276,6 +281,11 @@ class LogFileManager:
         self.file.flush()
         print("wrote frame count " + str(frame_counter) + " to " + self.filepath)
     
+    def dump(self):
+        for f in self.frames: 
+            self.dumpfile.write(f.data)
+        self.dumpfile.flush()
+        self.dumpfile.close()
     
 class CurrentFrame():
     """
@@ -472,11 +482,15 @@ class Listener():
                 self.start = now
                 self.log_in_folder = os.path.join(
                     self.local_system_config["logger_interface"]["log_received_folder"], now_str)
+                self.log_in_dump_folder = os.path.join(self.log_in_folder, "dump")
                 self.log_out_folder = os.path.join(
                     self.local_system_config["logger_interface"]["log_sent_folder"], now_str)
                 if not os.path.exists(self.log_in_folder):
                     os.makedirs(self.log_in_folder)
                     print("created downlink log folder:\t", self.log_in_folder)
+                if not os.path.exists(self.log_in_dump_folder):
+                    os.makedirs(self.log_in_dump_folder)
+                    print("created downlink log dump folder:\t", self.log_in_dump_folder)
                 if not os.path.exists(self.log_out_folder):
                     os.makedirs(self.log_out_folder)
                     print("created uplink log folder:\t", self.log_out_folder)
@@ -630,7 +644,16 @@ class Listener():
             data, sender = self.unix_socket.recvfrom(4096)
             print("queueing", len(data), "bytes")
             if len(data) == 2:
-                self._uplink_message_queue.put([data[0], data[1]])
+                # check if this is the "kill Listener" command, or just
+                # a normal command:
+                if data[0] == 0x00 and data[1] == 0xff:
+                    print("received Listener terminate message")
+                    for system in self.downlink_lookup.keys():
+                        for data in self.downlink_lookup[system].keys():
+                            self.downlink_lookup[system][data].dump()
+                    return
+                else:
+                    self._uplink_message_queue.put([data[0], data[1]])
             else:
                 print("ignored bad-length uplink command: ", data)
         except socket.timeout:

@@ -1,4 +1,4 @@
-import sys, os, pathlib, platform
+import sys, os, pathlib, platform, time
 
 from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QGridLayout, QComboBox, QLabel, QPushButton, QApplication, QMainWindow, QRadioButton, QButtonGroup, QLineEdit, QListWidget, QMessageBox, QSizePolicy
 from PyQt6 import QtCore, QtGui
@@ -9,17 +9,25 @@ from FoGSE.widgets import QValueWidget
 
 class CommandUplinkWidget(QWidget):
     """
-    `CommandUplinkWidget` provides a unified interface to send any uplink commands to the Formatter. This is enabled by `communication.FormatterUDPInterface`, which handles the socket I/O. The widget is laid out horizontally on the screen and provides a series of dropdown menus used to build up a valid command bitstring.
+    `CommandUplinkWidget` provides a unified interface to send any
+    uplink commands to the Formatter. This is enabled by
+    `communication.FormatterUDPInterface`, which handles the socket I/O.
+    The widget is laid out horizontally on the screen and provides a
+    series of dropdown menus used to build up a valid command bitstring.
 
-    Commands display in black by default, or in the color defined by FoGSE.communication.UplinkCommand.color. The current color coding is:
-    - if a command can cause issues that are not revertable by a subsystem power cycle (hardware damage, software issues beyond reboot, or data loss), it is colored red.
-    - CMOS enable_double_cmds are colored orange.
+    Commands display in black by default, or in the color defined by
+    FoGSE.communication.UplinkCommand.color. The current color coding
+    is: - if a command can cause issues that are not revertable by a
+    subsystem power cycle (hardware damage, software issues beyond
+    reboot, or data loss), it is colored red. - CMOS enable_double_cmds
+    are colored orange.
 
     :param name: Unique name of this panel interface.
     :type name: str
     :param label: Label for this interface (for display).
     :type label: str
-    :param cmddeck: Command deck object (instantiated using .json config files), used for command validation and filtering.
+    :param cmddeck: Command deck object (instantiated using .json config
+        files), used for command validation and filtering.
     :type cmddeck: communication.UplinkCommandDeck
     :param fmtrif: Formatter UDP interface object.
     :type fmtrif: communication.FormatterUDPInterface
@@ -32,12 +40,16 @@ class CommandUplinkWidget(QWidget):
         self.label = "Global command uplink"
 
         # build and validate list of allowable uplink commands
-        # self.cmddeck = comm.UplinkCommandDeck("config/all_systems.json", "config/all_commands.json")
-        # self.cmddeck = comm.UplinkCommandDeck("foxsi4-commands/all_systems.json", "foxsi4-commands/commands.json")
+        # self.cmddeck =
+        # comm.UplinkCommandDeck("config/all_systems.json",
+        # "config/all_commands.json") self.cmddeck =
+        # comm.UplinkCommandDeck("foxsi4-commands/all_systems.json",
+        # "foxsi4-commands/commands.json")
         
 
-        # open UDP socket to remote
-        # self.fmtrif = comm.FormatterUDPInterface(addr="127.0.0.1", port=9999, logging=True, logfilename=None)
+        # open UDP socket to remote self.fmtrif =
+        # comm.FormatterUDPInterface(addr="127.0.0.1", port=9999,
+        # logging=True, logfilename=None)
         if formatter_if is None:
             if configuration is not None:
                 self.fmtrif = comm.FormatterUDPInterface(configfile=configuration)
@@ -68,8 +80,8 @@ class CommandUplinkWidget(QWidget):
         self.command_label = QLabel("Command")
         self.command_combo_box = QListWidget()
         self.command_combo_box.setStyleSheet(f'font-size: 14pt; font-family: {platform_monospace}')
-        # self.args_label = QLabel("Argument")
-        # self.command_args_text = QLineEdit()
+        # self.args_label = QLabel("Argument") self.command_args_text =
+        # QLineEdit()
         self.send_label = QLabel("")
         self.command_send_button = QPushButton("Send command")
 
@@ -115,9 +127,11 @@ class CommandUplinkWidget(QWidget):
         system_basewidth = 80
         baseheight = self.system_combo_box.rectForIndex(self.system_combo_box.indexFromItem(self.system_combo_box.item(0))).height()
 
-        # for i in range(self.system_combo_box.count()):
-        #     if self.system_combo_box.item(i).text() == 'timepix' or self.system_combo_box.item(i).text() == 'saas':
-        #         self.system_combo_box.item(i).setSizeHint(QtCore.QSize(system_basewidth, 2*baseheight))
+        # for i in range(self.system_combo_box.count()): if
+        #     self.system_combo_box.item(i).text() == 'timepix' or
+        #         self.system_combo_box.item(i).text() == 'saas':
+        #         self.system_combo_box.item(i).setSizeHint(QtCore.QSize(system_basewidth,
+        #         2*baseheight))
 
         # for cmd in self.cmddeck[].commands:
         #     self.command_combo_box.addItem(cmd.name)
@@ -293,8 +307,8 @@ class CommandUplinkWidget(QWidget):
         self._working_command = [sys.addr,cmd.hex]
 
         if cmd.arg_len > 0:
-            # self.command_args_text.setEnabled(True)
-            # todo: some arg validation set up here. Implement in UplinkCommandDeck.
+            # self.command_args_text.setEnabled(True) todo: some arg
+            # validation set up here. Implement in UplinkCommandDeck.
             pass
         else:
             self.command_send_button.setEnabled(True)
@@ -335,8 +349,9 @@ class CommandUplinkWidget(QWidget):
         dialog.setMinimumHeight(500)
         if choice == QMessageBox.StandardButton.Ok:
             print("stopping listen process")
+            self.fmtrif.unix_local_socket.send(bytes([0x00,0xff])) # Dump message to listen process
+            time.sleep(0.5)
             self.fmtrif.background_listen_process.terminate()
-            # time.sleep(1)
             return event.accept()
         event.ignore()
 
@@ -390,8 +405,9 @@ if __name__ == "__main__":
     print(icon_path)
     app.setWindowIcon(QtGui.QIcon(icon_path))
 
-    # c = comm.FormatterUDPInterface(configfile="foxsi4-commands/foxsimile_systems.json", command_interface="uplink")
-    # c = comm.FormatterUDPInterface()
+    # c =
+    # comm.FormatterUDPInterface(configfile="foxsi4-commands/foxsimile_systems.json",
+    # command_interface="uplink") c = comm.FormatterUDPInterface()
     # window = CommandUplinkWidget(formatter_if=c)
     if len(sys.argv) == 2:
         window = CommandUplinkWidget(configuration=sys.argv[1])
