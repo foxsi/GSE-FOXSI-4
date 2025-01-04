@@ -7,6 +7,9 @@ import FoGSE.communication as comm
 from FoGSE.io.newest_data import newest_data_dir
 from FoGSE.widgets import QValueWidget
 
+from FoGSE.readers import PowerReader
+# from FoGSE.readers import PowerReader
+
 class CommandUplinkWidget(QWidget):
     """
     `CommandUplinkWidget` provides a unified interface to send any
@@ -70,6 +73,8 @@ class CommandUplinkWidget(QWidget):
         platform_monospace = platform_specific_monospace()
         print('found system font' , platform_monospace)
 
+        self.power_reader = PowerReader.PowerReader(datafile=os.path.join(newest_data_dir(), "housekeeping_pow.log"))
+
         # make UI widgets:
         min_scroll_height = 400
         self.box_layout = QVBoxLayout()
@@ -114,7 +119,11 @@ class CommandUplinkWidget(QWidget):
         self.current_log_folder_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.current_log_folder_value.setEnabled(False)
 
-        self.indicator_label = QValueWidget.QValueTimeWidget("", False, 250, parent=self, separator="", condition={"acceptable":[(True,"green"), (False,"red")]})
+        self.indicator_label = QValueWidget.QValueTimeWidget("", "Ping", 1000, parent=self, separator="", condition=[str])
+        self.power_label = QLabel("Total current:", self)
+        self.power_value = QValueWidget.QValueRangeWidget("", "N/A", condition={"low": -0.1, "high": 5.0}, parent=self, separator="")
+        self.power_value._value_label.setMinimumSize(50, 20)
+        self.indicator_label._value_label.setMinimumSize(50, 20)
 
         # populate dialogs with valid lists:
         for i, sys in enumerate(self.cmddeck.systems):
@@ -147,27 +156,27 @@ class CommandUplinkWidget(QWidget):
         self.system_combo_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         self.grid_layout.addWidget(
             self.system_combo_box,
-            1,0,1,2,
+            1,0,2,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
         )
         self.grid_layout.addWidget(
             self.system_raw_label,
-            2,0,1,1,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.grid_layout.addWidget(
-            self.system_raw_value,
-            2,1,1,1,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.grid_layout.addWidget(
-            self.system_name_label,
             3,0,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
-            self.system_name_value,
+            self.system_raw_value,
             3,1,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
+            self.system_name_label,
+            4,0,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
+            self.system_name_value,
+            4,1,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
@@ -177,7 +186,7 @@ class CommandUplinkWidget(QWidget):
         )
         self.grid_layout.addWidget(
             self.command_combo_box,
-            1,2,1,2,
+            1,2,2,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
         )
         self.command_combo_box.setMinimumWidth(340)
@@ -185,22 +194,22 @@ class CommandUplinkWidget(QWidget):
         self.system_combo_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         self.grid_layout.addWidget(
             self.command_raw_label,
-            2,2,1,2,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.grid_layout.addWidget(
-            self.command_raw_value,
-            2,3,1,2,
-            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
-        )
-        self.grid_layout.addWidget(
-            self.command_name_label,
             3,2,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
-            self.command_name_value,
+            self.command_raw_value,
             3,3,1,2,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
+            self.command_name_label,
+            4,2,1,2,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
+        )
+        self.grid_layout.addWidget(
+            self.command_name_value,
+            4,3,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
@@ -235,6 +244,16 @@ class CommandUplinkWidget(QWidget):
         )
 
         self.grid_layout.addWidget(
+            self.power_label,
+            5,4,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+        self.grid_layout.addWidget(
+            self.power_value,
+            5,5,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+        self.grid_layout.addWidget(
             self.indicator_label,
             6,5,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
@@ -258,6 +277,8 @@ class CommandUplinkWidget(QWidget):
         self.system_combo_box.itemSelectionChanged.connect(self.systemComboBoxClicked)
         self.command_combo_box.itemSelectionChanged.connect(self.commandComboBoxClicked)
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
+
+        self.power_reader.value_changed_collection.connect(self.powerUpdated)
 
         # disable downstream command pieces (until selection is made)
         self.command_combo_box.setEnabled(False)
@@ -331,6 +352,17 @@ class CommandUplinkWidget(QWidget):
     def commandInterfaceButtonClicked(self, events):
         print("switched to commanding mode:", self.command_mode_button_group.checkedButton().text())
 
+    def powerUpdated(self):
+        total = self.power_reader.collection.get_p4() + \
+            self.power_reader.collection.get_p10() + \
+            self.power_reader.collection.get_p11() + \
+            self.power_reader.collection.get_p12() + \
+            self.power_reader.collection.get_p13() + \
+            self.power_reader.collection.get_p14() + \
+            self.power_reader.collection.get_p15()
+
+        self.power_value.update_label(round(total, 3))
+    
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Left:
             self.system_combo_box.setFocus()
