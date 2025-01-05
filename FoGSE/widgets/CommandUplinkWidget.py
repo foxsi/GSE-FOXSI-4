@@ -8,7 +8,7 @@ from FoGSE.io.newest_data import newest_data_dir
 from FoGSE.widgets import QValueWidget
 
 from FoGSE.readers import PowerReader
-# from FoGSE.readers import PowerReader
+from FoGSE.readers import PingReader
 
 class CommandUplinkWidget(QWidget):
     """
@@ -74,6 +74,7 @@ class CommandUplinkWidget(QWidget):
         print('found system font' , platform_monospace)
 
         self.power_reader = PowerReader.PowerReader(datafile=os.path.join(newest_data_dir(), "housekeeping_pow.log"))
+        self.ping_reader = PingReader.PingReader(datafile=os.path.join(newest_data_dir(), "housekeeping_ping.log"))
 
         # make UI widgets:
         min_scroll_height = 400
@@ -119,11 +120,12 @@ class CommandUplinkWidget(QWidget):
         self.current_log_folder_value.setStyleSheet(f"font-family: {platform_monospace}")
         self.current_log_folder_value.setEnabled(False)
 
-        self.indicator_label = QValueWidget.QValueTimeWidget("", "Ping", 1000, parent=self, separator="", condition=[str])
+        self.ping_label = QLabel("Ping:", self)
+        self.ping_value = QValueWidget.QValueTimeWidget("", "N/A", 1000, parent=self, separator="", condition=[int])
         self.power_label = QLabel("Total current:", self)
         self.power_value = QValueWidget.QValueRangeWidget("", "N/A", condition={"low": -0.1, "high": 5.0}, parent=self, separator="")
         self.power_value._value_label.setMinimumSize(50, 20)
-        self.indicator_label._value_label.setMinimumSize(50, 20)
+        self.ping_value._value_label.setMinimumSize(50, 20)
 
         # populate dialogs with valid lists:
         for i, sys in enumerate(self.cmddeck.systems):
@@ -254,7 +256,12 @@ class CommandUplinkWidget(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
         )
         self.grid_layout.addWidget(
-            self.indicator_label,
+            self.ping_label,
+            6,4,1,1,
+            alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+        self.grid_layout.addWidget(
+            self.ping_value,
             6,5,1,1,
             alignment=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
         )
@@ -279,6 +286,7 @@ class CommandUplinkWidget(QWidget):
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
 
         self.power_reader.value_changed_collection.connect(self.powerUpdated)
+        self.ping_reader.value_changed_collection.connect(self.pingUpdated)
 
         # disable downstream command pieces (until selection is made)
         self.command_combo_box.setEnabled(False)
@@ -362,6 +370,10 @@ class CommandUplinkWidget(QWidget):
             self.power_reader.collection.get_p15()
 
         self.power_value.update_label(round(total, 3))
+    
+    def pingUpdated(self):
+        result = self.ping_reader.collection.get_unixtime()
+        self.ping_value.update_label(result)
     
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Left:
