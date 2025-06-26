@@ -39,8 +39,8 @@ class GSEDataDisplay(QWidget):
         self.f0 = cdte_view((os.path.join(newest_folder, get_det_file("cdte1_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte1_hk.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))), 
-                        (os.path.join(newest_folder, get_det_file("cdte2_pc.log", instruments)), 
-                          os.path.join(newest_folder, get_det_file("cdte2_hk.log", instruments)), 
+                        (os.path.join(newest_folder, get_det_file("cdte5_pc.log", instruments)), 
+                          os.path.join(newest_folder, get_det_file("cdte5_hk.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))), 
                         (os.path.join(newest_folder, get_det_file("cdte3_pc.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdte3_hk.log", instruments)), 
@@ -49,7 +49,7 @@ class GSEDataDisplay(QWidget):
                           os.path.join(newest_folder, get_det_file("cdte4_hk.log", instruments)), 
                           os.path.join(newest_folder, get_det_file("cdtede_hk.log", instruments))))
         # f0 = cdte_view(os.path.join(newest_folder, get_det_file("cdte1.log", instruments)), 
-        #                  os.path.join(newest_folder, get_det_file("cdte2.log", instruments)), 
+        #                  os.path.join(newest_folder, get_det_file("cdte5.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte3.log", instruments)), 
         #                  os.path.join(newest_folder, get_det_file("cdte4.log", instruments)))
         # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
@@ -115,15 +115,16 @@ class GSEDataDisplay(QWidget):
     
     def propagate_rotation(self):
         """ Apply the rotation displayed on the slider to the image windows. """
+        # andgles are hardcoding in self.f0.fN for the order (1, [2 or 5], 3, 4)
         if not hasattr(self, "cdte1_rot_default"): self.cdte1_rot_default = self.f0.f0.image.image_angle
-        if not hasattr(self, "cdte2_rot_default"): self.cdte2_rot_default = self.f0.f1.image.image_angle
+        if not hasattr(self, "cdte5_rot_default"): self.cdte5_rot_default = self.f0.f1.image.image_angle
         if not hasattr(self, "cdte3_rot_default"): self.cdte3_rot_default = self.f0.f2.image.image_angle
         if not hasattr(self, "cdte4_rot_default"): self.cdte4_rot_default = self.f0.f3.image.image_angle
         if not hasattr(self, "cmos1_rot_default"): self.cmos1_rot_default = self.f1.f0.ql.image_angle
         if not hasattr(self, "cmos2_rot_default"): self.cmos2_rot_default = self.f1.f1.ql.image_angle
         rotation = self.f3.rotation_slider.value()
         self.f0.f0.image.update_rotation(self.cdte1_rot_default+rotation)
-        self.f0.f1.image.update_rotation(self.cdte2_rot_default+rotation)
+        self.f0.f1.image.update_rotation(self.cdte5_rot_default+rotation)
         self.f0.f2.image.update_rotation(self.cdte3_rot_default+rotation)
         self.f0.f3.image.update_rotation(self.cdte4_rot_default+rotation)
         self.f1.f0.ql.update_rotation(self.cmos1_rot_default+rotation)
