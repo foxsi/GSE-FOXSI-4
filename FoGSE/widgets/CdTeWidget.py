@@ -30,7 +30,7 @@ class CdTeWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, ping_ind=None, parent=None):
 
         QWidget.__init__(self, parent)
         pc_parser, hk_parser, de_parser = self.get_cdte_parsers()
@@ -39,6 +39,7 @@ class CdTeWidget(QWidget):
         self.reader_de = de_parser(datafile=data_file_de)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
+        self.ping_ind = ping_ind
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
@@ -267,7 +268,10 @@ class CdTeWidget(QWidget):
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
-        self.ping.update_label(self.reader_de.collection.get_ping())
+        if self.ping_ind is None:
+            self.ping.update_label(self.reader_de.collection.get_ping())
+        else:
+            self.ping.update_label(self.reader_de.collection.get_ping()[self.ping_ind])
         self.de_unixtime.update_label(str(self.reader_de.collection.get_unixtime())[-6:])
     
         # self.reader_de.collection. methods
