@@ -17,6 +17,7 @@ DOWNLINK_TYPE_ENUM = {
     "pc":   0x00,
     "ql":   0x01,
     "tpx":  0x02,
+    "pcap": 0x03,
     "hk":   0x10,
     "pow":  0x11,
     "rtd":  0x12,
