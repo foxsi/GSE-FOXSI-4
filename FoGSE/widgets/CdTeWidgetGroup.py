@@ -15,7 +15,7 @@ class AllCdTeView(QWidget):
         super().__init__()     
         
         # self.setGeometry(100,100,2000,350)
-        self.detw, self.deth = 2000,500
+        self.detw, self.deth = 2300,500
         self.setGeometry(100,100,self.detw, self.deth)
         self.setMinimumSize(600,150)
         self.setWindowTitle("All CdTe View")
