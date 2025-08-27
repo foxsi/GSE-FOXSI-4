@@ -26,7 +26,7 @@ class CdTePlaybackWidget(CdTeWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, ping_ind=None, parent=None):
 
         CdTeWidget.__init__(self, 
                             data_file_pc=data_file_pc, 
@@ -34,6 +34,7 @@ class CdTePlaybackWidget(CdTeWidget):
                             data_file_de=data_file_de, 
                             name=name, 
                             image_angle=image_angle, 
+                            ping_ind=ping_ind,
                             parent=parent)
         
 

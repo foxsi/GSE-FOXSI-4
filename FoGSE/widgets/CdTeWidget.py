@@ -30,7 +30,7 @@ class CdTeWidget(QWidget):
         String to determine whether an "image" and or "spectrogram" should be shown.
         Default: "image"
     """
-    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, parent=None):
+    def __init__(self, data_file_pc=None, data_file_hk=None, data_file_de=None, name="CdTe", image_angle=0, ping_ind=None, parent=None):
 
         QWidget.__init__(self, parent)
         pc_parser, hk_parser, de_parser = self.get_cdte_parsers()
@@ -39,10 +39,11 @@ class CdTeWidget(QWidget):
         self.reader_de = de_parser(datafile=data_file_de)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
+        self.ping_ind = ping_ind
 
         self.setWindowTitle(f"{name}")
         self.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: white;")
-        self.detw, self.deth = 50, 50
+        self.detw, self.deth = 58, 50
         self.setMinimumSize(self.detw, self.deth) # stops the panel from stretching and squeezing when changing times
         self.aspect_ratio = self.detw/self.deth
 
@@ -137,11 +138,10 @@ class CdTeWidget(QWidget):
         # frames
         frames_layout = QtWidgets.QGridLayout()
         frames_layout_colour = "rgb(66, 120, 139)"
-        self.frames = QValueWidget(name="Time to read [sec]:", value="", separator="", border_colour=frames_layout_colour)
+        self.frames = QValueWidget(name="Frames not saved to DE:", value="", separator="", border_colour=frames_layout_colour)
         t_cond = {"range1":[-np.inf,45,"rgb(100,149,237)"], "range2":[45,90,"yellow"], "range3":[90,np.inf,"red"], "other":"orange", "error":"orange"}
-        self.frames_t = QValueMultiRangeWidget(name="t", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
-        self.frames_tm1 = QValueMultiRangeWidget(name="t-1", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
-        self._frame_count_value = 0
+        self.frames_t = QValueMultiRangeWidget(name="# frames:", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
+        self.frames_tm1 = QValueMultiRangeWidget(name="Seconds to save:", value=self._default_qvaluewidget_value, condition=t_cond, border_colour=frames_layout_colour)
         frames_layout.addWidget(self.frames, 0, 0, 1, 2) 
         frames_layout.addWidget(self.frames_t, 1, 0, 1, 2) 
         frames_layout.addWidget(self.frames_tm1, 2, 0, 1, 2)
@@ -159,7 +159,7 @@ class CdTeWidget(QWidget):
         global_layout = QGridLayout()
         global_layout.addLayout(image_layout, 0, 0, 4, 4)
         global_layout.addLayout(ped_layout, 4, 0, 2, 4)
-        global_layout.addLayout(value_layout, 0, 4, 6, 2)
+        global_layout.addLayout(value_layout, 0, 4, 6, 3)
 
         unifrom_layout_stretch(global_layout, grid=True)
 
@@ -228,13 +228,10 @@ class CdTeWidget(QWidget):
 
         self.strips_al.update_label(round(self.image.reader.collection.mean_num_of_al_strips(),1))
         self.strips_pt.update_label(round(self.image.reader.collection.mean_num_of_pt_strips(),1))
-
-        _frame_count = self.image.reader.collection.get_unread_can_frame_count()
-        self._frame_count_value += _frame_count
-        self.frames_t.update_label(self._frame_count_value)
-        if hasattr(self, "_old_frames_t"):
-            self.frames_tm1.update_label(self._old_frames_t)
-        self._old_frames_t = self._frame_count_value
+        
+        _frames_not_saved = self.reader_hk.collection.get_unread_can_frame_count()
+        self.frames_t.update_label(_frames_not_saved)
+        self.frames_tm1.update_label(round(_frames_not_saved/12.5, 2))
         
     def all_fields_from_hk(self):
         """ 
@@ -267,7 +264,10 @@ class CdTeWidget(QWidget):
         #                                     "ASIC DTH":..., 
         #                                     "ASIC Load":...})
         # self.de_mode.update_label(...)
-        self.ping.update_label(self.reader_de.collection.get_ping())
+        if self.ping_ind is None:
+            self.ping.update_label(self.reader_de.collection.get_ping())
+        else:
+            self.ping.update_label(self.reader_de.collection.get_ping()[self.ping_ind])
         self.de_unixtime.update_label(str(self.reader_de.collection.get_unixtime())[-6:])
     
         # self.reader_de.collection. methods
