@@ -55,10 +55,10 @@ class GSEDataDisplay(QWidget):
         # newest_folder = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/feb3/run21/gse/"
         self.f1 = cmos_view(os.path.join(newest_folder, get_det_file("cmos1_pc.log", instruments)), 
                         os.path.join(newest_folder, get_det_file("cmos1_ql.log", instruments)), 
-                        os.path.join(newest_folder, get_det_file("cmos2_pc.log", instruments)), 
-                        os.path.join(newest_folder, get_det_file("cmos2_ql.log", instruments)), 
+                        os.path.join(newest_folder, get_det_file("cmos3_pc.log", instruments)), 
+                        os.path.join(newest_folder, get_det_file("cmos3_ql.log", instruments)), 
                         cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), #"/Users/kris/Downloads/cmos1_hk.log",#
-                        cmos_hk1=os.path.join(newest_folder, get_det_file("cmos2_hk.log", instruments)))
+                        cmos_hk1=os.path.join(newest_folder, get_det_file("cmos3_hk.log", instruments)))
         
         self.f2 = timepix_view(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
         # f2 = timepix_view("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
@@ -121,14 +121,14 @@ class GSEDataDisplay(QWidget):
         if not hasattr(self, "cdte3_rot_default"): self.cdte3_rot_default = self.f0.f2.image.image_angle
         if not hasattr(self, "cdte4_rot_default"): self.cdte4_rot_default = self.f0.f3.image.image_angle
         if not hasattr(self, "cmos1_rot_default"): self.cmos1_rot_default = self.f1.f0.ql.image_angle
-        if not hasattr(self, "cmos2_rot_default"): self.cmos2_rot_default = self.f1.f1.ql.image_angle
+        if not hasattr(self, "cmos3_rot_default"): self.cmos3_rot_default = self.f1.f1.ql.image_angle
         rotation = self.f3.rotation_slider.value()
         self.f0.f0.image.update_rotation(self.cdte1_rot_default+rotation)
         self.f0.f1.image.update_rotation(self.cdte5_rot_default+rotation)
         self.f0.f2.image.update_rotation(self.cdte3_rot_default+rotation)
         self.f0.f3.image.update_rotation(self.cdte4_rot_default+rotation)
         self.f1.f0.ql.update_rotation(self.cmos1_rot_default+rotation)
-        self.f1.f1.ql.update_rotation(self.cmos2_rot_default+rotation)
+        self.f1.f1.ql.update_rotation(self.cmos3_rot_default+rotation)
 
     def default_rotation(self):
         """ Reset the rotation of th windows to their defaults. """
