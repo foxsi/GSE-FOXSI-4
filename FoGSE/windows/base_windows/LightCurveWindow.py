@@ -9,8 +9,6 @@ from PyQt6.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget
 import pyqtgraph as pg
 
 from FoGSE.windows.mpl.MPLCanvas import MPLCanvas
-
-from FoGSE.readers.TimepixReader import TimepixReader
         
 
 class LightCurve(QWidget):
@@ -753,6 +751,7 @@ class LightCurveExample(QWidget):
 if __name__=="__main__":
     # package top-level
     import os
+    from FoGSE.readers.TimepixReader import TimepixReader
     DATAFILE = os.path.dirname(os.path.realpath(__file__)) + "/../../../fake_temperatures.txt"
     DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame.bin"
     DATAFILE = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"

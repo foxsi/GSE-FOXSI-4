@@ -3,16 +3,16 @@ Create a class that will read the LOG file containing raw binary data received f
 FOXSI and parse the data to be readyfor the GUI plotting windows. 
 
 Can read:
-    * Timepix
+    * Timepix PCAP data
 """
 from FoGSE.readers.BaseReader import BaseReader
 
 from FoGSE.readBackwards import BackwardsReader
-from FoGSE.telemetry_tools.parsers.Timepixparser import timepix_parser
-from FoGSE.telemetry_tools.collections.TimepixCollection import TimepixCollection
+from FoGSE.telemetry_tools.parsers.Timepixparser import timepix_pcap_parser
+from FoGSE.telemetry_tools.collections.TimepixPCAPCollection import TimepixPCAPCollection
 from FoGSE.utils import get_frame_size, get_system_value
 
-class TimepixReader(BaseReader):
+class TimepixPCAPReader(BaseReader):
     """
     Reader for the FOXSI Timepix instrument.
     """
@@ -25,7 +25,7 @@ class TimepixReader(BaseReader):
         """
         BaseReader.__init__(self, datafile, parent)
         
-        self.define_buffer_size(size=get_frame_size("timepix", "tpx")) # bytes, 
+        self.define_buffer_size(size=get_frame_size("timepix", "pcap")) # bytes, 
         self.call_interval(get_system_value("gse", "display_settings", "timepix", "tpx", "readers", "read_interval"))
 
     def extract_raw_data(self):
@@ -82,7 +82,7 @@ class TimepixReader(BaseReader):
         # return or set human readable data
         # do stuff with the raw data and return nice, human readable data
         try:
-            data = timepix_parser(raw_data)
+            data = timepix_pcap_parser(raw_data)
 
             return data
         except ValueError:
@@ -108,7 +108,7 @@ class TimepixReader(BaseReader):
             return
         # take human readable and convert and set to 
         # CdTeCollection(), TimePixCollection(), CMOSCollection()
-        col = TimepixCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
+        col = TimepixPCAPCollection(parsed_data, 0)#self.old_data_time) #replace the old data time with 0 to allow even old data trhough if it gets to this stage (come back to this!)
 
         # if col.last_data_time>self.old_data_time:
         #     self.old_data_time = col.last_data_time

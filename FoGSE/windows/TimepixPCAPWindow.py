@@ -6,19 +6,19 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.readers.TimepixReader import TimepixReader
+from FoGSE.readers.TimepixPCAPReader import TimepixPCAPReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
-from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
+from FoGSE.windows.base_windows.LightCurveWindow import LightCurve, MultiLightCurve
 
 
-class TimepixWindow(BaseWindow):
+class TimepixPCAPWindow(BaseWindow):
     """
     An individual window to display Timepix data read from a file.
 
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixPCReader.TimepixPCReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
@@ -33,9 +33,9 @@ class TimepixWindow(BaseWindow):
     
     name : `str`
         A useful string that can be used as a label.
-        Default: \"Timepix\"
+        Default: \"TimepixPCAP\"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="Timepix", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="TimepixPCAP", parent=None):
 
         BaseWindow.__init__(self, data_file=data_file, 
                             reader=reader, 
@@ -46,7 +46,7 @@ class TimepixWindow(BaseWindow):
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
-        return TimepixReader
+        return TimepixPCAPReader
     
     def products(self):
         """ Define the products for the class. """
@@ -75,30 +75,32 @@ class TimepixWindow(BaseWindow):
     def lightcurve_setup(self):
         """ Sets up the class for a time profile product. """
 
-        self.mean_tot = LightCurve()
-        self.flux = LightCurve(colour="purple")
+        self.pcap1_plot = LightCurve()
+        self.pcapn_plot = MultiLightCurve(ids=["pcap2", "pcap3", "pcap4"], colours=["g", "b", "k"])
         
-        self.layoutMain.addWidget(self.mean_tot)
-        self.layoutMain.addWidget(self.flux)
+        self.layoutMain.addWidget(self.pcap1_plot)
+        self.layoutMain.addWidget(self.pcapn_plot)
 
-        self.mean_tot.set_labels(xlabel="", ylabel="Mean ToT", title=" ", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
-        self.flux.set_labels(xlabel="Time (frame #)", ylabel="Flux", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.pcap1_plot.set_labels(xlabel="", ylabel="PCAP1", title=" ", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
+        self.pcapn_plot.set_labels(xlabel="Time (frame #)", ylabel="PCAP2,3,4", title="", xlabel_kwargs={"size":5}, ylabel_kwargs={"size":5}, title_kwargs={"size":0}, tick_kwargs={"labelsize":4}, offsetsize=1)
         
-        self.detw, self.deth = self.mean_tot.detw, self.mean_tot.deth+self.flux.deth
+        self.detw, self.deth = self.pcap1_plot.detw, self.pcap1_plot.deth+self.pcapn_plot.deth
         self.aspect_ratio = self.detw / self.deth
 
     def lightcurve_update(self):
         """ Define how the time profile product should updated. """
-        new_mean_tot = self.reader.collection.get_mean_tot()
-        new_flux = self.reader.collection.get_flux()
+        new_pcap1 = self.reader.collection.get_pcap1()
+        new_pcapn = [self.reader.collection.get_pcap2(),
+                     self.reader.collection.get_pcap3(),
+                     self.reader.collection.get_pcap4()]
         
         # defined how to add/append onto the new data arrays
-        self.mean_tot.add_plot_data(new_mean_tot)
-        self.flux.add_plot_data(new_flux)
+        self.pcap1_plot.add_plot_data(new_pcap1)
+        self.pcapn_plot.add_plot_data(new_pcapn)
 
         # plot the newly updated x and ys
-        self.mean_tot.manage_plotting_ranges()
-        self.flux.manage_plotting_ranges()
+        self.pcap1_plot.manage_plotting_ranges()
+        self.pcapn_plot.manage_plotting_ranges()
 
     def base_essential_update_plot(self):
         """Defines how the plot window is updated. """
@@ -115,9 +117,9 @@ if __name__=="__main__":
     def initiate_gui():
         app = QApplication([])
 
-        R = TimepixReader(DATAFILE)
+        R = TimepixPCAPReader(DATAFILE)
 
-        f0 = TimepixWindow(reader=R)
+        f0 = TimepixPCAPWindow(reader=R)
 
         f0.show()
         app.exec()
