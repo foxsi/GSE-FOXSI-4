@@ -119,12 +119,15 @@ class TimepixWidget(QWidget):
                                                          "error":"orange"}, 
                                               border_colour=first_layout_colour)
 
-        self.mtot = QValueRangeWidget(name="Mean ToT", 
-                                      value=self._default_qvaluewidget_value, 
-                                      condition={"low":0,"high":np.inf}, 
-                                      border_colour=first_layout_colour,
-                                      tool_tip_values={"Mean ToT Now":self._default_qvaluewidget_value, "Mean ToT Mean":self._default_qvaluewidget_value, "Mean ToT Median":self._default_qvaluewidget_value, "Mean ToT Max.":self._default_qvaluewidget_value, "Mean ToT Min.":self._default_qvaluewidget_value},
-                                      name_plus="<sup>*</sup>")
+        self.mtot = QValueMultiRangeWidget(name="Mean ToT", 
+                                           value=self._default_qvaluewidget_value, 
+                                           condition={"range1":[0,1020,"white"],
+                                                      "range2":[1021,np.inf,"red"],
+                                                      "other":"orange",
+                                                      "error":"orange"}, 
+                                           border_colour=first_layout_colour,
+                                           tool_tip_values={"Mean ToT Now":self._default_qvaluewidget_value, "Mean ToT Mean":self._default_qvaluewidget_value, "Mean ToT Median":self._default_qvaluewidget_value, "Mean ToT Max.":self._default_qvaluewidget_value, "Mean ToT Min.":self._default_qvaluewidget_value},
+                                           name_plus="<sup>*</sup>")
         self.flx = QValueRangeWidget(name="Flux", 
                                      value=self._default_qvaluewidget_value, 
                                      condition={"low":0,"high":np.inf}, 
