@@ -9,12 +9,12 @@ Can read:
 import numpy as np
 from PyQt6.QtCore import QTimer
 
-from FoGSE.readers.TimepixReader import TimepixReader
+from FoGSE.readers.TimepixPCAPReader import TimepixPCAPReader
 
 from FoGSE.readBackwards import BackwardsReader
 from FoGSE.utils import get_frame_size
 
-class TimepixPlaybackReader(TimepixReader):
+class TimepixPCAPPlaybackReader(TimepixPCAPReader):
     """
     Reader for the FOXSI Timepix instrument.
     """
@@ -25,7 +25,7 @@ class TimepixPlaybackReader(TimepixReader):
         Parsed : human readable
         Collected : organised by intrumentation
         """
-        TimepixReader.__init__(self, datafile, parent)
+        TimepixPCAPReader.__init__(self, datafile, parent)
         self.timer.stop()
 
         # 4 CdTe, 2 CMOS, 1 Timepix, 1 HK, so each gets 1/8 s
@@ -33,7 +33,7 @@ class TimepixPlaybackReader(TimepixReader):
         call_interval = 1_000
         self.delay_timer(delay, call_interval)
         
-        self.frame_size = get_frame_size("timepix", "tpx") # bytes
+        self.frame_size = get_frame_size("timepix", "pcap") # bytes
         self.frame_counter = 0
 
         self.define_buffer_size(size=0) # read whole file
