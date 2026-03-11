@@ -265,26 +265,24 @@ class TimepixWidget(QWidget):
     def _switch2lc(self, event=None):
         """ Switch from pedestal to lightcurve. """
         self._lc_layout.removeWidget(self.lc_pcap) 
-        self._lc_layout.removeWidget(self.lc_pcap) 
-        self.lc_layout.removeWidget(self.lc_pcap) 
         self.lc_layout.removeWidget(self.lc_pcap) 
         self._lc_layout.addWidget(self.lc) 
-        self._lc_layout.addWidget(self.lc) 
         self.lc_layout.addWidget(self.lc) 
-        self.lc_layout.addWidget(self.lc) 
+        self._lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc.setStyleSheet(self._layout_style("white", "white"))
         self.lc.mean_tot.setStyleSheet("border-width: 0px;")
         self.lc.flux.setStyleSheet("border-width: 0px;")
 
     def _switch2lc_pcap(self, event=None):
         """ Switch from lightcurve to pedestal. """
-        self._lc_layout.removeWidget(self.lc) 
-        self._lc_layout.removeWidget(self.lc) 
-        self.lc_layout.removeWidget(self.lc) 
+        self._lc_layout.removeWidget(self.lc)  
         self.lc_layout.removeWidget(self.lc) 
         self._lc_layout.addWidget(self.lc_pcap) 
-        self._lc_layout.addWidget(self.lc_pcap) 
         self.lc_layout.addWidget(self.lc_pcap) 
-        self.lc_layout.addWidget(self.lc_pcap) 
+        self._lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc.setStyleSheet(self._layout_style("white", "white"))
         self.lc_pcap.pcap1_plot.setStyleSheet("border-width: 0px;")
         self.lc_pcap.pcapn_plot.setStyleSheet("border-width: 0px;")
 
