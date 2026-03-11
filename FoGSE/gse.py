@@ -30,7 +30,7 @@ if __name__=="__main__":
     w = GSEDataDisplay()
 
     _s = 122
-    w.setGeometry(0,0, 12*_s, 8*_s) # 12 to 8
+    w.setGeometry(0,0, int(13.7*_s), int(8*_s)) # 12 to 8
     w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
     w.show()
