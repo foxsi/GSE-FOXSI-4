@@ -75,8 +75,8 @@ class TimepixPCAPWindow(BaseWindow):
     def lightcurve_setup(self):
         """ Sets up the class for a time profile product. """
 
-        self.pcap1_plot = LightCurve()
-        self.pcapn_plot = MultiLightCurve(ids=["pcap2", "pcap3", "pcap4"], colours=["g", "b", "k"])
+        self.pcap1_plot = LightCurve(colour="k")
+        self.pcapn_plot = MultiLightCurve(ids=["pcap2", "pcap3", "pcap4"], colours=["r", "g", "b"])
         
         self.layoutMain.addWidget(self.pcap1_plot)
         self.layoutMain.addWidget(self.pcapn_plot)
