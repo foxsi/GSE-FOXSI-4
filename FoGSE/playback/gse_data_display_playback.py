@@ -32,7 +32,9 @@ class GSEPlaybackDataDisplay(GSEDataDisplay):
         # return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 20 2024/mar20/run1/20-3-2024_15-50-53/"
         # return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 23 2024/run12/23-3-2024_16-37-22/"
         # return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/usingGSECodeForDetAnalysis/pfrr/March 23 2024/run13/23-3-2024_17-53-39/"
-        return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/launch-campaign/launch-campaign-day8-launch/apr17-launch/run2/17-4-2024_11-41-21/"
+        # return "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/launch-campaign/launch-campaign-day8-launch/apr17-launch/run2/17-4-2024_11-41-21/"
+        # return "/Users/kris/Downloads/run1/17-4-2024_10-32-27/"
+        return "/Users/kris/Downloads/March11/TM Handshake Telemetry/11-3-2026_14-22-15/"
 
 if __name__=="__main__":
     import time

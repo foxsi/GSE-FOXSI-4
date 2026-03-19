@@ -2,11 +2,11 @@
 A demo to walk through a Timepix raw file.
 """
 
-from FoGSE.playback.readers.TimepixPlaybackReader import TimepixPlaybackReader
-from FoGSE.windows.TimepixWindow import TimepixWindow
+from FoGSE.playback.readers.TimepixPCAPPlaybackReader import TimepixPCAPPlaybackReader
+from FoGSE.windows.TimepixPCAPWindow import TimepixPCAPWindow
 
 
-class TimepixPlaybackWindow(TimepixWindow):
+class TimepixPCAPPlaybackWindow(TimepixPCAPWindow):
     """
     An individual window to display Timepix data read from a file.
 
@@ -30,15 +30,16 @@ class TimepixPlaybackWindow(TimepixWindow):
         A useful string that can be used as a label.
         Default: \"Timepix\"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="Timepix", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="TimepixPCAP", parent=None):
 
-        TimepixWindow.__init__(self, data_file=data_file, 
-                            reader=reader, 
-                            plotting_product=plotting_product, 
-                            name=name, 
-                            parent=parent)
+        TimepixPCAPWindow.__init__(self, 
+                                   data_file=data_file, 
+                                   reader=reader, 
+                                   plotting_product=plotting_product, 
+                                   name=name, 
+                                   parent=parent)
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
-        return TimepixPlaybackReader
+        return TimepixPCAPPlaybackReader
     

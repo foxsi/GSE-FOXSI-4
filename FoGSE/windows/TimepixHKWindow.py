@@ -6,19 +6,19 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication
 
-from FoGSE.readers.TimepixReader import TimepixReader
+from FoGSE.readers.TimepixHKReader import TimepixHKReader
 from FoGSE.windows.base_windows.BaseWindow import BaseWindow
 from FoGSE.windows.base_windows.LightCurveWindow import LightCurve
 
 
-class TimepixWindow(BaseWindow):
+class TimepixHKWindow(BaseWindow):
     """
     An individual window to display Timepix data read from a file.
 
     Parameters
     ----------
     data_file : `str` 
-        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
+        The file to be passed to `FoGSE.readers.TimepixHKReader.TimepixHKReader()`.
         If given, takes priority over `reader` input.
         Default: None
 
@@ -33,9 +33,9 @@ class TimepixWindow(BaseWindow):
     
     name : `str`
         A useful string that can be used as a label.
-        Default: \"Timepix\"
+        Default: \"TimepixHK\"
     """
-    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="Timepix", parent=None):
+    def __init__(self, data_file=None, reader=None, plotting_product="lightcurve", name="TimepixHK", parent=None):
 
         BaseWindow.__init__(self, data_file=data_file, 
                             reader=reader, 
@@ -46,7 +46,7 @@ class TimepixWindow(BaseWindow):
 
     def base_essential_get_reader(self):
         """ Return default reader here. """
-        return TimepixReader
+        return TimepixHKReader
     
     def products(self):
         """ Define the products for the class. """
@@ -115,9 +115,9 @@ if __name__=="__main__":
     def initiate_gui():
         app = QApplication([])
 
-        R = TimepixReader(DATAFILE)
+        R = TimepixHKReader(DATAFILE)
 
-        f0 = TimepixWindow(reader=R)
+        f0 = TimepixHKWindow(reader=R)
 
         f0.show()
         app.exec()

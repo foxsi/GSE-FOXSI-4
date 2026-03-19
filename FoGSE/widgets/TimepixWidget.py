@@ -7,8 +7,10 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,QBoxLayout
 
 from FoGSE.telemetry_tools.parsers.Timepixparser import FLAG_MESSAGES
-from FoGSE.readers.TimepixReader import TimepixReader
-from FoGSE.windows.TimepixWindow import TimepixWindow
+from FoGSE.readers.TimepixHKReader import TimepixHKReader
+from FoGSE.readers.TimepixPCAPReader import TimepixPCAPReader
+from FoGSE.windows.TimepixHKWindow import TimepixHKWindow
+from FoGSE.windows.TimepixPCAPWindow import TimepixPCAPWindow
 from FoGSE.widgets.QValueWidget import QValueRangeWidget, QValueCheckWidget, QValueMultiRangeWidget, QValueListWidget
 from FoGSE.widgets.layout_tools.stretch import unifrom_layout_stretch
 from FoGSE.widgets.layout_tools.spacing import set_all_spacings
@@ -20,15 +22,20 @@ class TimepixWidget(QWidget):
 
     Parameters
     ----------
-    data_file : `str` 
-        The file to be passed to `FoGSE.readers.TimepixReader.TimepixReader()`.
+    data_file_hk : `str` 
+        The file to be passed to `FoGSE.readers.TimepixHKReader.TimepixHKReader()`.
+        Default: None
+
+    data_file_pcap : `str` 
+        The file to be passed to `FoGSE.readers.TimepixPCAPReader.TimepixPCAPReader()`.
         Default: None
     """
-    def __init__(self, data_file=None, name="Timepix", image_angle=0, parent=None):
+    def __init__(self, data_file_hk=None, data_file_pcap=None, name="Timepix", image_angle=0, parent=None):
 
         QWidget.__init__(self, parent)
-        timepix_parser = self.get_timepix_parsers()
-        reader = timepix_parser(datafile=data_file)
+        timepix_hk_parser, timepix_pcap_parser = self.get_timepix_parsers()
+        reader_hk = timepix_hk_parser(datafile=data_file_hk)
+        reader_pcap = timepix_pcap_parser(datafile=data_file_pcap)
 
         self._default_qvaluewidget_value = "<span>&#129418;</span>" #fox
 
@@ -44,16 +51,19 @@ class TimepixWidget(QWidget):
 
         self.panels = dict() # for all the background panels
 
-        timepix_window = self.get_timepix_windows()
+        timepix_hk_window, timepix_pcap_window = self.get_timepix_windows()
         
         ## for Timepix light curve
         # widget for displaying the automated recommendation
         self._lc_layout = self.layout_bkg(main_layout=lc_layout, 
                                              panel_name="lc_panel", 
                                              style_sheet_string=self._layout_style("white", "white"), grid=True)
-        self.lc = timepix_window(reader=reader, name=name)
+        self.lc = timepix_hk_window(reader=reader_hk, name=name)
         self.lc.setStyleSheet("border-width: 0px;")
         self._lc_layout.addWidget(self.lc)
+        self.lc_layout = lc_layout
+        
+        self.lc_pcap = timepix_pcap_window(reader=reader_pcap, name=name)
 
         # need to groupd some of these for the layout
         first_layout = QtWidgets.QGridLayout()
@@ -109,12 +119,15 @@ class TimepixWidget(QWidget):
                                                          "error":"orange"}, 
                                               border_colour=first_layout_colour)
 
-        self.mtot = QValueRangeWidget(name="Mean ToT", 
-                                      value=self._default_qvaluewidget_value, 
-                                      condition={"low":0,"high":np.inf}, 
-                                      border_colour=first_layout_colour,
-                                      tool_tip_values={"Mean ToT Now":self._default_qvaluewidget_value, "Mean ToT Mean":self._default_qvaluewidget_value, "Mean ToT Median":self._default_qvaluewidget_value, "Mean ToT Max.":self._default_qvaluewidget_value, "Mean ToT Min.":self._default_qvaluewidget_value},
-                                      name_plus="<sup>*</sup>")
+        self.mtot = QValueMultiRangeWidget(name="Mean ToT", 
+                                           value=self._default_qvaluewidget_value, 
+                                           condition={"range1":[0,1020,"white"],
+                                                      "range2":[1021,np.inf,"red"],
+                                                      "other":"orange",
+                                                      "error":"orange"}, 
+                                           border_colour=first_layout_colour,
+                                           tool_tip_values={"Mean ToT Now":self._default_qvaluewidget_value, "Mean ToT Mean":self._default_qvaluewidget_value, "Mean ToT Median":self._default_qvaluewidget_value, "Mean ToT Max.":self._default_qvaluewidget_value, "Mean ToT Min.":self._default_qvaluewidget_value},
+                                           name_plus="<sup>*</sup>")
         self.flx = QValueRangeWidget(name="Flux", 
                                      value=self._default_qvaluewidget_value, 
                                      condition={"low":0,"high":np.inf}, 
@@ -184,13 +197,18 @@ class TimepixWidget(QWidget):
         # actually display the layout
         self.setLayout(global_layout)
 
+        self.lc.mean_tot.mpl_click_signal.connect(self._switch2lc_pcap)
+        self.lc.flux.mpl_click_signal.connect(self._switch2lc_pcap)
+        self.lc_pcap.pcap1_plot.mpl_click_signal.connect(self._switch2lc) 
+        self.lc_pcap.pcapn_plot.mpl_click_signal.connect(self._switch2lc) 
+
     def get_timepix_parsers(self):
         """ A way the class can be inherited from but use different parsers. """
-        return TimepixReader
+        return TimepixHKReader, TimepixPCAPReader
     
     def get_timepix_windows(self):
         """ A way the class can be inherited from but use different parsers. """
-        return TimepixWindow
+        return TimepixHKWindow, TimepixPCAPWindow
 
     def all_fields(self):
         """ Update the QValueWidgets. """
@@ -242,6 +260,31 @@ class TimepixWidget(QWidget):
                                   "Flux Min.":flx_extra["Min."]})
 
         self.flgs.update_label(self.lc.reader.collection.get_flags())
+
+
+    def _switch2lc(self, event=None):
+        """ Switch from pedestal to lightcurve. """
+        self._lc_layout.removeWidget(self.lc_pcap) 
+        self.lc_layout.removeWidget(self.lc_pcap) 
+        self._lc_layout.addWidget(self.lc) 
+        self.lc_layout.addWidget(self.lc) 
+        self._lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc.setStyleSheet(self._layout_style("white", "white"))
+        self.lc.mean_tot.setStyleSheet("border-width: 0px;")
+        self.lc.flux.setStyleSheet("border-width: 0px;")
+
+    def _switch2lc_pcap(self, event=None):
+        """ Switch from lightcurve to pedestal. """
+        self._lc_layout.removeWidget(self.lc)  
+        self.lc_layout.removeWidget(self.lc) 
+        self._lc_layout.addWidget(self.lc_pcap) 
+        self.lc_layout.addWidget(self.lc_pcap) 
+        self._lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc_layout.setStyleSheet(self._layout_style("white", "white"))
+        self.lc.setStyleSheet(self._layout_style("white", "white"))
+        self.lc_pcap.pcap1_plot.setStyleSheet("border-width: 0px;")
+        self.lc_pcap.pcapn_plot.setStyleSheet("border-width: 0px;")
 
     def _get_lc_info(self, lc_plot):
         """ To update certain fields, we look to the lightcurve information. """
@@ -364,9 +407,13 @@ if __name__=="__main__":
 
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame.bin"
     datafile = "/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin"
+
+    data_file_hk = "/Users/kris/Downloads/timepix_tpx.log"
+    data_file_pcap = "/Users/kris/Downloads/timepix_pcap.log"
     
     # w.resize(1000,500)
-    w = TimepixWidget(data_file=datafile)
+    # w = TimepixWidget(data_file=datafile)
+    w = TimepixWidget(data_file_hk=data_file_hk, data_file_pcap=data_file_pcap)
     # w = QValueWidgetTest()
     w.show()
     app.exec()

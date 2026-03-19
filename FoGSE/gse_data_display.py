@@ -60,7 +60,8 @@ class GSEDataDisplay(QWidget):
                         cmos_hk0=os.path.join(newest_folder, get_det_file("cmos1_hk.log", instruments)), #"/Users/kris/Downloads/cmos1_hk.log",#
                         cmos_hk1=os.path.join(newest_folder, get_det_file("cmos2_hk.log", instruments)))
         
-        self.f2 = timepix_view(os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)))
+        self.f2 = timepix_view(data_file_hk=os.path.join(newest_folder, get_det_file("timepix_tpx.log", instruments)), 
+                               data_file_pcap=os.path.join(newest_folder, get_det_file("timepix_pcap.log", instruments)))
         # f2 = timepix_view("/Users/kris/Documents/umnPostdoc/projects/both/foxsi4/gse/timepix/for_Kris/fake_data_for_parser/example_timepix_frame_writing.bin")
 
         self.f3 = disp_comm_view()
