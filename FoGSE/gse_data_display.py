@@ -75,11 +75,11 @@ class GSEDataDisplay(QWidget):
 
         lay = QGridLayout()
 
-        lay.addWidget(self.f0, 0, 0, 3, 12)
-        lay.addWidget(self.f1, 3, 0, 3, 12)
-        lay.addWidget(self.f2, 6, 0, 2, 4)
-        lay.addWidget(self.f3, 6, 4, 2, 4)
-        lay.addWidget(self.f4, 6, 8, 2, 4)
+        lay.addWidget(self.f0, 0, 0, 6, 24)
+        lay.addWidget(self.f1, 6, 1, 6, 22)
+        lay.addWidget(self.f2, 12, 1, 4, 8)
+        lay.addWidget(self.f3, 12, 8, 4, 8)
+        lay.addWidget(self.f4, 12, 15, 4, 8)
         
         # w.resize(1000,500)
         # _s = 122
@@ -211,7 +211,7 @@ if __name__=="__main__":
     w = GSEDataDisplay(window_alert=True)
 
     _s = 122
-    w.setGeometry(0,0, 14*_s, 8*_s) # 14 to 8
+    w.setGeometry(0,0, int(13.7*_s), int(8*_s)) # 14 to 8
     w.setStyleSheet("border-width: 2px; border-style: outset; border-radius: 10px; border-color: white; background-color: rgba(238, 186, 125, 150);")
 
     w.show()
