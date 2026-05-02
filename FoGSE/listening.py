@@ -223,7 +223,7 @@ class LogFileManager:
         datatype = raw_data[5]
         npackets = int.from_bytes(raw_data[1:3], byteorder='big')
         ipacket = int.from_bytes(raw_data[3:5], byteorder='big')
-        iframe = raw_data[7]
+        iframe = int.from_bytes(raw_data[6:7], byteorder='big')
 
         if system != self.system:
             print("Log queue got bad system code!")
