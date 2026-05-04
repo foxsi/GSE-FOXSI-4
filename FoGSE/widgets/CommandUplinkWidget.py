@@ -90,6 +90,8 @@ class CommandUplinkWidget(QWidget):
         # QLineEdit()
         self.send_label = QLabel("")
         self.command_send_button = QPushButton("Send command")
+        self.flush_frame_buffer_button = QPushButton("Flush frames")
+        self.dump_frame_buffer_button = QPushButton("Dump frames")
 
         self._raw, self._check = "Raw: ", "Name: "
         self.system_raw_label = QLabel(self._raw, self)
@@ -225,6 +227,17 @@ class CommandUplinkWidget(QWidget):
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
         )
         self.grid_layout.addWidget(
+            self.flush_frame_buffer_button,
+            2,4,1,2,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignBottom
+        )
+        self.grid_layout.addWidget(
+            self.dump_frame_buffer_button,
+            3,4,1,2,
+            alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignBottom
+        )
+        # self.dump_frame_buffer_button    
+        self.grid_layout.addWidget(
             self.command_interface_label,
             5,0,1,2,
             alignment=QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop
@@ -284,6 +297,9 @@ class CommandUplinkWidget(QWidget):
         self.system_combo_box.itemSelectionChanged.connect(self.systemComboBoxClicked)
         self.command_combo_box.itemSelectionChanged.connect(self.commandComboBoxClicked)
         self.command_send_button.clicked.connect(self.commandSendButtonClicked)
+        
+        self.flush_frame_buffer_button.clicked.connect(self.flushFramesButtonClicked)
+        self.dump_frame_buffer_button.clicked.connect(self.dumpFramesButtonClicked)
 
         self.power_reader.value_changed_collection.connect(self.powerUpdated)
         self.ping_reader.value_changed_collection.connect(self.pingUpdated)
@@ -356,6 +372,13 @@ class CommandUplinkWidget(QWidget):
 
         self.command_combo_box.setEnabled(True)
         self.command_send_button.setEnabled(False)
+    
+    def flushFramesButtonClicked(self, events):
+        print("flushing all frame buffers")
+        self.fmtrif.unix_local_socket.send(bytes([0x00,0xcb]))
+    def dumpFramesButtonClicked(self, events):
+        print("dumping all frame buffers")
+        self.fmtrif.unix_local_socket.send(bytes([0x00,0xcd]))
     
     def commandInterfaceButtonClicked(self, events):
         print("switched to commanding mode:", self.command_mode_button_group.checkedButton().text())

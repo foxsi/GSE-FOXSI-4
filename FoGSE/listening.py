@@ -280,13 +280,13 @@ class LogFileManager:
         outframe = self.pop_frame(frame_counter)
         self.file.write(outframe.data)
         self.file.flush()
-        print("wrote frame count " + str(frame_counter) + " to " + self.filepath)
+        # print("wrote frame count " + str(frame_counter) + " to " + self.filepath)
     
-    def dump(self):
-        for f in self.frames: 
-            self.dumpfile.write(f.data)
+    def dump(self, frame_counter:int):
+        # for f in self.frames: 
+        outframe = self.pop_frame(frame_counter)
+        self.dumpfile.write(outframe.data)
         self.dumpfile.flush()
-        self.dumpfile.close()
     
 class CurrentFrame():
     """
@@ -651,7 +651,32 @@ class Listener():
                     print("received Listener terminate message")
                     for system in self.downlink_lookup.keys():
                         for data in self.downlink_lookup[system].keys():
-                            self.downlink_lookup[system][data].dump()
+                            dump_counters = [f.get_frame_counter() for f in self.downlink_lookup[system][data].frames]
+                            for counter in dump_counters:
+                                self.downlink_lookup[system][data].dump(counter)
+                            self.downlink_lookup[system][data].dumpfile.close()
+                    return
+                elif data[0] == 0x00 and data[1] == 0xcb:
+                    # clear frame buffer to log folder, so you can see the results
+                    print("clearing frame buffers to log folder")
+                    for system in self.downlink_lookup.keys():
+                        for data in self.downlink_lookup[system].keys():
+                            pre_clear = len(self.downlink_lookup[system][data].frames)
+                            clear_counters = [f.get_frame_counter() for f in self.downlink_lookup[system][data].frames]
+                            for counter in clear_counters:
+                                self.downlink_lookup[system][data].write(counter)
+                            print("pre:", pre_clear, "post clear:", len(self.downlink_lookup[system][data].frames))
+                    return
+                elif data[0] == 0x00 and data[1] == 0xcd:
+                    # clear frame buffer to dump folder
+                    print("clearing frame buffers to dump folder")
+                    for system in self.downlink_lookup.keys():
+                        for data in self.downlink_lookup[system].keys():
+                            pre_clear = len(self.downlink_lookup[system][data].frames)
+                            dump_counters = [f.get_frame_counter() for f in self.downlink_lookup[system][data].frames]
+                            for counter in dump_counters:
+                                self.downlink_lookup[system][data].dump(counter)
+                            print("pre:", pre_clear, "post clear:", len(self.downlink_lookup[system][data].frames))
                     return
                 else:
                     self._uplink_message_queue.put([data[0], data[1]])
